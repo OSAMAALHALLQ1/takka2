@@ -1,8 +1,27 @@
 {
-  "name": "-",
+  "name": "takka",
+  "description": "☕ نظام إدارة مطاعم ومقاهي ذكي - Restaurant Management System",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
+  "homepage": "https://takka-restaurant.vercel.app/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/OSAMAALHALLQ1/takka.git"
+  },
+  "author": {
+    "name": "Osama AlHallaq",
+    "url": "https://github.com/OSAMAALHALLQ1"
+  },
+  "license": "MIT",
+  "keywords": [
+    "restaurant",
+    "management",
+    "order-system",
+    "react",
+    "vite",
+    "pos"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "vite build",

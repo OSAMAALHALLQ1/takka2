@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { saveDeptOrders, getDeptOrders, addNotification } from '../utils/storage';
+import { saveDeptOrders, getDeptOrders, addNotification, updateDeptOrderItem } from '../utils/storage';
 import { menuCategories, menuItems } from '../data/menu';
 import { ShoppingBag, Send, CreditCard, ChevronLeft, Plus, Minus, Search, Trash2, TableProperties } from 'lucide-react';
 
@@ -74,13 +74,15 @@ export default function WaiterView({ tables, onSaveTables, employee }) {
 
     const { subtotal, tax, total } = calculateTotals();
     const orderId = `order-${Date.now()}`;
+    // add status to each item for department processing
+    const itemsWithStatus = cart.map(item => ({ ...item, status: 'new' }));
     const newOrder = {
       id: orderId,
       tableId: selectedTable.id,
       tableName: selectedTable.name,
       waiterCode: employee.code,
       timestamp: Date.now(),
-      items: cart,
+      items: itemsWithStatus,
       subtotal,
       tax,
       total,
@@ -162,8 +164,34 @@ export default function WaiterView({ tables, onSaveTables, employee }) {
   };
 
   return (
-    <div style={{ padding: '20px' }}>
-      {/* Waiter Header */}
+    <>
+      <div className="ready-notif-bar" style={{ background: '#2f8b7a', color: '#fff', padding: '8px 16px', borderRadius: '8px', marginBottom: '12px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+        {(() => {
+          const deptOrders = getDeptOrders();
+          const readyItems = [];
+          Object.values(deptOrders).forEach(order => {
+            order.items.forEach(item => {
+              if (item.status === 'ready') {
+                readyItems.push({ tableName: order.tableName, itemName: item.name, qty: item.qty, orderId: order.id, itemId: item.id });
+              }
+            });
+          });
+          return readyItems.length > 0 ? (
+            readyItems.map((ri, idx) => (
+              <div key={idx} className="ready-item" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span>{ri.tableName} – {ri.itemName} ×{ri.qty}</span>
+                <button className="btn btn-small" style={{ background: '#fff', color: '#2f8b7a', border: 'none', borderRadius: '4px', padding: '2px 6px' }}
+                  onClick={() => {
+                    updateDeptOrderItem(ri.orderId, ri.itemId, { status: 'delivered' });
+                  }}>
+                  تسليم ✓
+                </button>
+              </div>
+            ))
+          ) : null;
+        })()}
+      </div>
+      <div style={{ padding: '20px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <div>
           <h2 style={{ fontSize: '1.6rem', fontWeight: '800' }}>مرحباً، {employee.name} 👋</h2>
@@ -383,5 +411,6 @@ export default function WaiterView({ tables, onSaveTables, employee }) {
         </div>
       )}
     </div>
+    </>
   );
 }

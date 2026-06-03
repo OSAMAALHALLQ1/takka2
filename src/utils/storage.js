@@ -149,17 +149,17 @@ export const getDeptOrders = () => {
   return data ? JSON.parse(data) : {};
 };
 
-export const saveDeptOrders = (orders) => {
-  localStorage.setItem(DEPT_ORDERS_KEY, JSON.stringify(orders));
+export const saveDeptOrders = (deptOrders) => {
+  localStorage.setItem(DEPT_ORDERS_KEY, JSON.stringify(deptOrders));
   triggerSync(DEPT_ORDERS_KEY);
 };
 
 export const updateDeptOrderItem = (orderId, itemId, updates) => {
-  const orders = getDeptOrders();
-  if (!orders[orderId]) return;
-  const order = orders[orderId];
-  const itemIdx = order.items.findIndex(i => i.itemId === itemId);
-  if (itemIdx === -1) return;
-  order.items[itemIdx] = { ...order.items[itemIdx], ...updates };
-  saveDeptOrders(orders);
+  const deptOrders = getDeptOrders();
+  if (deptOrders[orderId]) {
+    deptOrders[orderId].items = deptOrders[orderId].items.map((item) =>
+      item.id === itemId ? { ...item, ...updates } : item
+    );
+    saveDeptOrders(deptOrders);
+  }
 };

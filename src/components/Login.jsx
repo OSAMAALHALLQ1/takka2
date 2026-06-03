@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getEmployees, getManagerCredentials, saveManagerCredentials } from '../utils/storage';
+import { getEmployees, getManagerCredentials, saveManagerCredentials, getManagerLoginState, saveManagerLoginState } from '../utils/storage';
 import { Lock, KeyRound, Coffee, User } from 'lucide-react';
 
 export default function Login({ onLoginSuccess }) {
@@ -39,34 +39,12 @@ const isManagerLoggedIn = getManagerLoginState();
     setError('');
 
     if (managerMode === 'register') {
-          // Register new manager
-          if (!managerName.trim()) {
-            setError('يرجى إدخال اسم المدير!');
-            return;
-          }
-          if (password.length < 6) {
-            setError('يجب أن تكون كلمة المرور 6 خانات أو أكثر!');
-            return;
-          }
-          if (password !== confirmPassword) {
-            setError('كلمتا المرور غير متطابقتين!');
-            return;
-          }
-
-          const newManager = {
-            name: managerName,
-            email: email,
-            password: password
-          };
-          saveManagerCredentials(newManager);
-          // After registration, show login link
-          saveManagerLoginState(false);
-          setManagerMode('login');
-          setError('تم إنشاء حساب المدير. يرجى تسجيل الدخول.');
-          return; // exit early
-        } else {
       if (!managerName.trim()) {
         setError('يرجى إدخال اسم المدير!');
+        return;
+      }
+      if (!email.trim()) {
+        setError('يرجى إدخال البريد الإلكتروني!');
         return;
       }
       if (password.length < 6) {
@@ -84,40 +62,27 @@ const isManagerLoggedIn = getManagerLoginState();
         password: password
       };
       saveManagerCredentials(newManager);
+      saveManagerLoginState(false);
+      setManagerMode('login');
+      setError('تم إنشاء حساب المدير. يرجى تسجيل الدخول.');
+      return;
+    }
+
+    const storedManager = getManagerCredentials();
+    if (!storedManager) {
+      setError('لا يوجد حساب مدير. الرجاء التسجيل أولاً.');
+      return;
+    }
+
+    if (email === storedManager.email && password === storedManager.password) {
+      saveManagerLoginState(true);
       onLoginSuccess({
         role: 'manager',
-        name: managerName,
+        name: storedManager.name,
         code: 'ADMIN'
       });
     } else {
-      const storedManager = getManagerCredentials();
-          if (email === storedManager.email && password === storedManager.password) {
-            // Successful login
-            saveManagerLoginState(true);
-            onLoginSuccess({
-              role: 'manager',
-              name: storedManager.name,
-              code: 'ADMIN'
-            });
-          } else {
-            setError('البريد الإلكتروني أو كلمة المرور غير صحيحة!');
-          }
-          return; // end login flow
-        }
-
-      const actualEmail = storedManager ? storedManager.email : 'admin@takah.com';
-      const actualPassword = storedManager ? storedManager.password : 'admin123';
-      const actualName = storedManager ? storedManager.name : 'المدير العام';
-
-      if (email === actualEmail && password === actualPassword) {
-        onLoginSuccess({
-          role: 'manager',
-          name: actualName,
-          code: 'ADMIN'
-        });
-      } else {
-        setError('البريد الإلكتروني أو كلمة المرور غير صحيحة!');
-      }
+      setError('البريد الإلكتروني أو كلمة المرور غير صحيحة!');
     }
   };
 
