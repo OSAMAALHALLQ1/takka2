@@ -48,6 +48,7 @@ export default function App() {
   const [activeManagerTab, setActiveManagerTab] = useState('overview');
   const [editingPriceId, setEditingPriceId] = useState(null);
   const [priceDraft, setPriceDraft] = useState('');
+  const [elapsedTimes, setElapsedTimes] = useState({});
 
   const isMountedRef = useRef(false);
   const prevDeptOrdersRef = useRef(null);
@@ -190,12 +191,108 @@ export default function App() {
     prevDeptOrdersRef.current = deptOrders;
   }, [deptOrders, soundEnabled]);
 
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setElapsedTimes((prev) => {
+        const next = { ...prev };
+        Object.entries(deptOrders).forEach(([orderId, order]) => {
+          const key = `order-${orderId}`;
+          if (!next[key]) {
+            next[key] = Math.floor((Date.now() - order.timestamp) / 1000);
+          } else {
+            next[key] = Math.floor((Date.now() - order.timestamp) / 1000);
+          }
+        });
+        return next;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [deptOrders]);
+
   const handleLoginSuccess = (userData) => {
     setUser(userData);
   };
 
   const handleLogout = () => {
     setUser(null);
+  };
+
+  const printBill = (bill) => {
+    const printWindow = window.open('', '', 'height=600,width=400');
+    const receipt = `
+      <html>
+        <head>
+          <title>فاتورة - ${bill.tableName}</title>
+          <style>
+            body { font-family: Arial, sans-serif; direction: rtl; text-align: right; padding: 20px; }
+            .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px; }
+            .restaurant-name { font-size: 24px; font-weight: bold; }
+            .details { margin-bottom: 15px; font-size: 12px; }
+            .items { margin-bottom: 20px; }
+            .item { display: flex; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px dashed #999; }
+            .totals { border-top: 2px solid #000; border-bottom: 2px solid #000; padding: 10px 0; margin-bottom: 15px; }
+            .total-row { display: flex; justify-content: space-between; font-weight: bold; }
+            .payment { text-align: center; margin-top: 20px; font-size: 14px; }
+            .thank-you { text-align: center; margin-top: 20px; font-size: 12px; color: #666; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="restaurant-name">مطعم تكة</div>
+            <div class="restaurant-name">Taka Restaurant</div>
+          </div>
+
+          <div class="details">
+            <div>الطاولة: ${bill.tableName}</div>
+            <div>التاريخ: ${bill.dateFormatted}</div>
+            <div>الوقت: ${bill.timeFormatted}</div>
+            <div>رقم الفاتورة: ${bill.id}</div>
+            <div>المحاسب: ${bill.cashierCode}</div>
+            <div>النادل: ${bill.waiterCode}</div>
+          </div>
+
+          <div class="items">
+            ${(bill.items || [])
+              .map(
+                (item) =>
+                  `<div class="item">
+                    <span>${item.name} × ${item.qty}</span>
+                    <span>${(item.qty * item.price).toFixed(2)} د.أ</span>
+                  </div>`
+              )
+              .join('')}
+          </div>
+
+          <div class="totals">
+            <div class="total-row">
+              <span>المجموع الفرعي:</span>
+              <span>${bill.subtotal.toFixed(2)} د.أ</span>
+            </div>
+            <div class="total-row" style="margin-top: 8px;">
+              <span>الضريبة (15%):</span>
+              <span>${bill.tax.toFixed(2)} د.أ</span>
+            </div>
+            <div class="total-row" style="margin-top: 8px; font-size: 16px;">
+              <span>الإجمالي:</span>
+              <span>${bill.total.toFixed(2)} د.أ</span>
+            </div>
+          </div>
+
+          <div class="payment">
+            <div>طريقة الدفع: ${paymentLabels[bill.paymentMethod] || 'نقداً'}</div>
+          </div>
+
+          <div class="thank-you">
+            شكراً لزيارتكم 🙏
+            <br/>
+            Thank you for your visit
+          </div>
+        </body>
+      </html>
+    `;
+    printWindow.document.write(receipt);
+    printWindow.document.close();
+    setTimeout(() => printWindow.print(), 250);
   };
 
   const handleSaveTables = (newTables) => {
@@ -212,6 +309,13 @@ export default function App() {
 
   const toggleSound = () => {
     setSoundEnabled((prev) => !prev);
+  };
+
+  const formatElapsedTime = (seconds) => {
+    if (!seconds || seconds < 0) return '0:00';
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   const getRoleBadgeText = (role) => {
@@ -428,39 +532,80 @@ export default function App() {
         </div>
       ) : (
         <div style={{ display: 'grid', gap: '18px' }}>
-          {departmentOrdersForRole.map((order) => (
-            <div key={order.orderId} className="dept-ticket">
-              <div className="dept-ticket-header">
-                <div>
-                  <div className="ticket-title">{order.tableName}</div>
-                  <div className="ticket-meta">النادل المسؤول: <strong>{order.waiterCode}</strong></div>
-                  <div className="ticket-meta">وقت الطلب: <strong>{new Date(order.timestamp).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}</strong></div>
-                </div>
-                <div className="ticket-status">{departmentLabels[user.role]}</div>
-              </div>
-
-              {(order.items || [])
-                .filter((item) => item.department === user.role)
-                .map((item) => (
-                  <div key={item.id} className="ticket-item">
+          {departmentOrdersForRole
+            .sort((a, b) => {
+              const statusOrder = { new: 0, preparing: 1, ready: 2 };
+              const aStatus = (a.items || []).find((item) => item.department === user.role)?.status || 'new';
+              const bStatus = (b.items || []).find((item) => item.department === user.role)?.status || 'new';
+              return (statusOrder[aStatus] ?? 3) - (statusOrder[bStatus] ?? 3);
+            })
+            .map((order) => {
+              const elapsed = elapsedTimes[`order-${order.orderId}`] || 0;
+              const hasNew = (order.items || []).some((item) => item.status === 'new' && item.department === user.role);
+              return (
+                <div
+                  key={order.orderId}
+                  className="dept-ticket"
+                  style={{
+                    borderLeft: hasNew ? '4px solid #ff6b6b' : '4px solid transparent',
+                    animation: hasNew ? 'pulse 1.5s infinite' : 'none'
+                  }}
+                >
+                  <div className="dept-ticket-header">
                     <div>
-                      <div style={{ fontWeight: 700 }}>{item.name}</div>
-                      <div className="ticket-meta">الكمية: <span className="num-font">{item.qty}</span></div>
+                      <div className="ticket-title">{order.tableName}</div>
+                      <div className="ticket-meta">النادل: <strong>{order.waiterCode}</strong></div>
+                      <div className="ticket-meta">الوقت: <strong className="num-font">{formatElapsedTime(elapsed)}</strong></div>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <span className="ticket-tag">{item.status === 'ready' ? 'جاهز' : item.status === 'new' ? 'جديد' : 'قيد التجهيز'}</span>
-                      {(item.status === 'new' || item.status === 'preparing') && (
-                        <button className="btn btn-primary btn-small" onClick={() => handleReadyItem(order.orderId, item.id)}>
-                          جاهز
-                        </button>
-                      )}
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <div className="ticket-status">{departmentLabels[user.role]}</div>
+                      {hasNew && <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#ff6b6b', animation: 'pulse 1.5s infinite' }} />}
                     </div>
                   </div>
-                ))}
-            </div>
-          ))}
+
+                  {(order.items || [])
+                    .filter((item) => item.department === user.role)
+                    .map((item) => {
+                      const urgency = elapsed > 300 ? 'urgent' : elapsed > 180 ? 'warning' : 'normal';
+                      return (
+                        <div
+                          key={item.id}
+                          className="ticket-item"
+                          style={{
+                            background: urgency === 'urgent' ? 'rgba(255, 107, 107, 0.1)' : urgency === 'warning' ? 'rgba(255, 193, 7, 0.1)' : 'transparent'
+                          }}
+                        >
+                          <div>
+                            <div style={{ fontWeight: 700 }}>{item.name}</div>
+                            <div className="ticket-meta">الكمية: <span className="num-font">{item.qty}</span></div>
+                            {item.notes && <div className="ticket-meta" style={{ color: '#ffc107', fontSize: '0.85rem' }}>📝 {item.notes}</div>}
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <span className={`ticket-tag ${item.status}`}>{item.status === 'ready' ? '✓ جاهز' : item.status === 'new' ? '🆕 جديد' : '⏳ قيد التجهيز'}</span>
+                            {(item.status === 'new' || item.status === 'preparing') && (
+                              <button className="btn btn-primary btn-small" onClick={() => handleReadyItem(order.orderId, item.id)}>
+                                جاهز
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              );
+            })}
         </div>
       )}
+
+      <style>{`
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.5; }
+        }
+        .ticket-tag.new { background: #ff6b6b; color: white; }
+        .ticket-tag.preparing { background: #ffc107; color: #333; }
+        .ticket-tag.ready { background: #51cf66; color: white; }
+      `}</style>
     </div>
   );
 
@@ -519,21 +664,35 @@ export default function App() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                 <div>
                   <div style={{ fontSize: '1.2rem', fontWeight: 800 }}>{selectedCashTable.name}</div>
-                  <div className="ticket-meta">طلب بواسطة النادل <strong className="num-font">{selectedCashTable.waiterCode}</strong></div>
+                  <div className="ticket-meta">النادل: <strong className="num-font">{selectedCashTable.waiterCode}</strong></div>
+                  <div className="ticket-meta">الوقت المستغرق: <strong className="num-font">{formatElapsedTime(elapsedTimes[`order-${selectedCashTable.id}`] || 0)}</strong></div>
                 </div>
-                <span className="ticket-tag">{selectedCashTable.status === 'bill_requested' ? 'طلب حساب' : 'قيد الدفع'}</span>
+                <span className="ticket-tag" style={{ fontSize: '0.9rem' }}>{selectedCashTable.status === 'bill_requested' ? '🧾 طلب حساب' : '💳 قيد الدفع'}</span>
               </div>
 
-              <div style={{ display: 'grid', gap: '12px' }}>
-                {(selectedCashTable.currentOrder || []).map((item) => (
-                  <div key={item.id} className="ticket-item">
-                    <div>
-                      <div style={{ fontWeight: 700 }}>{item.name}</div>
-                      <div className="ticket-meta">{item.qty} × {item.price.toFixed(2)}</div>
+              <div style={{ display: 'grid', gap: '12px', maxHeight: '300px', overflowY: 'auto' }}>
+                {(selectedCashTable.currentOrder || []).map((item) => {
+                  const isReady = item.status === 'ready' || item.status === 'delivered';
+                  const isPending = item.status === 'new' || item.status === 'preparing';
+                  return (
+                    <div
+                      key={item.id}
+                      className="ticket-item"
+                      style={{
+                        background: isPending ? 'rgba(255, 193, 7, 0.1)' : isReady ? 'rgba(81, 207, 102, 0.1)' : 'transparent'
+                      }}
+                    >
+                      <div>
+                        <div style={{ fontWeight: 700 }}>{item.name}</div>
+                        <div className="ticket-meta">{item.qty} × {item.price.toFixed(2)} = <strong className="num-font">{(item.qty * item.price).toFixed(2)}</strong></div>
+                        {item.notes && <div className="ticket-meta" style={{ color: '#ffc107', fontSize: '0.85rem' }}>📝 {item.notes}</div>}
+                      </div>
+                      <div className="ticket-tag" style={{ minWidth: '80px' }}>
+                        {item.status === 'ready' ? '✓ جاهز' : item.status === 'delivered' ? '📦 مسلم' : item.status === 'new' ? '🆕 جديد' : '⏳ تجهيز'}
+                      </div>
                     </div>
-                    <div className="ticket-tag">{item.status}</div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               <div style={{ marginTop: '22px', display: 'grid', gap: '10px' }}>
@@ -589,7 +748,39 @@ export default function App() {
       <>
         <div className="stats-grid">
           <div className="stat-card">
-            <div style={{ fontSize: '0.9rem', color: 'var(--muted)', marginBottom: '10px' }}>أعلى 5 أصناف مبيعاً</div>
+            <div style={{ fontSize: '0.9rem', color: 'var(--muted)', marginBottom: '10px' }}>🏪 الطاولات النشطة الآن</div>
+            <div className="num-font" style={{ fontSize: '2.5rem', fontWeight: 800, color: '#51cf66' }}>
+              {tables.filter((t) => t.status === 'eating' || t.status === 'bill_requested').length}
+            </div>
+            <div className="ticket-meta" style={{ marginTop: '8px' }}>من أصل {tables.length} طاولة</div>
+          </div>
+
+          <div className="stat-card">
+            <div style={{ fontSize: '0.9rem', color: 'var(--muted)', marginBottom: '10px' }}>📊 الطلبات الجاهزة</div>
+            <div className="num-font" style={{ fontSize: '2.5rem', fontWeight: 800, color: '#ffc107' }}>
+              {readyAlerts.length}
+            </div>
+            <div className="ticket-meta" style={{ marginTop: '8px' }}>بانتظار التسليم</div>
+          </div>
+
+          <div className="stat-card">
+            <div style={{ fontSize: '0.9rem', color: 'var(--muted)', marginBottom: '10px' }}>🧾 الفواتير اليوم</div>
+            <div className="num-font" style={{ fontSize: '2.5rem', fontWeight: 800, color: '#51cf66' }}>{bills.length}</div>
+            <div className="ticket-meta" style={{ marginTop: '8px', fontSize: '0.85rem', color: '#ffc107' }}>
+              <strong className="num-font">{bills.reduce((sum, b) => sum + (b.total || 0), 0).toFixed(2)} د.أ</strong>
+            </div>
+          </div>
+
+          <div className="stat-card">
+            <div style={{ fontSize: '0.9rem', color: 'var(--muted)', marginBottom: '10px' }}>👥 الطاولات المخدومة</div>
+            <div className="num-font" style={{ fontSize: '2.5rem', fontWeight: 800, color: '#ff6b6b' }}>{servedTablesTodayCount}</div>
+            <div className="ticket-meta" style={{ marginTop: '8px' }}>طاولة فريدة</div>
+          </div>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginTop: '24px' }}>
+          <div className="stat-card">
+            <div style={{ fontSize: '0.9rem', color: 'var(--muted)', marginBottom: '14px' }}>🔝 أعلى 5 أصناف مبيعاً</div>
             <div className="bar-chart">
               {topItems.length === 0 ? (
                 <div className="ticket-meta">لا توجد بيانات مبيعات بعد.</div>
@@ -609,26 +800,16 @@ export default function App() {
           </div>
 
           <div className="stat-card">
-            <div style={{ fontSize: '0.9rem', color: 'var(--muted)', marginBottom: '10px' }}>المبيعات حسب القسم</div>
+            <div style={{ fontSize: '0.9rem', color: 'var(--muted)', marginBottom: '14px' }}>📈 المبيعات حسب القسم</div>
             <div className="bar-chart">
               {Object.entries(salesByDept).map(([dept, amount]) => (
                 <div key={dept} className="bar-row">
                   <span className="bar-label">{departmentLabels[dept] || 'أخرى'}</span>
-                  <div className="bar-progress"><span style={{ width: `${Math.min(100, (amount / (Math.max(...Object.values(salesByDept)) || 1)) * 100)}%`, background: '#2f8b7a' }} /></div>
+                  <div className="bar-progress"><span style={{ width: `${Math.min(100, (amount / (Math.max(...Object.values(salesByDept)) || 1)) * 100)}%`, background: dept === 'kitchen' ? '#ff9800' : dept === 'bar' ? '#2196f3' : '#00c853' }} /></div>
                   <span className="bar-value num-font">{amount.toFixed(2)}</span>
                 </div>
               ))}
             </div>
-          </div>
-
-          <div className="stat-card">
-            <div style={{ fontSize: '0.9rem', color: 'var(--muted)', marginBottom: '10px' }}>الطاولات المخدومة اليوم</div>
-            <div className="num-font" style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--color-primary)' }}>{servedTablesTodayCount}</div>
-          </div>
-
-          <div className="stat-card">
-            <div style={{ fontSize: '0.9rem', color: 'var(--muted)', marginBottom: '10px' }}>عدد الفواتير المسجلة</div>
-            <div className="num-font" style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--color-primary)' }}>{bills.length}</div>
           </div>
         </div>
       </>
@@ -675,15 +856,80 @@ export default function App() {
     const reportsContent = (
       <div style={{ display: 'grid', gap: '20px' }}>
         <div className="glass-card" style={{ padding: '24px' }}>
-          <h3 style={{ fontSize: '1.1rem', marginBottom: '14px', fontWeight: 700 }}>معلومات إضافية</h3>
-          <div className="ticket-meta" style={{ marginBottom: '12px' }}>
-            مجموع أصناف مباعة: <strong className="num-font">{Object.values(itemSales).reduce((sum, qty) => sum + qty, 0)}</strong>
+          <h3 style={{ fontSize: '1.1rem', marginBottom: '18px', fontWeight: 700 }}>📊 ملخص الأداء اليومي</h3>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+            <div className="ticket-meta">
+              إجمالي المبيعات: <strong className="num-font" style={{ fontSize: '1.1rem', color: '#51cf66' }}>
+                {bills.reduce((sum, b) => sum + (b.total || 0), 0).toFixed(2)} د.أ
+              </strong>
+            </div>
+            <div className="ticket-meta">
+              متوسط الفاتورة: <strong className="num-font" style={{ fontSize: '1.1rem', color: '#2196f3' }}>
+                {bills.length > 0 ? (bills.reduce((sum, b) => sum + (b.total || 0), 0) / bills.length).toFixed(2) : '0.00'} د.أ
+              </strong>
+            </div>
+            <div className="ticket-meta">
+              أصناف مباعة: <strong className="num-font" style={{ fontSize: '1.1rem', color: '#ff9800' }}>
+                {Object.values(itemSales).reduce((sum, qty) => sum + qty, 0)}
+              </strong>
+            </div>
+            <div className="ticket-meta">
+              عدد العملاء: <strong className="num-font" style={{ fontSize: '1.1rem', color: '#9c27b0' }}>
+                {bills.length}
+              </strong>
+            </div>
           </div>
-          <div className="ticket-meta" style={{ marginBottom: '12px' }}>
-            أعلى اسم صنف مبيعاً: <strong>{topItems[0]?.name || 'لا توجد بيانات'}</strong>
+        </div>
+
+        <div className="glass-card" style={{ padding: '24px' }}>
+          <h3 style={{ fontSize: '1.1rem', marginBottom: '14px', fontWeight: 700 }}>💳 توزيع طرق الدفع</h3>
+          <div style={{ display: 'grid', gap: '12px' }}>
+            {['cash', 'card', 'app'].map((method) => (
+              <div key={method} className="ticket-item" style={{ justifyContent: 'space-between' }}>
+                <span>{paymentLabels[method]}</span>
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                  <span className="num-font">{paymentStatsCount[method]} عملية</span>
+                  <span className="num-font" style={{ fontWeight: 700, color: 'var(--color-primary)' }}>
+                    {paymentStatsAmount[method].toFixed(2)} د.أ
+                  </span>
+                </div>
+              </div>
+            ))}
           </div>
-          <div className="ticket-meta" style={{ marginBottom: '12px' }}>
-            إجمالي مبيعات الأقسام: <strong className="num-font">{(salesByDept.kitchen + salesByDept.bar + salesByDept.shisha).toFixed(2)} د.أ</strong>
+        </div>
+
+        <div className="glass-card" style={{ padding: '24px' }}>
+          <h3 style={{ fontSize: '1.1rem', marginBottom: '14px', fontWeight: 700 }}>⏱️ معلومات الطلبات</h3>
+          <div style={{ display: 'grid', gap: '10px' }}>
+            <div className="ticket-meta">
+              إجمالي الطلبات النشطة: <strong className="num-font">{Object.keys(deptOrders).length}</strong>
+            </div>
+            <div className="ticket-meta">
+              الطلبات الجاهزة: <strong className="num-font" style={{ color: '#51cf66' }}>{readyAlerts.length}</strong>
+            </div>
+            <div className="ticket-meta">
+              أطول وقت طلب: <strong className="num-font">
+                {Math.max(...Object.entries(deptOrders).map(([id]) => elapsedTimes[`order-${id}`] || 0), 0) > 0
+                  ? formatElapsedTime(Math.max(...Object.entries(deptOrders).map(([id]) => elapsedTimes[`order-${id}`] || 0)))
+                  : '0:00'}
+              </strong>
+            </div>
+          </div>
+        </div>
+
+        <div className="glass-card" style={{ padding: '24px' }}>
+          <h3 style={{ fontSize: '1.1rem', marginBottom: '14px', fontWeight: 700 }}>🔝 الأصناف الأكثر طلباً</h3>
+          <div style={{ display: 'grid', gap: '10px' }}>
+            {topItems.length === 0 ? (
+              <div className="ticket-meta">لا توجد بيانات مبيعات بعد.</div>
+            ) : (
+              topItems.slice(0, 5).map((item, idx) => (
+                <div key={item.id} className="ticket-item">
+                  <span>{idx + 1}. {item.name}</span>
+                  <span className="num-font">{item.qty} طلب</span>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>
@@ -706,21 +952,72 @@ export default function App() {
         {activeManagerTab === 'menu' && menuContent}
         {activeManagerTab === 'reports' && reportsContent}
 
+        {activeManagerTab === 'bills' && (
+          <div style={{ display: 'grid', gap: '20px' }}>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '12px' }}>📋 الفواتير المسجلة اليوم</h3>
+            {bills.length === 0 ? (
+              <div className="glass-card" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                <Star size={40} style={{ marginBottom: '12px', opacity: 0.35 }} />
+                <p style={{ fontSize: '0.95rem' }}>لا توجد فواتير مسجلة بعد.</p>
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gap: '12px' }}>
+                {[...bills].reverse().map((bill) => (
+                  <div key={bill.id} className="glass-card" style={{ padding: '16px', cursor: 'pointer' }} onClick={() => printBill(bill)}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '12px', alignItems: 'center' }}>
+                      <div>
+                        <div style={{ fontWeight: 700 }}>{bill.tableName}</div>
+                        <div className="ticket-meta" style={{ fontSize: '0.85rem' }}>#{bill.id}</div>
+                      </div>
+                      <div>
+                        <div className="ticket-meta">الوقت</div>
+                        <div className="num-font" style={{ fontSize: '0.9rem', fontWeight: 700 }}>{bill.timeFormatted}</div>
+                      </div>
+                      <div>
+                        <div className="ticket-meta">العدد</div>
+                        <div className="num-font" style={{ fontSize: '0.9rem', fontWeight: 700 }}>{bill.items?.length || 0}</div>
+                      </div>
+                      <div style={{ textAlign: 'left' }}>
+                        <div className="ticket-tag" style={{ background: '#51cf66', fontSize: '1rem', fontWeight: 700 }}>
+                          <span className="num-font">{bill.total.toFixed(2)} د.أ</span>
+                        </div>
+                        <div className="ticket-meta" style={{ fontSize: '0.8rem', marginTop: '4px' }}>{paymentLabels[bill.paymentMethod]}</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="bottom-navigation">
-          {['overview', 'menu', 'reports'].map((tab) => (
+          {['overview', 'menu', 'reports', 'bills'].map((tab) => (
             <button
               key={tab}
               type="button"
               className={activeManagerTab === tab ? 'active' : ''}
               onClick={() => setActiveManagerTab(tab)}
             >
-              <span>{tab === 'overview' ? 'الرئيسية' : tab === 'menu' ? 'المنيو' : 'التقارير'}</span>
+              <span>
+                {tab === 'overview' ? '📊 الرئيسية' : tab === 'menu' ? '🍽️ المنيو' : tab === 'reports' ? '📈 التقارير' : '🧾 الفواتير'}
+              </span>
             </button>
           ))}
         </div>
       </div>
     );
   };
+
+  if (!user) {
+    return (
+      <div className="app-shell">
+        <main className="app-main">
+          <Login onLoginSuccess={handleLoginSuccess} />
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="app-shell">
