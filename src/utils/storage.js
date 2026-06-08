@@ -7,11 +7,61 @@ const MANAGER_LOGIN_STATE_KEY = 'takah_manager_login_state';
 const MENU_KEY = 'takah_menu';
 const DEPT_ORDERS_KEY = 'takah_dept_orders';
 
+// Configuration constants
+export const TAX_RATE = 0.15;
+export const MAX_NOTIFICATIONS = 20;
+export const MAX_BILLS_KEPT = 1000;
+export const RESTAURANT_NAME = 'تكة - Takah Restaurant';
+
+// Error logger utility
+const logStorageError = (operation, error) => {
+  console.error(`[Storage Error] ${operation}:`, error.message);
+};
+
+// Safe localStorage wrapper with error handling
+const safeGetItem = (key) => {
+  try {
+    return localStorage.getItem(key);
+  } catch (error) {
+    logStorageError(`getItem(${key})`, error);
+    return null;
+  }
+};
+
+const safeSetItem = (key, value) => {
+  try {
+    localStorage.setItem(key, value);
+    return true;
+  } catch (error) {
+    logStorageError(`setItem(${key})`, error);
+    return false;
+  }
+};
+
+const safeParse = (jsonString, defaultValue = null) => {
+  try {
+    return jsonString ? JSON.parse(jsonString) : defaultValue;
+  } catch (error) {
+    logStorageError('JSON.parse()', error);
+    return defaultValue;
+  }
+};
+
+// Input validation
+const validateString = (str, maxLen = 1000) => {
+  if (typeof str !== 'string') return '';
+  return str.substring(0, maxLen).trim();
+};
+
+const validateArray = (arr) => {
+  return Array.isArray(arr) ? arr : [];
+};
+
 // Initial default data
 const DEFAULT_TABLES = Array.from({ length: 12 }, (_, i) => ({
   id: i + 1,
   name: `طاولة ${i + 1}`,
-  status: 'empty', // 'empty' | 'ordering' | 'eating' | 'bill_requested'
+  status: 'empty',
   currentOrder: [],
   notes: '',
   subtotal: 0,
@@ -30,136 +80,207 @@ const DEFAULT_EMPLOYEES = [
 
 // Helper to trigger custom storage sync event
 const triggerSync = (key) => {
-  window.dispatchEvent(new CustomEvent('takah_sync', { detail: { key } }));
+  try {
+    window.dispatchEvent(new CustomEvent('takah_sync', { detail: { key } }));
+  } catch (error) {
+    logStorageError('triggerSync', error);
+  }
 };
 
+// === TABLES ===
 export const getTables = () => {
-  const data = localStorage.getItem(TABLES_KEY);
-  if (!data) {
-    localStorage.setItem(TABLES_KEY, JSON.stringify(DEFAULT_TABLES));
+  const data = safeGetItem(TABLES_KEY);
+  const tables = safeParse(data, DEFAULT_TABLES);
+  if (!validateArray(tables).length) {
+    safeSetItem(TABLES_KEY, JSON.stringify(DEFAULT_TABLES));
     return DEFAULT_TABLES;
   }
-  return JSON.parse(data);
+  return tables;
 };
 
 export const saveTables = (tables) => {
-  localStorage.setItem(TABLES_KEY, JSON.stringify(tables));
-  triggerSync(TABLES_KEY);
+  if (!validateArray(tables).length) {
+    console.warn('[Storage] saveTables: Invalid input - expected non-empty array');
+    return false;
+  }
+  const success = safeSetItem(TABLES_KEY, JSON.stringify(tables));
+  if (success) triggerSync(TABLES_KEY);
+  return success;
 };
 
+// === EMPLOYEES ===
 export const getEmployees = () => {
-  const data = localStorage.getItem(EMPLOYEES_KEY);
-  if (!data) {
-    localStorage.setItem(EMPLOYEES_KEY, JSON.stringify(DEFAULT_EMPLOYEES));
+  const data = safeGetItem(EMPLOYEES_KEY);
+  const employees = safeParse(data, DEFAULT_EMPLOYEES);
+  if (!validateArray(employees).length) {
+    safeSetItem(EMPLOYEES_KEY, JSON.stringify(DEFAULT_EMPLOYEES));
     return DEFAULT_EMPLOYEES;
   }
-  return JSON.parse(data);
+  return employees;
 };
 
 export const saveEmployees = (employees) => {
-  localStorage.setItem(EMPLOYEES_KEY, JSON.stringify(employees));
-  triggerSync(EMPLOYEES_KEY);
+  if (!validateArray(employees).length) {
+    console.warn('[Storage] saveEmployees: Invalid input - expected non-empty array');
+    return false;
+  }
+  const success = safeSetItem(EMPLOYEES_KEY, JSON.stringify(employees));
+  if (success) triggerSync(EMPLOYEES_KEY);
+  return success;
 };
 
+// === BILLS ===
 export const getBills = () => {
-  const data = localStorage.getItem(BILLS_KEY);
-  return data ? JSON.parse(data) : [];
+  const data = safeGetItem(BILLS_KEY);
+  const bills = safeParse(data, []);
+  return validateArray(bills);
 };
 
 export const saveBills = (bills) => {
-  localStorage.setItem(BILLS_KEY, JSON.stringify(bills));
-  triggerSync(BILLS_KEY);
+  if (!validateArray(bills)) {
+    console.warn('[Storage] saveBills: Invalid input - expected array');
+    return false;
+  }
+  // Keep only most recent bills to prevent storage quota issues
+  const trimmed = bills.slice(0, MAX_BILLS_KEPT);
+  const success = safeSetItem(BILLS_KEY, JSON.stringify(trimmed));
+  if (success) triggerSync(BILLS_KEY);
+  return success;
 };
 
+// === NOTIFICATIONS ===
 export const getNotifications = () => {
-  const data = localStorage.getItem(NOTIFICATIONS_KEY);
-  return data ? JSON.parse(data) : [];
+  const data = safeGetItem(NOTIFICATIONS_KEY);
+  const notifs = safeParse(data, []);
+  return validateArray(notifs);
 };
 
 export const saveNotifications = (notifications) => {
-  localStorage.setItem(NOTIFICATIONS_KEY, JSON.stringify(notifications));
-  triggerSync(NOTIFICATIONS_KEY);
+  if (!validateArray(notifications)) {
+    console.warn('[Storage] saveNotifications: Invalid input - expected array');
+    return false;
+  }
+  const trimmed = notifications.slice(0, MAX_NOTIFICATIONS);
+  const success = safeSetItem(NOTIFICATIONS_KEY, JSON.stringify(trimmed));
+  if (success) triggerSync(NOTIFICATIONS_KEY);
+  return success;
 };
 
-// Add a notification with auto-triggering sync
 export const addNotification = (title, message, type = 'info') => {
+  if (!title || !message) {
+    console.warn('[Storage] addNotification: Title and message are required');
+    return null;
+  }
   const notifications = getNotifications();
   const newNotif = {
-    id: Date.now() + Math.random().toString(36).substr(2, 5),
-    title,
-    message,
-    type,
-    time: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+    id: `notif-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    title: validateString(String(title), 100),
+    message: validateString(String(message), 500),
+    type: ['info', 'success', 'danger', 'warning'].includes(type) ? type : 'info',
+    time: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
     timestamp: Date.now(),
     read: false
   };
   notifications.unshift(newNotif);
-  // Keep only last 20 notifications
-  saveNotifications(notifications.slice(0, 20));
+  const trimmed = notifications.slice(0, MAX_NOTIFICATIONS);
+  saveNotifications(trimmed);
   return newNotif;
 };
 
-// Clear all data (for reset daily)
-export const resetDailyData = () => {
-  localStorage.setItem(TABLES_KEY, JSON.stringify(DEFAULT_TABLES));
-  localStorage.setItem(BILLS_KEY, JSON.stringify([]));
-  localStorage.setItem(NOTIFICATIONS_KEY, JSON.stringify([]));
-  triggerSync('reset');
+// === DATA RESET ===
+export const resetDailyData = (confirmationCode) => {
+  if (confirmationCode !== 'RESET_CONFIRMED') {
+    console.warn('[Storage] resetDailyData: Invalid confirmation code');
+    return false;
+  }
+  try {
+    safeSetItem(TABLES_KEY, JSON.stringify(DEFAULT_TABLES));
+    safeSetItem(BILLS_KEY, JSON.stringify([]));
+    safeSetItem(NOTIFICATIONS_KEY, JSON.stringify([]));
+    safeSetItem(DEPT_ORDERS_KEY, JSON.stringify({}));
+    triggerSync('reset');
+    return true;
+  } catch (error) {
+    logStorageError('resetDailyData', error);
+    return false;
+  }
 };
 
+// === MANAGER CREDENTIALS (DEPRECATED - DO NOT USE) ===
 export const getManagerCredentials = () => {
-  const data = localStorage.getItem(MANAGER_KEY);
-  return data ? JSON.parse(data) : null;
+  const data = safeGetItem(MANAGER_KEY);
+  return safeParse(data, null);
 };
 
 export const saveManagerCredentials = (credentials) => {
-  localStorage.setItem(MANAGER_KEY, JSON.stringify(credentials));
-  triggerSync(MANAGER_KEY);
+  console.warn('[Storage] saveManagerCredentials: Storing sensitive data in localStorage is deprecated. Use secure session management instead.');
+  if (!credentials || typeof credentials !== 'object') {
+    console.warn('[Storage] saveManagerCredentials: Invalid credentials object');
+    return false;
+  }
+  const success = safeSetItem(MANAGER_KEY, JSON.stringify(credentials));
+  if (success) triggerSync(MANAGER_KEY);
+  return success;
 };
 
-// Manager login state (true if logged in)
+// === MANAGER LOGIN STATE ===
 export const getManagerLoginState = () => {
-  const data = localStorage.getItem(MANAGER_LOGIN_STATE_KEY);
+  const data = safeGetItem(MANAGER_LOGIN_STATE_KEY);
   return data === 'true';
 };
 
 export const saveManagerLoginState = (state) => {
-  localStorage.setItem(MANAGER_LOGIN_STATE_KEY, state ? 'true' : 'false');
-  triggerSync(MANAGER_LOGIN_STATE_KEY);
+  const success = safeSetItem(MANAGER_LOGIN_STATE_KEY, state ? 'true' : 'false');
+  if (success) triggerSync(MANAGER_LOGIN_STATE_KEY);
+  return success;
 };
 
-// Menu handling (dynamic menu with department field)
+// === MENU ===
 export const getMenu = () => {
-  const data = localStorage.getItem(MENU_KEY);
-  if (!data) {
-    // fallback to default static menu if needed
-    return [];
-  }
-  return JSON.parse(data);
+  const data = safeGetItem(MENU_KEY);
+  const menu = safeParse(data, []);
+  return validateArray(menu);
 };
 
 export const saveMenu = (menu) => {
-  localStorage.setItem(MENU_KEY, JSON.stringify(menu));
-  triggerSync(MENU_KEY);
+  if (!validateArray(menu)) {
+    console.warn('[Storage] saveMenu: Invalid input - expected array');
+    return false;
+  }
+  const success = safeSetItem(MENU_KEY, JSON.stringify(menu));
+  if (success) triggerSync(MENU_KEY);
+  return success;
 };
 
-// Department orders handling
+// === DEPARTMENT ORDERS ===
 export const getDeptOrders = () => {
-  const data = localStorage.getItem(DEPT_ORDERS_KEY);
-  return data ? JSON.parse(data) : {};
+  const data = safeGetItem(DEPT_ORDERS_KEY);
+  const orders = safeParse(data, {});
+  return typeof orders === 'object' && orders !== null ? orders : {};
 };
 
 export const saveDeptOrders = (deptOrders) => {
-  localStorage.setItem(DEPT_ORDERS_KEY, JSON.stringify(deptOrders));
-  triggerSync(DEPT_ORDERS_KEY);
+  if (typeof deptOrders !== 'object' || deptOrders === null) {
+    console.warn('[Storage] saveDeptOrders: Invalid input - expected object');
+    return false;
+  }
+  const success = safeSetItem(DEPT_ORDERS_KEY, JSON.stringify(deptOrders));
+  if (success) triggerSync(DEPT_ORDERS_KEY);
+  return success;
 };
 
 export const updateDeptOrderItem = (orderId, itemId, updates) => {
-  const deptOrders = getDeptOrders();
-  if (deptOrders[orderId]) {
-    deptOrders[orderId].items = deptOrders[orderId].items.map((item) =>
-      item.id === itemId ? { ...item, ...updates } : item
-    );
-    saveDeptOrders(deptOrders);
+  if (!orderId || !itemId || typeof updates !== 'object') {
+    console.warn('[Storage] updateDeptOrderItem: Invalid parameters');
+    return false;
   }
+  const deptOrders = getDeptOrders();
+  if (!deptOrders[orderId]) {
+    console.warn('[Storage] updateDeptOrderItem: Order not found', orderId);
+    return false;
+  }
+  deptOrders[orderId].items = deptOrders[orderId].items.map((item) =>
+    item.id === itemId ? { ...item, ...updates } : item
+  );
+  return saveDeptOrders(deptOrders);
 };

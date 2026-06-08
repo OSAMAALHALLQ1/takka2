@@ -19,7 +19,7 @@ import { menuItems as defaultMenuItems } from './data/menu';
 import Login from './components/Login';
 import WaiterView from './components/WaiterView';
 import NotificationsToast from './components/NotificationsToast';
-import { Coffee, LogOut, Bell, BellOff, CreditCard, ChartBar, Edit3, CheckCircle, ShieldAlert, Wallet, Star } from 'lucide-react';
+import { Coffee, LogOut, Bell, BellOff, CreditCard, Edit3, Star } from 'lucide-react';
 
 const departmentLabels = {
   kitchen: 'مطبخ',
