@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { getBills, saveBills, addNotification } from '../utils/storage';
-import { CreditCard, Printer, CheckCircle, RefreshCw, XCircle, ShoppingBag, Receipt } from 'lucide-react';
+import { CreditCard, Printer, ShoppingBag, Receipt } from 'lucide-react';
 
 export default function CashierView({ tables, onSaveTables, employee }) {
   const [activeTable, setActiveTable] = useState(null);
@@ -235,7 +235,7 @@ export default function CashierView({ tables, onSaveTables, employee }) {
                 </div>
 
                 <div className="invoice-details">
-                  <div><strong>رقم الفاتورة:</strong> <span className="num-font">INV-{Date.now().toString().slice(-4)}</span></div>
+                  <div><strong>رقم الفاتورة:</strong> <span className="num-font">INV-{activeTable.id}-{activeTable.currentOrder.length}</span></div>
                   <div><strong>الطاولة:</strong> {activeTable.name}</div>
                   <div><strong>التاريخ:</strong> <span className="num-font">{new Date().toLocaleDateString('ar-EG')}</span></div>
                   <div><strong>الوقت:</strong> <span className="num-font">{new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}</span></div>

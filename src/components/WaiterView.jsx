@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { saveDeptOrders, getDeptOrders, addNotification, updateDeptOrderItem } from '../utils/storage';
-import { menuCategories, menuItems } from '../data/menu';
-import { ShoppingBag, Send, CreditCard, ChevronLeft, Plus, Minus, Search, Trash2, TableProperties } from 'lucide-react';
+import { menuCategories, menuItems as fallbackMenuItems } from '../data/menu';
+import { ShoppingBag, Send, CreditCard, Plus, Minus, Search, TableProperties } from 'lucide-react';
 
-export default function WaiterView({ tables, onSaveTables, employee }) {
+export default function WaiterView({ tables, onSaveTables, employee, menuItems = fallbackMenuItems }) {
   const [selectedTable, setSelectedTable] = useState(null);
   const [activeCategory, setActiveCategory] = useState('mains');
   const [searchQuery, setSearchQuery] = useState('');

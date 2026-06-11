@@ -2,6 +2,7 @@ export const menuCategories = [
   { id: 'mains', name: 'الأطباق الرئيسية', icon: '🍔' },
   { id: 'appetizers', name: 'المقبلات', icon: '🍟' },
   { id: 'drinks', name: 'المشروبات', icon: '🥤' },
+  { id: 'shisha', name: 'الشيشة', icon: '💨' },
   { id: 'desserts', name: 'الحلويات', icon: '🍰' }
 ];
 

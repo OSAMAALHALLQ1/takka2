@@ -1,19 +1,19 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   getTables,
   saveTables,
-  getEmployees,
   getNotifications,
   saveNotifications,
-  getManagerCredentials,
   getMenu,
   saveMenu,
   getDeptOrders,
-  saveDeptOrders,
   updateDeptOrderItem,
   getBills,
   saveBills,
-  addNotification
+  addNotification,
+  initializeDatabase,
+  clearSession,
+  getSession
 } from './utils/storage';
 import { menuItems as defaultMenuItems } from './data/menu';
 import Login from './components/Login';
@@ -36,7 +36,6 @@ const paymentLabels = {
 export default function App() {
   const [user, setUser] = useState(null);
   const [tables, setTables] = useState([]);
-  const [employeeList, setEmployeeList] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [menuItems, setMenuItems] = useState([]);
   const [deptOrders, setDeptOrders] = useState({});
@@ -49,6 +48,7 @@ export default function App() {
   const [editingPriceId, setEditingPriceId] = useState(null);
   const [priceDraft, setPriceDraft] = useState('');
   const [elapsedTimes, setElapsedTimes] = useState({});
+  const [databaseReady, setDatabaseReady] = useState(false);
 
   const isMountedRef = useRef(false);
   const prevDeptOrdersRef = useRef(null);
@@ -61,7 +61,7 @@ export default function App() {
     return audioContextRef.current;
   };
 
-  const playTone = (frequency, duration = 0.16, type = 'sine') => {
+  const playTone = useCallback((frequency, duration = 0.16, type = 'sine') => {
     if (!soundEnabled) return;
     const ctx = getAudioContext();
     const oscillator = ctx.createOscillator();
@@ -75,21 +75,20 @@ export default function App() {
     gain.gain.exponentialRampToValueAtTime(0.16, ctx.currentTime + 0.02);
     gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + duration);
     oscillator.stop(ctx.currentTime + duration + 0.02);
-  };
+  }, [soundEnabled]);
 
-  const playNewOrderSound = () => {
+  const playNewOrderSound = useCallback(() => {
     playTone(440, 0.16, 'triangle');
     setTimeout(() => playTone(660, 0.1, 'sine'), 80);
-  };
+  }, [playTone]);
 
-  const playReadySound = () => {
+  const playReadySound = useCallback(() => {
     playTone(880, 0.12, 'square');
     setTimeout(() => playTone(760, 0.08, 'triangle'), 90);
-  };
+  }, [playTone]);
 
   const loadStorage = () => {
     const initTables = getTables();
-    const initEmployees = getEmployees();
     const initNotifications = getNotifications();
     const storedMenu = getMenu();
     const initialMenu = storedMenu.length ? storedMenu : defaultMenuItems;
@@ -100,7 +99,6 @@ export default function App() {
     const initialBills = getBills();
 
     setTables(initTables);
-    setEmployeeList(initEmployees);
     setNotifications(initNotifications.slice(0, 5));
     setMenuItems(initialMenu);
     setDeptOrders(initialDeptOrders);
@@ -108,34 +106,26 @@ export default function App() {
   };
 
   useEffect(() => {
-    loadStorage();
+    let cancelled = false;
 
-    const params = new URLSearchParams(window.location.search);
-    const codeParam = params.get('code');
-
-    if (codeParam) {
-      const matched = getEmployees().find(
-        (emp) => emp.code.trim().toUpperCase() === codeParam.trim().toUpperCase()
-      );
-      if (matched) {
-        setUser({ role: matched.role, name: matched.name, code: matched.code });
-      } else if (codeParam.trim().toUpperCase() === 'ADMIN') {
-        const storedManager = getManagerCredentials();
-        setUser({
-          role: 'manager',
-          name: storedManager ? storedManager.name : 'المدير العام',
-          code: 'ADMIN'
-        });
+    initializeDatabase().then(() => {
+      if (cancelled) return;
+      loadStorage();
+      const session = getSession();
+      if (session) {
+        setUser(session);
       }
-      const cleanUrl = window.location.origin + window.location.pathname;
-      window.history.replaceState({}, document.title, cleanUrl);
-    }
+      setDatabaseReady(true);
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
     const handleSync = () => {
       setTables(getTables());
-      setEmployeeList(getEmployees());
       setNotifications(getNotifications().slice(0, 5));
       setDeptOrders(getDeptOrders());
       setBills(getBills());
@@ -189,7 +179,7 @@ export default function App() {
     }
 
     prevDeptOrdersRef.current = deptOrders;
-  }, [deptOrders, soundEnabled]);
+  }, [deptOrders, playNewOrderSound, playReadySound]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -214,6 +204,7 @@ export default function App() {
   };
 
   const handleLogout = () => {
+    clearSession();
     setUser(null);
   };
 
@@ -390,8 +381,10 @@ export default function App() {
         : ''
     );
 
+    const invoiceDate = new Date();
+    const invoiceTimestamp = invoiceDate.getTime();
     const invoice = {
-      id: `INV-${Date.now().toString().slice(-6)}`,
+      id: `INV-${invoiceTimestamp.toString().slice(-6)}`,
       tableId: selectedCashTable.id,
       tableName: selectedCashTable.name,
       items: selectedCashTable.currentOrder || [],
@@ -402,9 +395,9 @@ export default function App() {
       waiterCode: selectedCashTable.waiterCode,
       notes: selectedCashTable.notes,
       paymentMethod: selectedPaymentMethod,
-      timestamp: Date.now(),
-      timeFormatted: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
-      dateFormatted: new Date().toLocaleDateString('ar-EG')
+      timestamp: invoiceTimestamp,
+      timeFormatted: invoiceDate.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
+      dateFormatted: invoiceDate.toLocaleDateString('ar-EG')
     };
 
     const updatedBills = [invoice, ...bills];
@@ -508,7 +501,7 @@ export default function App() {
         </div>
       )}
 
-      <WaiterView tables={tables} onSaveTables={handleSaveTables} employee={user} />
+      <WaiterView tables={tables} onSaveTables={handleSaveTables} employee={user} menuItems={menuItems} />
     </div>
   );
 
@@ -1013,7 +1006,20 @@ export default function App() {
     return (
       <div className="app-shell">
         <main className="app-main">
-          <Login onLoginSuccess={handleLoginSuccess} />
+          {databaseReady ? (
+            <Login onLoginSuccess={handleLoginSuccess} />
+          ) : (
+            <div className="login-container">
+              <div className="login-card glass-card" style={{ textAlign: 'center' }}>
+                <div className="brand" style={{ justifyContent: 'center', marginBottom: '16px' }}>
+                  <span className="brand-logo">تكة</span>
+                  <span className="brand-tag">TAKA OPS</span>
+                </div>
+                <h2 className="login-title">جاري تجهيز قاعدة البيانات</h2>
+                <p className="login-desc">يتم تحميل بيانات الطاولات والموظفين والمنيو.</p>
+              </div>
+            </div>
+          )}
         </main>
       </div>
     );

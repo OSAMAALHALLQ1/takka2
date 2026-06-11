@@ -1,13 +1,31 @@
-import React, { useState } from 'react';
-import { getEmployees, saveEmployees, getBills, resetDailyData, addNotification } from '../utils/storage';
-import { Users, BarChart3, Receipt, Plus, Clipboard, Trash2, Key, Link as LinkIcon, RefreshCw, FileSpreadsheet, DollarSign } from 'lucide-react';
+import { useState } from 'react';
+import { saveEmployees, getBills, resetDailyData, addNotification } from '../utils/storage';
+import { Users, BarChart3, Receipt, Plus, Trash2, Link as LinkIcon, RefreshCw, FileSpreadsheet, DollarSign } from 'lucide-react';
 
 export default function ManagerView({ tables, employeeList, onUpdateEmployees }) {
   const [activeSubTab, setActiveSubTab] = useState('dashboard'); // 'dashboard' | 'employees' | 'bills'
   const [newEmpName, setNewEmpName] = useState('');
-  const [newEmpRole, setNewEmpRole] = useState('waiter'); // 'waiter' | 'cashier'
+  const [newEmpRole, setNewEmpRole] = useState('waiter');
+  const [newEmpUsername, setNewEmpUsername] = useState('');
+  const [newEmpPassword, setNewEmpPassword] = useState('1234');
   const [newEmpPhone, setNewEmpPhone] = useState('');
   const [copySuccess, setCopySuccess] = useState('');
+
+  const roleLabels = {
+    waiter: 'جرسون صالة',
+    cashier: 'محاسب كاشير',
+    kitchen: 'قسم المطبخ',
+    bar: 'قسم البار',
+    shisha: 'قسم الشيشة'
+  };
+
+  const rolePrefixes = {
+    waiter: 'W',
+    cashier: 'C',
+    kitchen: 'K',
+    bar: 'B',
+    shisha: 'S'
+  };
 
   // Daily Bills & Calculations
   const bills = getBills();
@@ -17,10 +35,10 @@ export default function ManagerView({ tables, employeeList, onUpdateEmployees })
   // Add Employee and generate Code
   const handleAddEmployee = (e) => {
     e.preventDefault();
-    if (!newEmpName || !newEmpPhone) return;
+    if (!newEmpName || !newEmpPhone || !newEmpUsername || !newEmpPassword) return;
 
     const randomNum = Math.floor(1000 + Math.random() * 9000); // 4 digit code
-    const prefix = newEmpRole === 'waiter' ? 'W' : 'C';
+    const prefix = rolePrefixes[newEmpRole] || 'E';
     const code = `${prefix}-${randomNum}`;
 
     const newEmp = {
@@ -28,7 +46,10 @@ export default function ManagerView({ tables, employeeList, onUpdateEmployees })
       name: newEmpName,
       role: newEmpRole,
       phone: newEmpPhone,
-      code
+      username: newEmpUsername.trim(),
+      password: newEmpPassword,
+      code,
+      active: true
     };
 
     const updatedEmployees = [...employeeList, newEmp];
@@ -43,6 +64,8 @@ export default function ManagerView({ tables, employeeList, onUpdateEmployees })
 
     // Reset inputs
     setNewEmpName('');
+    setNewEmpUsername('');
+    setNewEmpPassword('1234');
     setNewEmpPhone('');
   };
 
@@ -58,7 +81,8 @@ export default function ManagerView({ tables, employeeList, onUpdateEmployees })
 
   // Copy Direct Link
   const copyDirectLink = (code) => {
-    const directUrl = `${window.location.origin}${window.location.pathname}?code=${code}`;
+    const employee = employeeList.find((emp) => emp.code === code);
+    const directUrl = `${window.location.origin}${window.location.pathname}?user=${employee?.username || code}`;
     navigator.clipboard.writeText(directUrl).then(() => {
       setCopySuccess(code);
       setTimeout(() => setCopySuccess(''), 2000);
@@ -221,9 +245,36 @@ export default function ManagerView({ tables, employeeList, onUpdateEmployees })
                   onChange={(e) => setNewEmpRole(e.target.value)}
                   style={{ background: 'var(--bg-surface)' }}
                 >
-                  <option value="waiter">نادل صالة (الطلبات والطاولات)</option>
+                  <option value="waiter">جرسون صالة (الطلبات والطاولات)</option>
                   <option value="cashier">كاشير محاسب (الفواتير والدفع)</option>
+                  <option value="kitchen">قسم المطبخ</option>
+                  <option value="bar">قسم البار</option>
+                  <option value="shisha">قسم الشيشة</option>
                 </select>
+              </div>
+
+              <div className="form-group">
+                <label>اسم المستخدم</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="مثال: waiter2"
+                  value={newEmpUsername}
+                  onChange={(e) => setNewEmpUsername(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label>كلمة المرور</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="كلمة مرور الموظف"
+                  value={newEmpPassword}
+                  onChange={(e) => setNewEmpPassword(e.target.value)}
+                  required
+                />
               </div>
 
               <div className="form-group">
@@ -239,7 +290,7 @@ export default function ManagerView({ tables, employeeList, onUpdateEmployees })
               </div>
 
               <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '12px' }}>
-                <Plus size={16} /> إضافة الموظف وتوليد الكود
+                <Plus size={16} /> إضافة الموظف
               </button>
             </form>
           </div>
@@ -257,7 +308,7 @@ export default function ManagerView({ tables, employeeList, onUpdateEmployees })
                     <div>
                       <h4 style={{ fontWeight: '700', fontSize: '0.95rem' }}>{emp.name}</h4>
                       <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                        الدور: {emp.role === 'waiter' ? 'نادل صالة' : 'محاسب كاشير'} | هاتف: <span className="num-font">{emp.phone}</span>
+                        الدور: {roleLabels[emp.role] || emp.role} | هاتف: <span className="num-font">{emp.phone}</span>
                       </p>
                     </div>
                   </div>
@@ -276,7 +327,7 @@ export default function ManagerView({ tables, employeeList, onUpdateEmployees })
                         color: 'var(--color-primary)'
                       }}
                     >
-                      {emp.code}
+                      {emp.username || emp.code}
                     </div>
 
                     {/* Copy Direct URL Link */}
