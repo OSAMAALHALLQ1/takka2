@@ -1,416 +1,549 @@
-import { useState } from 'react';
-import { saveDeptOrders, getDeptOrders, addNotification, updateDeptOrderItem } from '../utils/storage';
-import { menuCategories, menuItems as fallbackMenuItems } from '../data/menu';
-import { ShoppingBag, Send, CreditCard, Plus, Minus, Search, TableProperties } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import {
+  saveDeptOrders, getDeptOrders, addNotification, updateDeptOrderItem,
+  TAX_RATE, SERVICE_RATE
+} from '../utils/storage';
 
-export default function WaiterView({ tables, onSaveTables, employee, menuItems = fallbackMenuItems }) {
+const DEPT_TABS = [
+  { id: 'all', label: 'الكل', icon: '📍' },
+  { id: 'kitchen', label: 'مطبخ', icon: '🍳' },
+  { id: 'bar', label: 'بار', icon: '🍺' },
+  { id: 'shisha', label: 'شيشة', icon: '💨' }
+];
+
+const STATUS_COLORS = { empty: '#27ae60', eating: '#e74c3c', bill_requested: '#f39c12', unavailable: '#555' };
+const STATUS_LABELS_AR = { empty: 'فاضية', eating: 'مشغولة', bill_requested: 'تنتظر دفع', unavailable: 'غير متوفرة' };
+const STATUS_BADGE = { empty: 'badge-empty', eating: 'badge-eating', bill_requested: 'badge-bill-requested', unavailable: 'badge-unavailable' };
+
+export default function WaiterView({ tables, onSaveTables, employee, menuItems = [] }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  const [view, setView] = useState('tables'); // 'tables' | 'new-order' | 'manage'
   const [selectedTable, setSelectedTable] = useState(null);
-  const [activeCategory, setActiveCategory] = useState('mains');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [activeCategory, setActiveCategory] = useState('all');
+  const [search, setSearch] = useState('');
   const [cart, setCart] = useState([]);
+  const [guestsCount, setGuestsCount] = useState(2);
   const [tableNotes, setTableNotes] = useState('');
+  const [orderSuccess, setOrderSuccess] = useState(false);
+  const [billConfirmOpen, setBillConfirmOpen] = useState(false);
+  const [deptOrders, setDeptOrders] = useState(getDeptOrders());
 
-  // Open Order Drawer for a Table
-  const openTable = (table) => {
-    setSelectedTable(table);
-    setCart(table.currentOrder || []);
-    setTableNotes(table.notes || '');
-  };
+  useEffect(() => {
+    const sync = () => setDeptOrders(getDeptOrders());
+    window.addEventListener('taka_sync', sync);
+    window.addEventListener('takah_sync', sync);
+    return () => { window.removeEventListener('taka_sync', sync); window.removeEventListener('takah_sync', sync); };
+  }, []);
 
-  // Close Drawer
-  const closeDrawer = () => {
-    setSelectedTable(null);
-    setCart([]);
-    setTableNotes('');
-  };
+  // Refresh every 10s for real-time feel
+  useEffect(() => {
+    const t = setInterval(() => setDeptOrders(getDeptOrders()), 10000);
+    return () => clearInterval(t);
+  }, []);
 
-  // Add Item to Table Cart
+  const filteredMenu = menuItems.filter(item => {
+    if (!item.available) return false;
+    const matchDept = activeCategory === 'all' || item.department === activeCategory;
+    const matchSearch = !search || item.name?.includes(search) || item.nameAr?.includes(search);
+    return matchDept && matchSearch;
+  });
+
   const addToCart = (item) => {
-    setCart((prev) => {
-      const existing = prev.find((i) => i.id === item.id);
-      if (existing) {
-        return prev.map((i) => (i.id === item.id ? { ...i, qty: i.qty + 1 } : i));
-      }
+    setCart(prev => {
+      const ex = prev.find(i => i.id === item.id);
+      if (ex) return prev.map(i => i.id === item.id ? { ...i, qty: i.qty + 1 } : i);
       return [...prev, { ...item, qty: 1, note: '' }];
     });
   };
 
-  // Remove / Decrease Item Quantity
-  const decreaseQty = (itemId) => {
-    setCart((prev) => {
-      const existing = prev.find((i) => i.id === itemId);
-      if (existing.qty === 1) {
-        return prev.filter((i) => i.id !== itemId);
-      }
-      return prev.map((i) => (i.id === itemId ? { ...i, qty: i.qty - 1 } : i));
+  const removeFromCart = (itemId) => {
+    setCart(prev => {
+      const ex = prev.find(i => i.id === itemId);
+      if (ex?.qty === 1) return prev.filter(i => i.id !== itemId);
+      return prev.map(i => i.id === itemId ? { ...i, qty: i.qty - 1 } : i);
     });
   };
 
-  // Increase Item Quantity
-  const increaseQty = (itemId) => {
-    setCart((prev) =>
-      prev.map((i) => (i.id === itemId ? { ...i, qty: i.qty + 1 } : i))
-    );
-  };
+  const increaseCart = (itemId) => setCart(prev => prev.map(i => i.id === itemId ? { ...i, qty: i.qty + 1 } : i));
+  const updateNote = (itemId, note) => setCart(prev => prev.map(i => i.id === itemId ? { ...i, note } : i));
 
-  // Edit Item Special Note
-  const updateItemNote = (itemId, note) => {
-    setCart((prev) =>
-      prev.map((i) => (i.id === itemId ? { ...i, note } : i))
-    );
-  };
+  const calcTotals = useCallback(() => {
+    const subtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
+    const tax = subtotal * TAX_RATE;
+    const serviceCharge = subtotal * SERVICE_RATE;
+    const total = subtotal + tax + serviceCharge;
+    return { subtotal, tax, serviceCharge, total };
+  }, [cart]);
 
-  // Calculate Cart Totals
-  const calculateTotals = () => {
-    const subtotal = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
-    const tax = subtotal * 0.15; // 15% VAT
-    const total = subtotal + tax;
-    return { subtotal, tax, total };
-  };
-
-  // Submit Order to Kitchen/Eating
-  const handleSubmitOrder = () => {
-    if (cart.length === 0) return;
-
-    const { subtotal, tax, total } = calculateTotals();
-    const orderId = `order-${Date.now()}`;
-    // add status to each item for department processing
-    const itemsWithStatus = cart.map(item => ({ ...item, status: 'new' }));
-    const newOrder = {
-      id: orderId,
-      tableId: selectedTable.id,
-      tableName: selectedTable.name,
-      waiterCode: employee.code,
-      timestamp: Date.now(),
-      items: itemsWithStatus,
-      subtotal,
-      tax,
-      total,
-      status: 'new'
-    };
-
-    // Save to department orders storage
-    const existingDeptOrders = getDeptOrders();
-    existingDeptOrders[orderId] = newOrder;
-    saveDeptOrders(existingDeptOrders);
-
-    // Also update table status for waiter view
-    const updatedTables = tables.map((t) => {
-      if (t.id === selectedTable.id) {
-        return {
-          ...t,
-          status: 'eating',
-          currentOrder: itemsWithStatus,
-          notes: tableNotes,
-          subtotal,
-          tax,
-          total,
-          waiterCode: employee.code
-        };
-      }
-      return t;
-    });
-
-    onSaveTables(updatedTables);
-    addNotification(
-      'طلب جديد 🍳',
-      `تم إرسال طلب جديد لـ ${selectedTable.name} بواسطة ${employee.name}`,
-      'success'
-    );
-    closeDrawer();
-  };
-
-  // Request Bill
-  const handleRequestBill = () => {
-    const updatedTables = tables.map((t) => {
-      if (t.id === selectedTable.id) {
-        return {
-          ...t,
-          status: 'bill_requested'
-        };
-      }
-      return t;
-    });
-
-    onSaveTables(updatedTables);
-    addNotification(
-      'طلب حساب 🧾',
-      `تم طلب الحساب لـ ${selectedTable.name} بانتظار المحاسب`,
-      'danger'
-    );
-    closeDrawer();
-  };
-
-  // Filter Menu Items
-  const filteredMenuItems = menuItems.filter(
-    (item) =>
-      item.category === activeCategory &&
-      item.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const getTableStatusText = (status) => {
-    switch (status) {
-      case 'empty':
-        return 'فارغة';
-      case 'ordering':
-        return 'قيد الطلب';
-      case 'eating':
-        return 'يتناولون الطعام';
-      case 'bill_requested':
-        return 'طلب الحساب';
-      default:
-        return '';
+  const openTable = (table) => {
+    setSelectedTable(table);
+    setCart(table.currentOrder?.map(i => ({ ...i })) || []);
+    setTableNotes(table.notes || '');
+    setGuestsCount(table.guests || 2);
+    if (table.status === 'empty') {
+      setView('new-order');
+    } else {
+      setView('manage');
     }
   };
 
-  return (
-    <>
-      <div className="ready-notif-bar" style={{ background: '#2f8b7a', color: '#fff', padding: '8px 16px', borderRadius: '8px', marginBottom: '12px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-        {(() => {
-          const deptOrders = getDeptOrders();
-          const readyItems = [];
-          Object.values(deptOrders).forEach(order => {
-            order.items.forEach(item => {
-              if (item.status === 'ready') {
-                readyItems.push({ tableName: order.tableName, itemName: item.name, qty: item.qty, orderId: order.id, itemId: item.id });
-              }
-            });
-          });
-          return readyItems.length > 0 ? (
-            readyItems.map((ri, idx) => (
-              <div key={idx} className="ready-item" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span>{ri.tableName} – {ri.itemName} ×{ri.qty}</span>
-                <button className="btn btn-small" style={{ background: '#fff', color: '#2f8b7a', border: 'none', borderRadius: '4px', padding: '2px 6px' }}
-                  onClick={() => {
-                    updateDeptOrderItem(ri.orderId, ri.itemId, { status: 'delivered' });
-                  }}>
-                  تسليم ✓
-                </button>
-              </div>
-            ))
-          ) : null;
-        })()}
-      </div>
-      <div style={{ padding: '20px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-        <div>
-          <h2 style={{ fontSize: '1.6rem', fontWeight: '800' }}>مرحباً، {employee.name} 👋</h2>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>شاشة إدارة طاولات الصالة وخدمة الزبائن</p>
-        </div>
-        <div className="glass-card" style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <TableProperties size={18} style={{ color: 'var(--color-primary)' }} />
-          <span style={{ fontSize: '0.9rem', fontWeight: '700' }}>صالة المطعم</span>
-        </div>
-      </div>
+  const handleSendOrder = () => {
+    if (cart.length === 0) return;
+    const { subtotal, tax, serviceCharge, total } = calcTotals();
+    const orderId = `order-${Date.now()}`;
+    const itemsWithStatus = cart.map(item => ({ ...item, status: 'preparing', orderedAt: Date.now() }));
 
-      {/* Table Status Colors Legend */}
-      <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginBottom: '24px', fontSize: '0.85rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: 'var(--status-empty)' }}></span>
-          <span style={{ fontWeight: '600' }}>فارغة</span>
+    const newOrder = {
+      id: orderId, tableId: selectedTable.id, tableName: selectedTable.name,
+      waiterCode: employee.code, waiterName: employee.name,
+      timestamp: Date.now(), items: itemsWithStatus,
+      subtotal, tax, serviceCharge, total, status: 'preparing'
+    };
+
+    const existing = getDeptOrders();
+    existing[orderId] = newOrder;
+    saveDeptOrders(existing);
+    setDeptOrders(getDeptOrders());
+
+    const updatedTables = tables.map(t => {
+      if (t.id !== selectedTable.id) return t;
+      const existingItems = t.currentOrder || [];
+      const combined = [...existingItems, ...itemsWithStatus];
+      const newSubtotal = combined.reduce((s, i) => s + i.price * i.qty, 0);
+      const newTax = newSubtotal * TAX_RATE;
+      const newServiceCharge = newSubtotal * SERVICE_RATE;
+      return { ...t, status: 'eating', currentOrder: combined, notes: tableNotes, subtotal: newSubtotal, tax: newTax, serviceCharge: newServiceCharge, total: newSubtotal + newTax + newServiceCharge, waiterCode: employee.code, guests: guestsCount, seatedAt: t.seatedAt || Date.now() };
+    });
+    onSaveTables(updatedTables);
+
+    const deptsInvolved = [...new Set(itemsWithStatus.map(i => i.department))];
+    
+    deptsInvolved.forEach(dept => {
+      const deptItemsCount = itemsWithStatus.filter(i => i.department === dept).length;
+      addNotification(`طلب جديد 🍳`, `طلب جديد من ${selectedTable.name} - ${deptItemsCount} صنف`, 'success', [dept, employee.code, 'manager']);
+    });
+    
+    setOrderSuccess(true);
+    setTimeout(() => { setOrderSuccess(false); setView('tables'); setCart([]); }, 2000);
+  };
+
+  const handleRequestBill = () => {
+    const updatedTables = tables.map(t => t.id === selectedTable.id ? { ...t, status: 'bill_requested' } : t);
+    onSaveTables(updatedTables);
+    addNotification('طلب حساب 🧾', `${selectedTable.name} تطلب الحساب`, 'warning', ['cashier', 'manager']);
+    setBillConfirmOpen(false);
+    setView('tables');
+  };
+
+  const handleDeliverItem = (orderId, itemId) => {
+    updateDeptOrderItem(orderId, itemId, { status: 'delivered' });
+    setDeptOrders(getDeptOrders());
+    addNotification('تسليم', 'تم تسليم الطلب للزبون', 'success', ['manager']);
+  };
+
+  // Ready items for this waiter
+  const readyItems = Object.entries(deptOrders).flatMap(([orderId, order]) =>
+    (order.items || []).filter(item => item.status === 'ready').map(item => ({ ...item, orderId, tableName: order.tableName }))
+  );
+
+  const getOrderIdForItem = (itemId) => {
+    const orders = getDeptOrders();
+    for (const [orderId, order] of Object.entries(orders)) {
+      if (order.tableId === selectedTable?.id) {
+        const match = (order.items || []).find(i => i.id === itemId && i.status === 'ready');
+        if (match) return orderId;
+      }
+    }
+    return null;
+  };
+
+  const tableCurrentOrder = selectedTable ? (tables.find(t => t.id === selectedTable.id)?.currentOrder || []) : [];
+  const tableData = selectedTable ? tables.find(t => t.id === selectedTable.id) : null;
+
+  const elapsedMin = tableData?.seatedAt ? Math.floor((now - tableData.seatedAt) / 60000) : 0;
+
+  // ── VIEWS ──────────────────────────────────
+  if (view === 'new-order' && selectedTable) {
+    const { subtotal, tax, serviceCharge, total } = calcTotals();
+    return (
+      <div className="view-container">
+        {orderSuccess && (
+          <div className="order-success-banner">✅ تم إرسال الطلب للأقسام بنجاح!</div>
+        )}
+
+        <div className="order-header">
+          <div>
+            <button className="back-btn" onClick={() => { setView('tables'); setCart([]); }}>← رجوع</button>
+            <span className="order-table-num">الطاولة #{selectedTable.id}</span>
+          </div>
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+            <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>عدد الأشخاص:</label>
+            <select className="form-input" value={guestsCount} onChange={e => setGuestsCount(parseInt(e.target.value))} style={{ width: '80px' }}>
+              {[1,2,3,4,5,6,7,8,9,10].map(n => <option key={n} value={n}>{n}</option>)}
+            </select>
+          </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: 'var(--status-eating)' }}></span>
-          <span style={{ fontWeight: '600' }}>يتناول الطعام</span>
+
+        <div className="order-layout">
+          {/* Left: Menu */}
+          <div className="menu-col">
+            {/* Dept Tabs */}
+            <div className="dept-tabs">
+              {DEPT_TABS.map(tab => (
+                <button key={tab.id} className={`dept-tab ${activeCategory === tab.id ? 'active' : ''}`} onClick={() => setActiveCategory(tab.id)}>
+                  <span>{tab.icon}</span> {tab.label}
+                </button>
+              ))}
+            </div>
+            {/* Search */}
+            <div style={{ position: 'relative', marginBottom: '12px' }}>
+              <input className="form-input" placeholder="🔍 بحث..." value={search} onChange={e => setSearch(e.target.value)} />
+            </div>
+            {/* Items */}
+            <div className="menu-items-grid">
+              {filteredMenu.map(item => {
+                const inCart = cart.find(c => c.id === item.id);
+                return (
+                  <div key={item.id} className={`menu-item-card ${inCart ? 'in-cart' : ''}`} onClick={() => addToCart(item)}>
+                    <div style={{ fontSize: '2rem', marginBottom: '6px' }}>{item.image}</div>
+                    <div style={{ fontWeight: 600, fontSize: '0.88rem', lineHeight: 1.3 }}>{item.name || item.nameAr}</div>
+                    {item.description && <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px' }}>{item.description}</div>}
+                    <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, color: '#d4af37', marginTop: '8px' }}>{item.price} ₪</div>
+                    {inCart && <div className="cart-badge">+{inCart.qty}</div>}
+                  </div>
+                );
+              })}
+              {filteredMenu.length === 0 && <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>لا توجد أصناف</div>}
+            </div>
+          </div>
+
+          {/* Right: Cart */}
+          <div className="cart-col">
+            <div className="cart-header-bar">
+              <span>🛒 الطلب الحالي</span>
+              <span className="cart-count">{cart.reduce((s, i) => s + i.qty, 0)} صنف</span>
+            </div>
+
+            <div className="cart-items-scroll">
+              {cart.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>
+                  <div style={{ fontSize: '2.5rem', marginBottom: '8px' }}>🛒</div>
+                  <p>اختر أصنافاً من القائمة</p>
+                </div>
+              ) : (
+                cart.map(item => (
+                  <div key={item.id} className="cart-item-row">
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 600, fontSize: '0.88rem' }}>{item.name}</div>
+                      <div style={{ fontFamily: 'Outfit, sans-serif', color: '#d4af37', fontSize: '0.82rem' }}>{(item.price * item.qty).toFixed(2)} ₪</div>
+                      <input
+                        type="text"
+                        className="note-input"
+                        placeholder="ملاحظة (مثل: بدون بصل)"
+                        value={item.note || ''}
+                        onChange={e => updateNote(item.id, e.target.value)}
+                      />
+                    </div>
+                    <div className="qty-controls">
+                      <button className="qty-btn" onClick={() => removeFromCart(item.id)}>−</button>
+                      <span className="qty-num">{item.qty}</span>
+                      <button className="qty-btn" onClick={() => increaseCart(item.id)}>+</button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {cart.length > 0 && (
+              <div className="cart-totals-section">
+                <div className="total-row"><span>المجموع الفرعي</span><span>{subtotal.toFixed(2)} ₪</span></div>
+                <div className="total-row"><span>ضريبة (15%)</span><span>{tax.toFixed(2)} ₪</span></div>
+                <div className="total-row"><span>خدمة (10%)</span><span>{serviceCharge.toFixed(2)} ₪</span></div>
+                <div className="total-row grand"><span>الإجمالي</span><span>{total.toFixed(2)} ₪</span></div>
+              </div>
+            )}
+
+            <div style={{ padding: '12px', borderTop: '1px solid var(--border-light)' }}>
+              <input
+                className="form-input"
+                placeholder="ملاحظة للطاولة..."
+                value={tableNotes}
+                onChange={e => setTableNotes(e.target.value)}
+                style={{ marginBottom: '12px' }}
+              />
+              <button
+                className="send-order-btn"
+                onClick={handleSendOrder}
+                disabled={cart.length === 0}
+              >
+                ✅ أرسل الطلب للأقسام
+              </button>
+              <button className="back-btn" style={{ width: '100%', marginTop: '8px', textAlign: 'center' }} onClick={() => { setView('tables'); setCart([]); }}>
+                ← عودة للطاولات
+              </button>
+            </div>
+          </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: 'var(--status-bill-requested)' }}></span>
-          <span style={{ fontWeight: '600' }}>طلب الحساب (أولوية)</span>
+      </div>
+    );
+  }
+
+  if (view === 'manage' && selectedTable && tableData) {
+    const ongoingItems = tableCurrentOrder.filter(item => ['new', 'preparing'].includes(item.status));
+    const readyItemsList = tableCurrentOrder.filter(item => item.status === 'ready');
+    const deliveredItemsList = tableCurrentOrder.filter(item => item.status === 'delivered');
+
+    return (
+      <div className="view-container">
+        <div className="order-header">
+          <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+            <button className="back-btn" onClick={() => setView('tables')}>← رجوع</button>
+            <div>
+              <span className="order-table-num">الطاولة #{selectedTable.id}</span>
+              <span style={{ color: 'var(--text-muted)', fontSize: '0.82rem', marginRight: '12px' }}>
+                | {tableData.guests || 0} أشخاص | {elapsedMin} دقيقة
+              </span>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button className="btn-add-more" onClick={() => { setCart([]); setView('new-order'); }}>+ إضافة طلب</button>
+            {tableData.status !== 'bill_requested' && (
+              <button className="btn-request-bill" onClick={() => setBillConfirmOpen(true)}>🧾 طلب الحساب</button>
+            )}
+          </div>
+        </div>
+
+        {/* Ready items alert */}
+        {readyItems.filter(ri => {
+          const order = Object.values(deptOrders).find(o => o.tableId === selectedTable.id);
+          return order && ri.tableName === selectedTable.name;
+        }).length > 0 && (
+          <div className="ready-alert-banner">
+            🔔 طلبات جاهزة للتسليم!
+            {readyItems.filter(ri => ri.tableName === selectedTable.name).map((ri, i) => (
+              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px' }}>
+                <span>{ri.name} × {ri.qty}</span>
+                <button className="deliver-btn" onClick={() => handleDeliverItem(ri.orderId, ri.id)}>تسليم ✓</button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Current order items */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+          <div className="admin-card">
+            <h3 className="card-title">📋 حالة الطلبات</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: '12px' }}>
+              {tableCurrentOrder.length === 0 ? (
+                <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '20px' }}>لا توجد طلبات لهذه الطاولة</p>
+              ) : (
+                <>
+                  {/* 📌 الطلبات الجارية */}
+                  <div>
+                    <h4 style={{ fontSize: '0.92rem', fontWeight: 700, marginBottom: '8px', color: '#f39c12', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      📌 الطلبات الجارية ({ongoingItems.length})
+                    </h4>
+                    {ongoingItems.length === 0 ? (
+                      <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', padding: '6px 12px' }}>لا توجد طلبات قيد التحضير</p>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {ongoingItems.map((item, i) => {
+                          const orderedTime = item.orderedAt || tableData.seatedAt || now;
+                          const elapsedItemMin = Math.floor((now - orderedTime) / 60000);
+                          const expectedPrep = item.prepTime || 15;
+                          const remainingMin = Math.max(0, expectedPrep - elapsedItemMin);
+                          const percent = Math.min(100, Math.floor((elapsedItemMin / expectedPrep) * 100));
+                          const statusText = item.status === 'preparing' ? 'يتحضر' : 'جديد';
+                          const statusColor = item.status === 'preparing' ? '#f39c12' : '#e74c3c';
+
+                          return (
+                            <div key={i} style={{ padding: '12px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', borderRight: `3px solid ${statusColor}` }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                <div>
+                                  <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>{item.name} × {item.qty}</span>
+                                  {item.note && <div style={{ fontSize: '0.75rem', color: '#f39c12', marginTop: '2px' }}>📝 {item.note}</div>}
+                                </div>
+                                <span style={{ fontSize: '0.78rem', color: statusColor, fontWeight: 700 }}>{statusText}</span>
+                              </div>
+                              
+                              <div style={{ marginTop: '8px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '3px' }}>
+                                  <span>الوقت المتوقع: {expectedPrep} د</span>
+                                  <span>مضى: {elapsedItemMin} د (متبقي {remainingMin} د)</span>
+                                </div>
+                                <div style={{ width: '100%', height: '5px', background: 'rgba(255,255,255,0.05)', borderRadius: '3px', overflow: 'hidden' }}>
+                                  <div style={{ width: `${percent}%`, height: '100%', background: statusColor, borderRadius: '3px', transition: 'width 0.5s ease' }}></div>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* ✅ الطلبات الجاهزة */}
+                  <div>
+                    <h4 style={{ fontSize: '0.92rem', fontWeight: 700, marginBottom: '8px', color: '#27ae60', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      ✅ الطلبات الجاهزة للتسليم ({readyItemsList.length})
+                    </h4>
+                    {readyItemsList.length === 0 ? (
+                      <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', padding: '6px 12px' }}>لا توجد طلبات جاهزة</p>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {readyItemsList.map((item, i) => {
+                          const readyDuration = item.readyAt ? Math.floor((now - item.readyAt) / 60000) : 0;
+                          const ordId = getOrderIdForItem(item.id);
+                          return (
+                            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: 'rgba(39, 174, 96, 0.05)', borderRight: '3px solid #27ae60', borderRadius: '8px' }}>
+                              <div>
+                                <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{item.name} × {item.qty}</div>
+                                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                                  ⏱ جاهز منذ: {readyDuration} دقائق
+                                </div>
+                              </div>
+                              <button
+                                className="deliver-btn"
+                                onClick={() => ordId && handleDeliverItem(ordId, item.id)}
+                                disabled={!ordId}
+                                style={{ padding: '6px 12px', fontSize: '0.78rem', background: '#27ae60', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 700 }}
+                              >
+                                [تم تسليم الطلب ✓]
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 📦 الطلبات المسلّمة */}
+                  {deliveredItemsList.length > 0 && (
+                    <div>
+                      <h4 style={{ fontSize: '0.92rem', fontWeight: 700, marginBottom: '8px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        📦 الطلبات المسلمة ({deliveredItemsList.length})
+                      </h4>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        {deliveredItemsList.map((item, i) => (
+                          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', background: 'rgba(255,255,255,0.01)', borderRadius: '6px', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                            <span>{item.name} × {item.qty}</span>
+                            <span>مسلم ✓</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+
+          <div className="admin-card">
+            <h3 className="card-title">💳 الفاتورة الحالية</h3>
+            <div style={{ marginTop: '12px' }}>
+              <div className="total-row"><span>المجموع الفرعي</span><span>{(tableData.subtotal || 0).toFixed(2)} ₪</span></div>
+              <div className="total-row"><span>الضريبة (15%)</span><span>{(tableData.tax || 0).toFixed(2)} ₪</span></div>
+              <div className="total-row"><span>خدمة (10%)</span><span>{(tableData.serviceCharge || 0).toFixed(2)} ₪</span></div>
+              <div className="total-row grand"><span>الإجمالي النهائي</span><span>{(tableData.total || 0).toFixed(2)} ₪</span></div>
+            </div>
+
+            {tableData.status === 'bill_requested' && (
+              <div style={{ marginTop: '16px', padding: '12px', background: 'rgba(243,156,18,0.1)', borderRadius: '8px', border: '1px solid rgba(243,156,18,0.3)', textAlign: 'center' }}>
+                <div style={{ color: '#f39c12', fontWeight: 700 }}>🧾 تم إرسال طلب الحساب للمحاسب</div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>في انتظار المعالجة</div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // MAIN TABLES VIEW
+  return (
+    <div className="view-container">
+      {/* Ready items global bar */}
+      {readyItems.length > 0 && (
+        <div className="ready-alert-banner">
+          🔔 طلبات جاهزة للتسليم! ({readyItems.length})
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '8px' }}>
+            {readyItems.map((ri, i) => (
+              <div key={i} style={{ display: 'flex', gap: '8px', alignItems: 'center', background: 'rgba(255,255,255,0.1)', padding: '4px 10px', borderRadius: '20px' }}>
+                <span style={{ fontSize: '0.82rem' }}>{ri.tableName} – {ri.name} ×{ri.qty}</span>
+                <button className="deliver-btn" onClick={() => handleDeliverItem(ri.orderId, ri.id)}>✓</button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <div>
+          <h2 style={{ fontSize: '1.6rem', fontWeight: 800, margin: 0 }}>مرحباً، {employee.name} 👋</h2>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', marginTop: '4px' }}>اختر طاولة للبدء</p>
+        </div>
+        <div style={{ display: 'flex', gap: '12px', fontSize: '0.82rem' }}>
+          {Object.entries(STATUS_LABELS_AR).slice(0, 3).map(([k, v]) => (
+            <div key={k} style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
+              <span style={{ width: '10px', height: '10px', borderRadius: '3px', background: STATUS_COLORS[k], display: 'inline-block' }} />
+              {v}
+            </div>
+          ))}
         </div>
       </div>
 
       {/* Tables Grid */}
       <div className="tables-grid">
-        {tables.map((t) => (
-          <div
-            key={t.id}
-            className={`glass-card table-card status-${t.status}`}
-            onClick={() => openTable(t)}
-          >
-            <span className="table-number num-font">{t.id}</span>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{t.name}</span>
-            <span className={`badge badge-${t.status.replace('_', '-')}`} style={{ marginTop: '4px' }}>
-              {getTableStatusText(t.status)}
-            </span>
-            {t.total > 0 && t.status !== 'empty' && (
-              <span className="table-total num-font">{t.total.toFixed(2)} دينار</span>
-            )}
-          </div>
-        ))}
+        {tables.map(t => {
+          const elMin = t.seatedAt ? Math.floor((now - t.seatedAt) / 60000) : 0;
+          return (
+            <div
+              key={t.id}
+              className={`table-card status-${t.status}`}
+              onClick={() => openTable(t)}
+            >
+              <div className="table-number">{t.id}</div>
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>🪑 {t.seats} مقعد</div>
+              <span className={`badge ${STATUS_BADGE[t.status] || ''}`}>{STATUS_LABELS_AR[t.status] || t.status}</span>
+              {t.status !== 'empty' && t.total > 0 && (
+                <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, color: '#d4af37', fontSize: '0.88rem' }}>{t.total.toFixed(2)} ₪</div>
+              )}
+              {t.status !== 'empty' && t.seatedAt && (
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>⏱ {elMin} دقيقة</div>
+              )}
+              {t.status === 'bill_requested' && <div style={{ fontSize: '1.2rem' }}>🧾</div>}
+            </div>
+          );
+        })}
       </div>
 
-      {/* Interactive Order Drawer Modal */}
-      {selectedTable && (
-        <div className="modal-overlay">
-          <div className="modal-content glass-card" style={{ maxWidth: '900px' }}>
+      {/* Bill confirm modal */}
+      {billConfirmOpen && selectedTable && (
+        <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) setBillConfirmOpen(false); }}>
+          <div className="modal-content glass-card" style={{ maxWidth: '400px' }}>
             <div className="modal-header">
-              <h3 className="modal-title">
-                {selectedTable.name} - {getTableStatusText(selectedTable.status)}
-              </h3>
-              <button className="modal-close" onClick={closeDrawer}>&times;</button>
+              <h3 className="modal-title">🧾 طلب الحساب</h3>
+              <button className="modal-close" onClick={() => setBillConfirmOpen(false)}>×</button>
             </div>
-
-            <div className="modal-body">
-              {selectedTable.status === 'bill_requested' ? (
-                <div style={{ textAlign: 'center', padding: '40px 20px' }}>
-                  <div style={{ fontSize: '3rem', marginBottom: '16px' }}>🧾</div>
-                  <h4 style={{ fontSize: '1.2rem', marginBottom: '8px' }}>تم تقديم طلب الحساب للمحاسب</h4>
-                  <p style={{ color: 'var(--text-muted)', marginBottom: '24px' }}>
-                    بانتظار معالجة الفاتورة من شاشة الكاشير. إجمالي الطلب: <strong className="num-font" style={{ color: 'var(--color-primary)' }}>{selectedTable.total.toFixed(2)} دينار</strong>
-                  </p>
-                  <button className="btn btn-secondary" onClick={closeDrawer}>
-                    إغلاق المعاينة
-                  </button>
-                </div>
-              ) : (
-                <div className="order-builder-layout">
-                  {/* Menu Picker (Left) */}
-                  <div className="menu-sections">
-                    <div className="category-tabs">
-                      {menuCategories.map((cat) => (
-                        <button
-                          key={cat.id}
-                          className={`category-tab ${activeCategory === cat.id ? 'active' : ''}`}
-                          onClick={() => setActiveCategory(cat.id)}
-                        >
-                          <span>{cat.icon}</span>
-                          <span>{cat.name}</span>
-                        </button>
-                      ))}
-                    </div>
-
-                    <div style={{ position: 'relative' }}>
-                      <input
-                        type="text"
-                        className="form-input"
-                        placeholder="ابحث عن وجبة أو شراب..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        style={{ paddingRight: '40px' }}
-                      />
-                      <Search size={18} style={{ position: 'absolute', right: '14px', top: '15px', color: 'var(--text-muted)' }} />
-                    </div>
-
-                    <div className="menu-items-list">
-                      {filteredMenuItems.map((item) => (
-                        <div key={item.id} className="menu-item-card" onClick={() => addToCart(item)}>
-                          <span className="menu-item-image">{item.image}</span>
-                          <div className="menu-item-info">
-                            <h4 className="menu-item-name">{item.name}</h4>
-                            <p className="menu-item-desc">{item.description}</p>
-                          </div>
-                          <span className="menu-item-price num-font">{item.price.toFixed(2)} د.أ</span>
-                          <button className="qty-btn" style={{ marginRight: '10px' }}>
-                            <Plus size={14} />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Cart / Invoice Builder (Right) */}
-                  <div className="cart-section">
-                    <div className="cart-header">
-                      <span>الطلبات الحالية</span>
-                      <span className="num-font" style={{ color: 'var(--color-primary)' }}>
-                        {cart.reduce((s, i) => s + i.qty, 0)} عناصر
-                      </span>
-                    </div>
-
-                    <div className="cart-items-scroll">
-                      {cart.length === 0 ? (
-                        <div style={{ textAlign: 'center', padding: '60px 10px', color: 'var(--text-muted)' }}>
-                          <ShoppingBag size={32} style={{ marginBottom: '12px', opacity: 0.5 }} />
-                          <p style={{ fontSize: '0.85rem' }}>السلة فارغة. اختر أصنافاً من القائمة لإضافتها.</p>
-                        </div>
-                      ) : (
-                        cart.map((item) => (
-                          <div key={item.id} className="cart-item">
-                            <div style={{ flex: 1 }}>
-                              <span className="cart-item-name">{item.name}</span>
-                              <div className="cart-item-price num-font">{(item.price * item.qty).toFixed(2)} د.أ</div>
-                              <input
-                                type="text"
-                                className="form-input"
-                                placeholder="ملاحظة (مثال: بدون حد)"
-                                value={item.note || ''}
-                                onChange={(e) => updateItemNote(item.id, e.target.value)}
-                                style={{
-                                  padding: '4px 8px',
-                                  fontSize: '0.75rem',
-                                  marginTop: '6px',
-                                  height: '26px'
-                                }}
-                              />
-                            </div>
-                            <div className="cart-item-controls">
-                              <button className="qty-btn" onClick={() => decreaseQty(item.id)}>
-                                <Minus size={12} />
-                              </button>
-                              <span className="qty-val num-font">{item.qty}</span>
-                              <button className="qty-btn" onClick={() => increaseQty(item.id)}>
-                                <Plus size={12} />
-                              </button>
-                            </div>
-                          </div>
-                        ))
-                      )}
-                    </div>
-
-                    <div className="form-group" style={{ marginBottom: '12px' }}>
-                      <label style={{ fontSize: '0.8rem' }}>ملاحظات عامة للطاولة</label>
-                      <input
-                        type="text"
-                        className="form-input"
-                        placeholder="رقم الطاولة، طلبات خاصة..."
-                        value={tableNotes}
-                        onChange={(e) => setTableNotes(e.target.value)}
-                        style={{ padding: '8px 12px', fontSize: '0.85rem' }}
-                      />
-                    </div>
-
-                    {cart.length > 0 && (
-                      <div className="cart-totals">
-                        <div className="cart-total-row">
-                          <span>المجموع الفرعي:</span>
-                          <span className="num-font">{calculateTotals().subtotal.toFixed(2)} د.أ</span>
-                        </div>
-                        <div className="cart-total-row">
-                          <span>الضريبة (15%):</span>
-                          <span className="num-font">{calculateTotals().tax.toFixed(2)} د.أ</span>
-                        </div>
-                        <div className="cart-total-row grand-total">
-                          <span>المجموع النهائي:</span>
-                          <span className="num-font">{calculateTotals().total.toFixed(2)} دينار</span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
+            <div className="modal-body" style={{ textAlign: 'center' }}>
+              <p>هل تريد إرسال طلب الحساب للمحاسب؟</p>
+              <p style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.4rem', fontWeight: 800, color: '#d4af37', margin: '12px 0' }}>
+                {tableData ? (tableData.total || 0).toFixed(2) : '0.00'} ₪
+              </p>
             </div>
-
             <div className="modal-footer">
-              <button className="btn btn-secondary" onClick={closeDrawer}>
-                إلغاء
-              </button>
-              {selectedTable.status !== 'bill_requested' && cart.length > 0 && (
-                <>
-                  {selectedTable.status === 'eating' && (
-                    <button className="btn btn-danger" onClick={handleRequestBill}>
-                      <CreditCard size={16} /> طلب الحساب
-                    </button>
-                  )}
-                  <button className="btn btn-primary" onClick={handleSubmitOrder}>
-                    <Send size={16} /> إرسال الطلب للمطبخ
-                  </button>
-                </>
-              )}
+              <button className="btn-request-bill" onClick={handleRequestBill}>✅ نعم، إرسال طلب</button>
+              <button className="btn-secondary" onClick={() => setBillConfirmOpen(false)}>إلغاء</button>
             </div>
           </div>
         </div>
       )}
     </div>
-    </>
   );
 }

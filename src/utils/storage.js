@@ -1,4 +1,4 @@
-const DB_NAME = 'takah_restaurant_db';
+const DB_NAME = 'taka_restaurant_v2';
 const DB_VERSION = 1;
 const STORE_NAME = 'records';
 
@@ -9,102 +9,124 @@ const NOTIFICATIONS_KEY = 'notifications';
 const MENU_KEY = 'menu';
 const DEPT_ORDERS_KEY = 'department_orders';
 const SESSION_KEY = 'session';
+const DEPARTMENTS_KEY = 'departments';
 
-export const TAX_RATE = 0.15;
-export const MAX_NOTIFICATIONS = 20;
+export const TAX_RATE = 0;
+export const SERVICE_RATE = 0;
+export const MAX_NOTIFICATIONS = 30;
 export const MAX_BILLS_KEPT = 1000;
-export const RESTAURANT_NAME = 'تكة - Taka Restaurant';
 
-const DEFAULT_TABLES = Array.from({ length: 10 }, (_, i) => ({
+export const getRestaurantName = () => {
+  try {
+    const raw = localStorage.getItem('takka_manager_account');
+    if (raw) {
+      const acc = JSON.parse(raw);
+      if (acc && acc.restaurantName) return acc.restaurantName;
+    }
+  } catch (e) {
+    // ignore
+  }
+  return 'المطعم';
+};
+
+export const RESTAURANT_NAME = getRestaurantName();
+
+// Default 15 tables
+export const DEFAULT_TABLES = Array.from({ length: 15 }, (_, i) => ({
   id: i + 1,
   name: `طاولة ${i + 1}`,
-  seats: i < 4 ? 4 : i < 8 ? 6 : 8,
+  seats: i < 5 ? 4 : i < 10 ? 6 : 8,
+  area: i < 5 ? 'indoor' : i < 10 ? 'outdoor' : 'terrace',
   status: 'empty',
   currentOrder: [],
   notes: '',
   subtotal: 0,
   tax: 0,
+  serviceCharge: 0,
   total: 0,
-  waiterCode: null
+  waiterCode: null,
+  seatedAt: null,
+  guests: 0
 }));
 
-const DEFAULT_EMPLOYEES = [
+export const DEFAULT_DEPARTMENTS = [
   {
-    id: 'admin-1',
-    name: 'مدير تكة',
-    role: 'manager',
-    username: 'admin',
-    password: 'admin123',
-    code: 'ADMIN',
-    phone: '0790000000',
-    active: true
+    id: 'kitchen',
+    name: 'المطبخ',
+    nameEn: 'Kitchen',
+    icon: '🍳',
+    color: '#e67e22',
+    description: 'قسم الطعام الرئيسي والوجبات',
+    workHours: '08:00 - 23:00',
+    activeOrders: 0,
+    lastOrderAt: null
   },
   {
-    id: 'waiter-1',
-    name: 'جرسون الصالة',
-    role: 'waiter',
-    username: 'waiter1',
-    password: '1234',
-    code: 'W-1234',
-    phone: '0791234567',
-    active: true
+    id: 'bar',
+    name: 'البار',
+    nameEn: 'Bar',
+    icon: '🍺',
+    color: '#1abc9c',
+    description: 'قسم المشروبات والعصائر',
+    workHours: '08:00 - 24:00',
+    activeOrders: 0,
+    lastOrderAt: null
   },
   {
-    id: 'cashier-1',
-    name: 'محاسب الكاشير',
-    role: 'cashier',
-    username: 'cashier1',
-    password: '1234',
-    code: 'C-5678',
-    phone: '0781234567',
-    active: true
-  },
-  {
-    id: 'kitchen-1',
-    name: 'قسم المطبخ',
-    role: 'kitchen',
-    username: 'kitchen1',
-    password: '1234',
-    code: 'K-1111',
-    phone: '0771111111',
-    active: true
-  },
-  {
-    id: 'bar-1',
-    name: 'قسم البار',
-    role: 'bar',
-    username: 'bar1',
-    password: '1234',
-    code: 'B-2222',
-    phone: '0772222222',
-    active: true
-  },
-  {
-    id: 'shisha-1',
-    name: 'قسم الشيشة',
-    role: 'shisha',
-    username: 'shisha1',
-    password: '1234',
-    code: 'S-3333',
-    phone: '0773333333',
-    active: true
+    id: 'shisha',
+    name: 'الشيشة',
+    nameEn: 'Shisha',
+    icon: '💨',
+    color: '#27ae60',
+    description: 'قسم الشيشة والأرجيلة',
+    workHours: '14:00 - 02:00',
+    activeOrders: 0,
+    lastOrderAt: null
   }
 ];
 
-const DEFAULT_MENU = [
-  { id: 'k1', category: 'mains', name: 'برغر كلاسيك', price: 8, description: 'برغر لحم مع جبنة وصوص تكة', image: '🍔', department: 'kitchen' },
-  { id: 'k2', category: 'mains', name: 'شاورما دجاج', price: 7, description: 'شاورما دجاج بخبز صاج وثومية', image: '🌯', department: 'kitchen' },
-  { id: 'k3', category: 'mains', name: 'بيتزا مارغريتا', price: 12, description: 'صلصة طماطم وموزاريلا وريحان', image: '🍕', department: 'kitchen' },
-  { id: 'k4', category: 'appetizers', name: 'فريز دجاج', price: 6, description: 'دجاج مقرمش مع بطاطا', image: '🍗', department: 'kitchen' },
-  { id: 'b1', category: 'drinks', name: 'كولا', price: 3, description: 'مشروب غازي بارد', image: '🥤', department: 'bar' },
-  { id: 'b2', category: 'drinks', name: 'عصير برتقال', price: 4, description: 'عصير طبيعي طازج', image: '🍊', department: 'bar' },
-  { id: 'b3', category: 'drinks', name: 'ليموناضة', price: 3.5, description: 'ليمون منعش بالنعنع', image: '🍋', department: 'bar' },
-  { id: 'b4', category: 'drinks', name: 'ماء معدني', price: 2, description: 'زجاجة ماء باردة', image: '💧', department: 'bar' },
-  { id: 's1', category: 'shisha', name: 'شيشة تفاحتين', price: 15, description: 'نكهة تفاحتين كلاسيكية', image: '💨', department: 'shisha' },
-  { id: 's2', category: 'shisha', name: 'شيشة نعناع', price: 15, description: 'نكهة نعناع منعشة', image: '🌿', department: 'shisha' },
-  { id: 's3', category: 'shisha', name: 'شيشة كريمة', price: 18, description: 'نكهة كريمة ناعمة', image: '🍦', department: 'shisha' },
-  { id: 's4', category: 'shisha', name: 'شيشة فاكهة', price: 20, description: 'خلطة فواكه خاصة', image: '🍓', department: 'shisha' }
+export const DEFAULT_MENU = [
+  // Kitchen items
+  { id: 'k1', nameAr: 'برغر كلاسيكي', nameEn: 'Classic Burger', name: 'برغر كلاسيكي', category: 'mains', price: 8, description: 'برغر لحم مع جبنة وصوص تكة', image: '🍔', department: 'kitchen', available: true, prepTime: 15 },
+  { id: 'k2', nameAr: 'برغر جبن مضاعف', nameEn: 'Double Cheese Burger', name: 'برغر جبن مضاعف', category: 'mains', price: 10, description: 'برغر بطبقتين جبنة ولحم أصيل', image: '🍔', department: 'kitchen', available: true, prepTime: 18 },
+  { id: 'k3', nameAr: 'شاورما دجاج', nameEn: 'Chicken Shawarma', name: 'شاورما دجاج', category: 'mains', price: 7, description: 'شاورما دجاج بخبز صاج وثومية', image: '🌯', department: 'kitchen', available: true, prepTime: 12 },
+  { id: 'k4', nameAr: 'شاورما لحم', nameEn: 'Meat Shawarma', name: 'شاورما لحم', category: 'mains', price: 8, description: 'شاورما لحم بهوية وصلصة حارة', image: '🌯', department: 'kitchen', available: true, prepTime: 14 },
+  { id: 'k5', nameAr: 'بيتزا مارغريتا', nameEn: 'Margherita Pizza', name: 'بيتزا مارغريتا', category: 'mains', price: 12, description: 'صلصة طماطم وموزاريلا وريحان', image: '🍕', department: 'kitchen', available: true, prepTime: 20 },
+  { id: 'k6', nameAr: 'بيتزا ببيروني', nameEn: 'Pepperoni Pizza', name: 'بيتزا ببيروني', category: 'mains', price: 14, description: 'ببيروني فاخر مع موزاريلا طازجة', image: '🍕', department: 'kitchen', available: true, prepTime: 22 },
+  { id: 'k7', nameAr: 'فريز دجاج', nameEn: 'Crispy Chicken', name: 'فريز دجاج', category: 'appetizers', price: 6, description: 'دجاج مقرمش مع بطاطا ذهبية', image: '🍗', department: 'kitchen', available: true, prepTime: 15 },
+  { id: 'k8', nameAr: 'دجاج مشوي', nameEn: 'Grilled Chicken', name: 'دجاج مشوي', category: 'mains', price: 10, description: 'نصف دجاجة مشوية مع أعشاب', image: '🍗', department: 'kitchen', available: true, prepTime: 25 },
+  { id: 'k9', nameAr: 'سلطة خضار', nameEn: 'Garden Salad', name: 'سلطة خضار', category: 'appetizers', price: 5, description: 'سلطة طازجة مع توابل البيت', image: '🥗', department: 'kitchen', available: true, prepTime: 8 },
+  // Bar items
+  { id: 'b1', nameAr: 'كولا صغير', nameEn: 'Cola Small', name: 'كولا صغير', category: 'drinks', price: 2, description: 'مشروب كولا بارد', image: '🥤', department: 'bar', available: true, prepTime: 2 },
+  { id: 'b2', nameAr: 'كولا كبير', nameEn: 'Cola Large', name: 'كولا كبير', category: 'drinks', price: 3, description: 'مشروب كولا بارد حجم كبير', image: '🥤', department: 'bar', available: true, prepTime: 2 },
+  { id: 'b3', nameAr: 'عصير برتقال', nameEn: 'Orange Juice', name: 'عصير برتقال', category: 'drinks', price: 4, description: 'عصير برتقال طبيعي طازج', image: '🍊', department: 'bar', available: true, prepTime: 5 },
+  { id: 'b4', nameAr: 'عصير ليمون', nameEn: 'Lemon Juice', name: 'عصير ليمون', category: 'drinks', price: 3.5, description: 'عصير ليمون منعش', image: '🍋', department: 'bar', available: true, prepTime: 5 },
+  { id: 'b5', nameAr: 'عصير تفاح', nameEn: 'Apple Juice', name: 'عصير تفاح', category: 'drinks', price: 4, description: 'عصير تفاح حلو طازج', image: '🍎', department: 'bar', available: true, prepTime: 4 },
+  { id: 'b6', nameAr: 'ليموناضة طازة', nameEn: 'Fresh Lemonade', name: 'ليموناضة طازة', category: 'drinks', price: 4, description: 'ليمون منعش بالنعناع والثلج', image: '🍹', department: 'bar', available: true, prepTime: 6 },
+  { id: 'b7', nameAr: 'ماء معدني', nameEn: 'Mineral Water', name: 'ماء معدني', category: 'drinks', price: 2, description: 'زجاجة ماء معدني بارد', image: '💧', department: 'bar', available: true, prepTime: 1 },
+  { id: 'b8', nameAr: 'قهوة عربية', nameEn: 'Arabic Coffee', name: 'قهوة عربية', category: 'drinks', price: 3, description: 'قهوة عربية أصيلة بالهيل', image: '☕', department: 'bar', available: true, prepTime: 5 },
+  { id: 'b9', nameAr: 'شاي بالنعناع', nameEn: 'Mint Tea', name: 'شاي بالنعناع', category: 'drinks', price: 2.5, description: 'شاي أسود بأوراق النعناع الطازجة', image: '🍵', department: 'bar', available: true, prepTime: 5 },
+  // Shisha items
+  { id: 's1', nameAr: 'شيشة تفاحتين', nameEn: 'Double Apple Shisha', name: 'شيشة تفاحتين', category: 'shisha', price: 15, description: 'نكهة تفاحتين كلاسيكية', image: '💨', department: 'shisha', available: true, prepTime: 10 },
+  { id: 's2', nameAr: 'شيشة نعناع', nameEn: 'Mint Shisha', name: 'شيشة نعناع', category: 'shisha', price: 15, description: 'نكهة نعناع منعشة وباردة', image: '🌿', department: 'shisha', available: true, prepTime: 10 },
+  { id: 's3', nameAr: 'شيشة كريمة', nameEn: 'Cream Shisha', name: 'شيشة كريمة', category: 'shisha', price: 18, description: 'نكهة كريمة ناعمة فاخرة', image: '🍦', department: 'shisha', available: true, prepTime: 12 },
+  { id: 's4', nameAr: 'شيشة فاكهة مشكلة', nameEn: 'Mixed Fruit Shisha', name: 'شيشة فاكهة مشكلة', category: 'shisha', price: 20, description: 'خلطة فواكه خاصة متنوعة', image: '🍓', department: 'shisha', available: true, prepTime: 12 },
+  { id: 's5', nameAr: 'شيشة برتقال', nameEn: 'Orange Shisha', name: 'شيشة برتقال', category: 'shisha', price: 16, description: 'نكهة برتقال طازج وحامض', image: '🍊', department: 'shisha', available: true, prepTime: 10 },
+  { id: 's6', nameAr: 'شيشة فراولة', nameEn: 'Strawberry Shisha', name: 'شيشة فراولة', category: 'shisha', price: 17, description: 'نكهة فراولة حلوة ومنعشة', image: '🍓', department: 'shisha', available: true, prepTime: 10 }
 ];
+
+export const DEFAULT_EMPLOYEES = [
+  { id: 'admin-1', name: 'مدير تكة', nameEn: 'Taka Manager', role: 'manager', username: 'admin', password: 'admin123', code: 'ADMIN', phone: '0790000000', email: 'admin@taka.com', salary: 0, active: true, lastLogin: null },
+  { id: 'waiter-1', name: 'أحمد الجرسون', nameEn: 'Ahmed Waiter', role: 'waiter', username: 'waiter1', password: '1234', code: 'W-1234', phone: '0791234567', email: 'waiter1@taka.com', salary: 500, active: true, lastLogin: null },
+  { id: 'cashier-1', name: 'سارة المحاسبة', nameEn: 'Sara Cashier', role: 'cashier', username: 'cashier1', password: '1234', code: 'C-5678', phone: '0781234567', email: 'cashier1@taka.com', salary: 600, active: true, lastLogin: null },
+  { id: 'kitchen-1', name: 'خالد الطباخ', nameEn: 'Khaled Cook', role: 'kitchen', username: 'kitchen1', password: '1234', code: 'K-1111', phone: '0771111111', email: 'kitchen1@taka.com', salary: 550, active: true, lastLogin: null },
+  { id: 'bar-1', name: 'محمد البار', nameEn: 'Mohammed Bar', role: 'bar', username: 'bar1', password: '1234', code: 'B-2222', phone: '0772222222', email: 'bar1@taka.com', salary: 480, active: true, lastLogin: null },
+  { id: 'shisha-1', name: 'علي الشيشة', nameEn: 'Ali Shisha', role: 'shisha', username: 'shisha1', password: '1234', code: 'S-3333', phone: '0773333333', email: 'shisha1@taka.com', salary: 450, active: true, lastLogin: null }
+];
+
+// ───────── IndexedDB core ─────────
+let dbPromise = null;
+let initialized = false;
 
 const cache = {
   [TABLES_KEY]: DEFAULT_TABLES,
@@ -113,101 +135,106 @@ const cache = {
   [NOTIFICATIONS_KEY]: [],
   [MENU_KEY]: DEFAULT_MENU,
   [DEPT_ORDERS_KEY]: {},
-  [SESSION_KEY]: null
+  [SESSION_KEY]: null,
+  [DEPARTMENTS_KEY]: DEFAULT_DEPARTMENTS
 };
 
-let dbPromise = null;
-let initialized = false;
-
-const clone = (value) => {
-  if (typeof structuredClone === 'function') {
-    return structuredClone(value);
-  }
-  return JSON.parse(JSON.stringify(value));
-};
-
-const logDatabaseError = (operation, error) => {
-  console.error(`[Database Error] ${operation}:`, error);
+const clone = (v) => {
+  try { return structuredClone(v); } catch { return JSON.parse(JSON.stringify(v)); }
 };
 
 const openDatabase = () => {
   if (dbPromise) return dbPromise;
-
   dbPromise = new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
-
-    request.onupgradeneeded = () => {
-      const db = request.result;
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(STORE_NAME))
         db.createObjectStore(STORE_NAME, { keyPath: 'key' });
-      }
     };
-
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
   });
-
   return dbPromise;
 };
 
 const readRecord = async (key, fallback) => {
-  const db = await openDatabase();
-  return new Promise((resolve) => {
-    const tx = db.transaction(STORE_NAME, 'readonly');
-    const store = tx.objectStore(STORE_NAME);
-    const request = store.get(key);
-
-    request.onsuccess = () => resolve(request.result?.value ?? clone(fallback));
-    request.onerror = () => {
-      logDatabaseError(`read ${key}`, request.error);
-      resolve(clone(fallback));
-    };
-  });
+  try {
+    const db = await openDatabase();
+    return new Promise((resolve) => {
+      const tx = db.transaction(STORE_NAME, 'readonly');
+      const req = tx.objectStore(STORE_NAME).get(key);
+      req.onsuccess = () => resolve(req.result?.value ?? clone(fallback));
+      req.onerror = () => resolve(clone(fallback));
+    });
+  } catch { return clone(fallback); }
 };
 
 const writeRecord = async (key, value) => {
-  const db = await openDatabase();
-  return new Promise((resolve) => {
-    const tx = db.transaction(STORE_NAME, 'readwrite');
-    const store = tx.objectStore(STORE_NAME);
-    const request = store.put({ key, value: clone(value), updatedAt: Date.now() });
-
-    request.onsuccess = () => resolve(true);
-    request.onerror = () => {
-      logDatabaseError(`write ${key}`, request.error);
-      resolve(false);
-    };
-  });
+  try {
+    const db = await openDatabase();
+    return new Promise((resolve) => {
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      const req = tx.objectStore(STORE_NAME).put({ key, value: clone(value), updatedAt: Date.now() });
+      req.onsuccess = () => resolve(true);
+      req.onerror = () => resolve(false);
+    });
+  } catch { return false; }
 };
 
-const triggerSync = (key) => {
-  try {
-    window.dispatchEvent(new CustomEvent('takah_sync', { detail: { key } }));
-  } catch (error) {
-    logDatabaseError('triggerSync', error);
+const bc = new BroadcastChannel('taka_channel');
+bc.onmessage = (event) => {
+  if (event.data && event.data.type === 'sync' && event.data.key) {
+    readRecord(event.data.key, cache[event.data.key]).then(val => {
+      cache[event.data.key] = val;
+      try { window.dispatchEvent(new CustomEvent('taka_sync', { detail: { key: event.data.key } })); } catch { /* noop */ }
+    });
   }
 };
 
-const normalizeEmployee = (employee) => ({
-  active: true,
-  username: employee.username || employee.code || '',
-  password: employee.password || '1234',
-  ...employee
+const triggerSync = (key) => {
+  try { 
+    window.dispatchEvent(new CustomEvent('taka_sync', { detail: { key } })); 
+    bc.postMessage({ type: 'sync', key });
+  } catch { /* noop */ }
+};
+
+const normalizeEmployee = (e) => ({
+  active: true, salary: 0, email: '', lastLogin: null, ...e
 });
 
 const seedIfMissing = async (key, fallback) => {
-  const value = await readRecord(key, fallback);
-  const normalized =
-    key === EMPLOYEES_KEY && Array.isArray(value)
-      ? value.map(normalizeEmployee)
-      : value;
-  cache[key] = clone(normalized);
-  await writeRecord(key, normalized);
+  const value = await readRecord(key, null);
+  // For tables: if existing has fewer than 15 entries, re-seed
+  if (key === TABLES_KEY && Array.isArray(value) && value.length < 15) {
+    const merged = [...value];
+    for (let i = value.length; i < 15; i++) {
+      merged.push({
+        id: i + 1, name: `طاولة ${i + 1}`,
+        seats: i < 5 ? 4 : i < 10 ? 6 : 8,
+        area: i < 5 ? 'indoor' : i < 10 ? 'outdoor' : 'terrace',
+        status: 'empty', currentOrder: [], notes: '',
+        subtotal: 0, tax: 0, serviceCharge: 0, total: 0,
+        waiterCode: null, seatedAt: null, guests: 0
+      });
+    }
+    cache[key] = clone(merged);
+    await writeRecord(key, merged);
+    return;
+  }
+  if (value === null) {
+    cache[key] = clone(fallback);
+    await writeRecord(key, fallback);
+  } else {
+    const normalized = key === EMPLOYEES_KEY && Array.isArray(value)
+      ? value.map(normalizeEmployee) : value;
+    cache[key] = clone(normalized);
+    await writeRecord(key, normalized);
+  }
 };
 
 export const initializeDatabase = async () => {
   if (initialized) return true;
-
   await seedIfMissing(TABLES_KEY, DEFAULT_TABLES);
   await seedIfMissing(EMPLOYEES_KEY, DEFAULT_EMPLOYEES);
   await seedIfMissing(BILLS_KEY, []);
@@ -215,13 +242,182 @@ export const initializeDatabase = async () => {
   await seedIfMissing(MENU_KEY, DEFAULT_MENU);
   await seedIfMissing(DEPT_ORDERS_KEY, {});
   await seedIfMissing(SESSION_KEY, null);
-
+  await seedIfMissing(DEPARTMENTS_KEY, DEFAULT_DEPARTMENTS);
   initialized = true;
   return true;
 };
 
-export const refreshDatabaseCache = async () => {
-  await initializeDatabase();
+const persist = (key, value) => {
+  cache[key] = clone(value);
+  writeRecord(key, value).then((ok) => { if (ok) triggerSync(key); });
+  return true;
+};
+
+// ───────── Tables ─────────
+export const getTables = () => clone(cache[TABLES_KEY]);
+export const saveTables = (t) => { if (!Array.isArray(t)) return false; return persist(TABLES_KEY, t); };
+
+// ───────── Employees ─────────
+export const getEmployees = () => clone(cache[EMPLOYEES_KEY]).map(normalizeEmployee);
+export const saveEmployees = (emps) => {
+  if (!Array.isArray(emps)) return false;
+  return persist(EMPLOYEES_KEY, emps.map(normalizeEmployee));
+};
+
+export const authenticateUser = (username, password) => {
+  const u = String(username || '').trim().toLowerCase();
+  const p = String(password || '');
+  const emp = getEmployees().find(e =>
+    e.active !== false &&
+    String(e.username || '').trim().toLowerCase() === u &&
+    String(e.password || '') === p
+  );
+  if (!emp) return null;
+  const session = { id: emp.id, role: emp.role, name: emp.name, code: emp.code, username: emp.username };
+  persist(SESSION_KEY, session);
+  // update last login
+  const emps = getEmployees().map(e => e.id === emp.id ? { ...e, lastLogin: Date.now() } : e);
+  persist(EMPLOYEES_KEY, emps);
+  return session;
+};
+
+export const authenticateByCode = (inputCode) => {
+  const code = String(inputCode || '').trim().toLowerCase();
+  const emp = getEmployees().find(e =>
+    e.active !== false &&
+    (String(e.code || '').trim().toLowerCase() === code ||
+     String(e.password || '') === code ||
+     String(e.username || '').trim().toLowerCase() === code)
+  );
+  if (!emp) return null;
+  const session = { id: emp.id, role: emp.role, name: emp.name, code: emp.code, username: emp.username };
+  persist(SESSION_KEY, session);
+  const emps = getEmployees().map(e => e.id === emp.id ? { ...e, lastLogin: Date.now() } : e);
+  persist(EMPLOYEES_KEY, emps);
+  return session;
+};
+
+// ───────── Session ─────────
+export const getSession = () => clone(cache[SESSION_KEY]);
+export const saveSession = (s) => persist(SESSION_KEY, s);
+export const clearSession = () => persist(SESSION_KEY, null);
+
+// ───────── Bills ─────────
+export const getBills = () => clone(cache[BILLS_KEY]);
+export const saveBills = (b) => { if (!Array.isArray(b)) return false; return persist(BILLS_KEY, b.slice(0, MAX_BILLS_KEPT)); };
+
+// ───────── Notifications ─────────
+export const getNotifications = () => clone(cache[NOTIFICATIONS_KEY]);
+export const saveNotifications = (n) => { if (!Array.isArray(n)) return false; return persist(NOTIFICATIONS_KEY, n.slice(0, MAX_NOTIFICATIONS)); };
+
+export const addNotification = (title, message, type = 'info', targetRoles = []) => {
+  if (!title || !message) return null;
+  const notifs = getNotifications();
+  const n = {
+    id: `n-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    title: String(title).slice(0, 100),
+    message: String(message).slice(0, 400),
+    type: ['info', 'success', 'danger', 'warning'].includes(type) ? type : 'info',
+    time: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
+    timestamp: Date.now(),
+    read: false,
+    targetRoles: Array.isArray(targetRoles) ? targetRoles : []
+  };
+  saveNotifications([n, ...notifs]);
+  return n;
+};
+
+export const markNotificationRead = (id) => {
+  const notifs = getNotifications().map(n => n.id === id ? { ...n, read: true } : n);
+  saveNotifications(notifs);
+};
+
+export const markAllNotificationsRead = () => {
+  const notifs = getNotifications().map(n => ({ ...n, read: true }));
+  saveNotifications(notifs);
+};
+
+export const deleteNotification = (id) => {
+  const notifs = getNotifications().filter(n => n.id !== id);
+  saveNotifications(notifs);
+};
+
+// ───────── Menu ─────────
+export const getMenu = () => clone(cache[MENU_KEY]);
+export const saveMenu = (m) => { if (!Array.isArray(m)) return false; return persist(MENU_KEY, m); };
+
+// ───────── Dept Orders ─────────
+export const getDeptOrders = () => clone(cache[DEPT_ORDERS_KEY]);
+export const saveDeptOrders = (d) => { if (!d || typeof d !== 'object') return false; return persist(DEPT_ORDERS_KEY, d); };
+export const updateDeptOrderItem = (orderId, itemId, updates) => {
+  const orders = getDeptOrders();
+  if (!orders[orderId]) return false;
+
+  const finalUpdates = { ...updates };
+  if (updates.status === 'ready' && !updates.readyAt) {
+    finalUpdates.readyAt = Date.now();
+  }
+
+  orders[orderId].items = (orders[orderId].items || []).map(item =>
+    item.id === itemId ? { ...item, ...finalUpdates } : item
+  );
+  saveDeptOrders(orders);
+
+  // Sync item status back to the corresponding table
+  const tableId = orders[orderId].tableId;
+  if (tableId) {
+    const tables = getTables();
+    const tableIndex = tables.findIndex(t => t.id === tableId);
+    if (tableIndex !== -1) {
+      const table = tables[tableIndex];
+      let updated = false;
+      table.currentOrder = (table.currentOrder || []).map(item => {
+        if (item.id === itemId && item.status !== 'delivered') {
+          updated = true;
+          return { ...item, ...finalUpdates };
+        }
+        return item;
+      });
+      // Fallback matching if not already updated
+      if (!updated) {
+        table.currentOrder = (table.currentOrder || []).map(item => {
+          if (item.id === itemId) return { ...item, ...finalUpdates };
+          return item;
+        });
+      }
+      saveTables(tables);
+    }
+  }
+
+  return true;
+};
+
+// ───────── Departments ─────────
+export const getDepartments = () => clone(cache[DEPARTMENTS_KEY]);
+export const saveDepartments = (d) => { if (!Array.isArray(d)) return false; return persist(DEPARTMENTS_KEY, d); };
+
+// ───────── Manager Credentials ─────────
+export const getManagerCredentials = () => getEmployees().find(e => e.role === 'manager') || null;
+export const saveManagerCredentials = (creds) => {
+  const emps = getEmployees();
+  const manager = {
+    id: creds.id || 'admin-1',
+    name: creds.name || 'مدير تكة',
+    role: 'manager',
+    username: creds.username || creds.email || 'admin',
+    password: creds.password || 'admin123',
+    code: 'ADMIN',
+    phone: creds.phone || '',
+    email: creds.email || '',
+    restaurantName: creds.restaurantName || 'تكة',
+    salary: 0, active: true, lastLogin: null
+  };
+  const next = [manager, ...emps.filter(e => e.role !== 'manager')];
+  return saveEmployees(next);
+};
+
+// ───────── Sync (for refreshing from DB) ─────────
+export const refreshCache = async () => {
   cache[TABLES_KEY] = await readRecord(TABLES_KEY, DEFAULT_TABLES);
   cache[EMPLOYEES_KEY] = (await readRecord(EMPLOYEES_KEY, DEFAULT_EMPLOYEES)).map(normalizeEmployee);
   cache[BILLS_KEY] = await readRecord(BILLS_KEY, []);
@@ -229,95 +425,11 @@ export const refreshDatabaseCache = async () => {
   cache[MENU_KEY] = await readRecord(MENU_KEY, DEFAULT_MENU);
   cache[DEPT_ORDERS_KEY] = await readRecord(DEPT_ORDERS_KEY, {});
   cache[SESSION_KEY] = await readRecord(SESSION_KEY, null);
-  return clone(cache);
+  cache[DEPARTMENTS_KEY] = await readRecord(DEPARTMENTS_KEY, DEFAULT_DEPARTMENTS);
 };
 
-const persist = (key, value) => {
-  cache[key] = clone(value);
-  writeRecord(key, value).then((success) => {
-    if (success) triggerSync(key);
-  });
-  return true;
-};
-
-export const getTables = () => clone(cache[TABLES_KEY]);
-
-export const saveTables = (tables) => {
-  if (!Array.isArray(tables)) return false;
-  return persist(TABLES_KEY, tables);
-};
-
-export const getEmployees = () => clone(cache[EMPLOYEES_KEY]).map(normalizeEmployee);
-
-export const saveEmployees = (employees) => {
-  if (!Array.isArray(employees)) return false;
-  return persist(EMPLOYEES_KEY, employees.map(normalizeEmployee));
-};
-
-export const authenticateUser = (username, password) => {
-  const cleanUsername = String(username || '').trim().toLowerCase();
-  const cleanPassword = String(password || '');
-
-  const employee = getEmployees().find(
-    (item) =>
-      item.active !== false &&
-      String(item.username || '').trim().toLowerCase() === cleanUsername &&
-      String(item.password || '') === cleanPassword
-  );
-
-  if (!employee) return null;
-
-  const session = {
-    id: employee.id,
-    role: employee.role,
-    name: employee.name,
-    code: employee.code,
-    username: employee.username
-  };
-
-  persist(SESSION_KEY, session);
-  return session;
-};
-
-export const getSession = () => clone(cache[SESSION_KEY]);
-
-export const saveSession = (session) => persist(SESSION_KEY, session);
-
-export const clearSession = () => persist(SESSION_KEY, null);
-
-export const getBills = () => clone(cache[BILLS_KEY]);
-
-export const saveBills = (bills) => {
-  if (!Array.isArray(bills)) return false;
-  return persist(BILLS_KEY, bills.slice(0, MAX_BILLS_KEPT));
-};
-
-export const getNotifications = () => clone(cache[NOTIFICATIONS_KEY]);
-
-export const saveNotifications = (notifications) => {
-  if (!Array.isArray(notifications)) return false;
-  return persist(NOTIFICATIONS_KEY, notifications.slice(0, MAX_NOTIFICATIONS));
-};
-
-export const addNotification = (title, message, type = 'info') => {
-  if (!title || !message) return null;
-  const notifications = getNotifications();
-  const newNotification = {
-    id: `notif-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
-    title: String(title).slice(0, 120),
-    message: String(message).slice(0, 600),
-    type: ['info', 'success', 'danger', 'warning'].includes(type) ? type : 'info',
-    time: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
-    timestamp: Date.now(),
-    read: false
-  };
-
-  saveNotifications([newNotification, ...notifications].slice(0, MAX_NOTIFICATIONS));
-  return newNotification;
-};
-
-export const resetDailyData = (confirmationCode = 'RESET_CONFIRMED') => {
-  if (confirmationCode !== 'RESET_CONFIRMED') return false;
+// ───────── Daily Reset ─────────
+export const resetDailyData = () => {
   persist(TABLES_KEY, DEFAULT_TABLES);
   persist(BILLS_KEY, []);
   persist(NOTIFICATIONS_KEY, []);
@@ -325,53 +437,3 @@ export const resetDailyData = (confirmationCode = 'RESET_CONFIRMED') => {
   triggerSync('reset');
   return true;
 };
-
-export const getMenu = () => clone(cache[MENU_KEY]);
-
-export const saveMenu = (menu) => {
-  if (!Array.isArray(menu)) return false;
-  return persist(MENU_KEY, menu);
-};
-
-export const getDeptOrders = () => clone(cache[DEPT_ORDERS_KEY]);
-
-export const saveDeptOrders = (deptOrders) => {
-  if (!deptOrders || typeof deptOrders !== 'object') return false;
-  return persist(DEPT_ORDERS_KEY, deptOrders);
-};
-
-export const updateDeptOrderItem = (orderId, itemId, updates) => {
-  if (!orderId || !itemId || !updates || typeof updates !== 'object') return false;
-  const deptOrders = getDeptOrders();
-  if (!deptOrders[orderId]) return false;
-
-  deptOrders[orderId].items = (deptOrders[orderId].items || []).map((item) =>
-    item.id === itemId ? { ...item, ...updates } : item
-  );
-
-  return saveDeptOrders(deptOrders);
-};
-
-export const getManagerCredentials = () =>
-  getEmployees().find((employee) => employee.role === 'manager') || null;
-
-export const saveManagerCredentials = (credentials) => {
-  const employees = getEmployees();
-  const manager = {
-    id: credentials.id || 'admin-1',
-    name: credentials.name || 'مدير تكة',
-    role: 'manager',
-    username: credentials.username || credentials.email || 'admin',
-    password: credentials.password || 'admin123',
-    code: 'ADMIN',
-    phone: credentials.phone || '',
-    active: true
-  };
-  const next = [manager, ...employees.filter((employee) => employee.role !== 'manager')];
-  return saveEmployees(next);
-};
-
-export const getManagerLoginState = () => Boolean(getSession()?.role === 'manager');
-
-export const saveManagerLoginState = (state) =>
-  state ? saveSession(getManagerCredentials()) : clearSession();

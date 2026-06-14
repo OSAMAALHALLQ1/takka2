@@ -1,1064 +1,591 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {
-  getTables,
-  saveTables,
-  getNotifications,
-  saveNotifications,
-  getMenu,
-  saveMenu,
-  getDeptOrders,
-  updateDeptOrderItem,
-  getBills,
-  saveBills,
-  addNotification,
-  initializeDatabase,
-  clearSession,
-  getSession
+  getTables, saveTables, getNotifications,
+  getMenu, getDeptOrders, updateDeptOrderItem,
+  addNotification, initializeDatabase, clearSession, getSession,
+  markAllNotificationsRead, markNotificationRead, deleteNotification,
+  DEFAULT_MENU
 } from './utils/storage';
-import { menuItems as defaultMenuItems } from './data/menu';
-import Login from './components/Login';
+import { getAuth, logout as authLogout } from './utils/auth-store';
+import ManagerLogin from './components/ManagerLogin';
+import EmployeeLogin from './components/EmployeeLogin';
+import ManagerCodes from './components/ManagerCodes';
 import WaiterView from './components/WaiterView';
+import CashierView from './components/CashierView';
+import AdminDashboard from './components/AdminDashboard';
 import NotificationsToast from './components/NotificationsToast';
-import { Coffee, LogOut, Bell, BellOff, CreditCard, Edit3, Star } from 'lucide-react';
 
-const departmentLabels = {
-  kitchen: 'مطبخ',
-  bar: 'بار',
-  shisha: 'شيشة'
-};
+// ──────────────────────────────────────────────────────
+// Dept Screen (Kitchen / Bar / Shisha)
+// ──────────────────────────────────────────────────────
+function DeptScreen({ user, deptOrders, onUpdateOrders, soundEnabled, toggleSound }) {
+  const myRole = user.role; // 'kitchen' | 'bar' | 'shisha'
+  const DEPT_ICONS = { kitchen: '🍳', bar: '🍺', shisha: '💨' };
+  const DEPT_NAMES = { kitchen: 'المطبخ', bar: 'البار', shisha: 'الشيشة' };
+  const STATUS_COLORS = { new: '#e74c3c', preparing: '#f39c12', ready: '#27ae60', delivered: '#7f8c8d' };
+  const STATUS_LABELS = { new: 'جديد', preparing: 'يتحضر', ready: 'جاهز', delivered: 'مُسلَّم' };
 
-const paymentLabels = {
-  cash: 'نقداً',
-  card: 'بطاقة',
-  app: 'تطبيق'
-};
+  const [now, setNow] = useState(() => Date.now());
+  const [timeStr, setTimeStr] = useState('');
+
+  useEffect(() => {
+    const t = setInterval(() => {
+      setNow(Date.now());
+      setTimeStr(new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+    }, 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  // Filter orders that have items for this dept
+  const myOrders = Object.entries(deptOrders)
+    .filter(([, order]) => (order.items || []).some(i => i.department === myRole))
+    .map(([orderId, order]) => ({
+      orderId,
+      tableName: order.tableName,
+      tableId: order.tableId,
+      timestamp: order.timestamp,
+      items: (order.items || []).filter(i => i.department === myRole)
+    }))
+    .filter(o => o.items.length > 0)
+    .sort((a, b) => a.timestamp - b.timestamp);
+
+  const activeOrders = myOrders.filter(o => o.items.some(i => ['new', 'preparing'].includes(i.status)));
+  const readyOrders = myOrders.filter(o => o.items.every(i => i.status === 'ready' || i.status === 'delivered'));
+
+  const updateStatus = (orderId, itemId, newStatus) => {
+    updateDeptOrderItem(orderId, itemId, { status: newStatus });
+    const updated = getDeptOrders();
+    onUpdateOrders(updated);
+    if (newStatus === 'ready') {
+      const wCode = updated[orderId]?.waiterCode;
+      const targets = wCode ? [wCode, 'manager'] : ['waiter', 'manager'];
+      addNotification(`${DEPT_ICONS[myRole]} جاهز`, `صنف جاهز للتسليم - ${updated[orderId]?.tableName || ''}`, 'success', targets);
+    }
+  };
+
+  const elapsedMin = (ts) => Math.floor((now - ts) / 60000);
+  const isUrgent = (ts) => elapsedMin(ts) >= 10;
+
+  const totalNew = myOrders.reduce((s, o) => s + o.items.filter(i => i.status === 'new').length, 0);
+  const totalPrep = myOrders.reduce((s, o) => s + o.items.filter(i => i.status === 'preparing').length, 0);
+  const totalReady = myOrders.reduce((s, o) => s + o.items.filter(i => i.status === 'ready').length, 0);
+
+  const handleDelay = (order, item) => {
+    addNotification('⏰ تأخير الطلب', `تم تأجيل تحضير صنف ${item.name} لطاولة ${order.tableName} بطلب من قسم ${DEPT_NAMES[myRole]}`, 'warning');
+    alert(`تم إرسال إشعار بتأخير الصنف ${item.name} لطاولة ${order.tableName}`);
+  };
+
+  const handleAlert = (order, item) => {
+    addNotification('⚠️ تنبيه للجرسون', `قسم ${DEPT_NAMES[myRole]} يحتاج لمراجعة جرسون طاولة ${order.tableName} بخصوص صنف ${item.name}`, 'danger');
+    alert(`تم إرسال تنبيه للجرسون بخصوص صنف ${item.name} لطاولة ${order.tableName}`);
+  };
+
+  return (
+    <div className="view-container">
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+        <div>
+          <h2 style={{ fontSize: '1.6rem', fontWeight: 800, margin: 0 }}>
+            {DEPT_ICONS[myRole]} قسم {DEPT_NAMES[myRole]}
+          </h2>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', marginTop: '4px' }}>مرحباً، {user.name} | ⏰ {timeStr || '—'}</p>
+        </div>
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          {totalNew > 0 && <span style={{ background: '#e74c3c', width: '12px', height: '12px', borderRadius: '50%', display: 'inline-block', animation: 'pulse 1.5s infinite' }} title="طلبات جديدة" />}
+          <button
+            onClick={toggleSound}
+            style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid var(--border-light)', borderRadius: '10px', padding: '8px 14px', cursor: 'pointer', fontSize: '0.82rem', display: 'flex', gap: '6px', alignItems: 'center', color: 'var(--text-main)' }}
+          >
+            {soundEnabled ? '🔊 صوت' : '🔇 صامت'}
+          </button>
+        </div>
+      </div>
+
+      {/* Summary stats */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '24px' }}>
+        {[
+          { label: 'جديد 🆕', count: totalNew, color: '#e74c3c' },
+          { label: 'يتحضر ⏳', count: totalPrep, color: '#f39c12' },
+          { label: 'جاهز ✅', count: totalReady, color: '#27ae60' }
+        ].map(s => (
+          <div key={s.label} style={{ textAlign: 'center', padding: '16px', background: `${s.color}11`, border: `1px solid ${s.color}33`, borderRadius: '12px' }}>
+            <div style={{ fontFamily: 'Outfit, sans-serif', fontSize: '2rem', fontWeight: 800, color: s.color }}>{s.count}</div>
+            <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>{s.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* No orders */}
+      {myOrders.length === 0 && (
+        <div style={{ textAlign: 'center', padding: '60px', color: 'var(--text-muted)' }}>
+          <div style={{ fontSize: '4rem', marginBottom: '12px' }}>{DEPT_ICONS[myRole]}</div>
+          <h3 style={{ marginBottom: '8px', color: 'var(--text-main)' }}>لا توجد طلبات حالياً</h3>
+          <p style={{ fontSize: '0.85rem' }}>ستظهر الطلبات هنا بمجرد إرسالها من الجرسون</p>
+        </div>
+      )}
+
+      {/* Active Orders */}
+      {activeOrders.length > 0 && (
+        <>
+          <h3 style={{ marginBottom: '14px', fontWeight: 700, fontSize: '1rem' }}>📋 الطلبات النشطة ({activeOrders.length})</h3>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+            {activeOrders.map(order => {
+              const waitMin = elapsedMin(order.timestamp);
+              const stars = waitMin >= 10 ? '⭐⭐⭐' : waitMin >= 5 ? '⭐⭐' : '⭐';
+              return (
+                <div key={order.orderId} className="glass-card" style={{
+                  padding: '20px',
+                  borderTop: `4px solid ${isUrgent(order.timestamp) ? '#e74c3c' : '#f39c12'}`,
+                  position: 'relative'
+                }}>
+                  {isUrgent(order.timestamp) && (
+                    <div style={{ position: 'absolute', top: 8, left: 8, background: '#e74c3c', color: '#fff', fontSize: '0.7rem', fontWeight: 700, padding: '2px 8px', borderRadius: '10px' }}>
+                      ⏰ منذ {waitMin} د
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '14px' }}>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: '1.1rem' }}>{order.tableName}</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                        الأولوية: {stars} | ⏱ منذ {waitMin} دقيقة
+                      </div>
+                    </div>
+                  </div>
+
+                  {order.items.map(item => {
+                    const elapsedItem = elapsedMin(item.orderedAt || order.timestamp);
+                    const prepTime = item.prepTime || 15;
+                    const percent = Math.min(95, Math.floor((elapsedItem / prepTime) * 100));
+                    
+                    return (
+                      <div key={item.id} style={{ marginBottom: '16px', borderBottom: '1px dashed rgba(255,255,255,0.05)', paddingBottom: '12px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                          <div>
+                            <span style={{ fontWeight: 600 }}>{item.name}</span>
+                            <span style={{ color: 'var(--text-muted)', marginRight: '6px', fontFamily: 'Outfit, sans-serif' }}> × {item.qty}</span>
+                            {item.note && <div style={{ fontSize: '0.72rem', color: '#f39c12' }}>📝 {item.note}</div>}
+                          </div>
+                          <span style={{ fontSize: '0.78rem', color: STATUS_COLORS[item.status], fontWeight: 600 }}>
+                            {STATUS_LABELS[item.status]}
+                          </span>
+                        </div>
+
+                        {item.status === 'preparing' && (
+                          <div style={{ margin: '8px 0' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '3px' }}>
+                              <span>الوقت المتوقع: {prepTime} د</span>
+                              <span>مضى: {elapsedItem} د ({percent}%)</span>
+                            </div>
+                            <div style={{ width: '100%', height: '6px', background: 'rgba(255,255,255,0.05)', borderRadius: '3px', overflow: 'hidden' }}>
+                              <div style={{ width: `${percent}%`, height: '100%', background: '#f39c12', borderRadius: '3px' }}></div>
+                            </div>
+                          </div>
+                        )}
+
+                        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '8px' }}>
+                          {item.status === 'new' && (
+                            <button
+                              onClick={() => updateStatus(order.orderId, item.id, 'preparing')}
+                              style={{ padding: '5px 12px', borderRadius: '8px', border: 'none', cursor: 'pointer', background: '#f39c1222', color: '#f39c12', fontWeight: 700, fontSize: '0.78rem' }}
+                            >
+                              ▶ بدء التحضير
+                            </button>
+                          )}
+                          
+                          {(item.status === 'new' || item.status === 'preparing') && (
+                            <>
+                              <button
+                                onClick={() => handleDelay(order, item)}
+                                style={{ padding: '5px 10px', borderRadius: '8px', border: 'none', cursor: 'pointer', background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)', fontSize: '0.75rem' }}
+                              >
+                                تأجيل
+                              </button>
+                              <button
+                                onClick={() => handleAlert(order, item)}
+                                style={{ padding: '5px 10px', borderRadius: '8px', border: 'none', cursor: 'pointer', background: 'rgba(231,76,60,0.1)', color: '#e74c3c', fontSize: '0.75rem' }}
+                              >
+                                إرسال إنذار
+                              </button>
+                            </>
+                          )}
+
+                          {item.status === 'preparing' && (
+                            <button
+                              onClick={() => updateStatus(order.orderId, item.id, 'ready')}
+                              style={{ padding: '5px 12px', borderRadius: '8px', border: 'none', cursor: 'pointer', background: '#27ae6022', color: '#27ae60', fontWeight: 700, fontSize: '0.78rem' }}
+                            >
+                              ✅ جاهز
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+
+      {/* Ready Orders */}
+      {readyOrders.length > 0 && (
+        <>
+          <h3 style={{ marginBottom: '14px', fontWeight: 700, fontSize: '1rem', color: '#27ae60' }}>✅ جاهز للتسليم ({readyOrders.length})</h3>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '12px' }}>
+            {readyOrders.map(order => (
+              <div key={order.orderId} className="glass-card" style={{ padding: '16px', borderTop: '4px solid #27ae60', opacity: 0.7 }}>
+                <div style={{ fontWeight: 700, color: '#27ae60' }}>✅ {order.tableName}</div>
+                {order.items.map(item => (
+                  <div key={item.id} style={{ fontSize: '0.85rem', marginTop: '6px', color: 'var(--text-muted)' }}>
+                    {item.name} × {item.qty}
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+// ──────────────────────────────────────────────────────
+// Notification Bell
+// ──────────────────────────────────────────────────────
+function NotificationBell({ notifications, onRefresh }) {
+  const [open, setOpen] = useState(false);
+  const bellRef = useRef(null);
+  const unread = notifications.filter(n => !n.read).length;
+
+  useEffect(() => {
+    const handleClick = (e) => {
+      if (bellRef.current && !bellRef.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  const handleMarkAll = () => {
+    markAllNotificationsRead();
+    onRefresh();
+  };
+  const handleDelete = (id) => {
+    deleteNotification(id);
+    onRefresh();
+  };
+  const handleMarkRead = (id) => {
+    markNotificationRead(id);
+    onRefresh();
+  };
+
+  const TYPE_COLORS = { success: '#27ae60', danger: '#e74c3c', warning: '#f39c12', info: '#3498db' };
+
+  return (
+    <div ref={bellRef} style={{ position: 'relative' }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{ position: 'relative', background: 'rgba(255,255,255,0.08)', border: '1px solid var(--border-light)', borderRadius: '10px', padding: '8px 12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-main)', fontSize: '1.2rem' }}
+        aria-label="الإشعارات"
+      >
+        🔔
+        {unread > 0 && (
+          <span style={{ position: 'absolute', top: '-4px', right: '-4px', background: '#e74c3c', color: '#fff', borderRadius: '50%', width: '18px', height: '18px', fontSize: '0.68rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Outfit, sans-serif' }}>
+            {unread > 9 ? '9+' : unread}
+          </span>
+        )}
+      </button>
+
+      {open && (
+        <div style={{ position: 'absolute', top: 'calc(100% + 8px)', left: 0, width: '340px', background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: '14px', boxShadow: '0 16px 48px rgba(0,0,0,0.5)', zIndex: 1000, overflow: 'hidden' }}>
+          <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border-light)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <strong style={{ fontSize: '0.9rem' }}>🔔 الإشعارات ({notifications.length})</strong>
+            {unread > 0 && <button onClick={handleMarkAll} style={{ background: 'none', border: 'none', color: '#d4af37', cursor: 'pointer', fontSize: '0.78rem' }}>تحديد كمقروء</button>}
+          </div>
+          <div style={{ maxHeight: '380px', overflowY: 'auto' }}>
+            {notifications.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)', fontSize: '0.85rem' }}>لا توجد إشعارات</div>
+            ) : (
+              notifications.slice(0, 10).map(n => (
+                <div key={n.id} onClick={() => handleMarkRead(n.id)}
+                  style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-light)', background: n.read ? 'transparent' : 'rgba(212,175,55,0.05)', cursor: 'pointer', display: 'flex', gap: '10px', alignItems: 'flex-start' }}
+                >
+                  <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: n.read ? 'transparent' : TYPE_COLORS[n.type], marginTop: '7px', flexShrink: 0 }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: n.read ? 400 : 700, fontSize: '0.85rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{n.title}</div>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{n.message}</div>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '3px', fontFamily: 'Outfit, sans-serif' }}>{n.time}</div>
+                  </div>
+                  <button
+                    onClick={e => { e.stopPropagation(); handleDelete(n.id); }}
+                    style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '1rem', padding: '0', flexShrink: 0 }}
+                  >×</button>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────────────
+// Main App
+// ──────────────────────────────────────────────────────
+const ROLE_LABELS = { manager: 'المدير', waiter: 'جرسون', cashier: 'محاسب', kitchen: 'مطبخ', bar: 'بار', shisha: 'شيشة' };
 
 export default function App() {
   const [user, setUser] = useState(null);
+  const [authPage, setAuthPage] = useState('login'); // 'login' | 'employee' | 'codes' | 'system'
   const [tables, setTables] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [menuItems, setMenuItems] = useState([]);
   const [deptOrders, setDeptOrders] = useState({});
-  const [bills, setBills] = useState([]);
-  const [soundEnabled, setSoundEnabled] = useState(true);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('cash');
-  const [paymentWarning, setPaymentWarning] = useState('');
-  const [selectedCashTableId, setSelectedCashTableId] = useState(null);
-  const [activeManagerTab, setActiveManagerTab] = useState('overview');
-  const [editingPriceId, setEditingPriceId] = useState(null);
-  const [priceDraft, setPriceDraft] = useState('');
-  const [elapsedTimes, setElapsedTimes] = useState({});
   const [databaseReady, setDatabaseReady] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [toastNotifs, setToastNotifs] = useState([]);
 
   const isMountedRef = useRef(false);
   const prevDeptOrdersRef = useRef(null);
   const audioContextRef = useRef(null);
 
+  // ── Audio ──
   const getAudioContext = () => {
-    if (!audioContextRef.current) {
-      audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
-    }
+    if (!audioContextRef.current) audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
     return audioContextRef.current;
   };
 
-  const playTone = useCallback((frequency, duration = 0.16, type = 'sine') => {
+  const playTone = useCallback((freq, dur = 0.16, type = 'sine') => {
     if (!soundEnabled) return;
-    const ctx = getAudioContext();
-    const oscillator = ctx.createOscillator();
-    const gain = ctx.createGain();
-    oscillator.type = type;
-    oscillator.frequency.value = frequency;
-    oscillator.connect(gain);
-    gain.connect(ctx.destination);
-    gain.gain.setValueAtTime(0.0001, ctx.currentTime);
-    oscillator.start();
-    gain.gain.exponentialRampToValueAtTime(0.16, ctx.currentTime + 0.02);
-    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + duration);
-    oscillator.stop(ctx.currentTime + duration + 0.02);
+    try {
+      const ctx = getAudioContext();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = type;
+      osc.frequency.value = freq;
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+      osc.start();
+      gain.gain.exponentialRampToValueAtTime(0.15, ctx.currentTime + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + dur);
+      osc.stop(ctx.currentTime + dur + 0.02);
+    } catch { /* noop */ }
   }, [soundEnabled]);
 
-  const playNewOrderSound = useCallback(() => {
-    playTone(440, 0.16, 'triangle');
-    setTimeout(() => playTone(660, 0.1, 'sine'), 80);
-  }, [playTone]);
+  const playNewOrder = useCallback(() => { playTone(440, 0.16, 'triangle'); setTimeout(() => playTone(660, 0.1, 'sine'), 80); }, [playTone]);
+  const playReady = useCallback(() => { playTone(880, 0.12, 'square'); setTimeout(() => playTone(760, 0.08, 'triangle'), 90); }, [playTone]);
 
-  const playReadySound = useCallback(() => {
-    playTone(880, 0.12, 'square');
-    setTimeout(() => playTone(760, 0.08, 'triangle'), 90);
-  }, [playTone]);
-
+  // ── Load / sync ──
   const loadStorage = () => {
-    const initTables = getTables();
-    const initNotifications = getNotifications();
-    const storedMenu = getMenu();
-    const initialMenu = storedMenu.length ? storedMenu : defaultMenuItems;
-    if (!storedMenu.length) {
-      saveMenu(defaultMenuItems);
-    }
-    const initialDeptOrders = getDeptOrders();
-    const initialBills = getBills();
-
-    setTables(initTables);
-    setNotifications(initNotifications.slice(0, 5));
-    setMenuItems(initialMenu);
-    setDeptOrders(initialDeptOrders);
-    setBills(initialBills);
+    setTables(getTables());
+    setMenuItems(getMenu().length ? getMenu() : DEFAULT_MENU);
+    setDeptOrders(getDeptOrders());
+    const allNotifs = getNotifications();
+    setNotifications(allNotifs);
+    setToastNotifs(allNotifs.filter(n => !n.read).slice(0, 3));
   };
 
+  const [dismissedNotifs, setDismissedNotifs] = useState(new Set());
+
+  const refreshNotifs = useCallback(() => {
+    if (!user) return;
+    const all = getNotifications();
+    setNotifications(all);
+    const relevant = all.filter(n => {
+      if (n.targetRoles && n.targetRoles.length > 0) {
+        const matchesRole = n.targetRoles.includes(user.role);
+        const matchesCode = n.targetRoles.includes(user.code);
+        if (!matchesRole && !matchesCode) return false;
+      }
+      // Filter if dismissed locally
+      if (dismissedNotifs.has(n.id)) return false;
+      // Auto dismiss if older than 15 seconds
+      if (Date.now() - n.timestamp > 15000) return false;
+      return true;
+    }).slice(0, 3);
+    setToastNotifs(relevant);
+  }, [user, dismissedNotifs]);
+
+  // ── Init ──
   useEffect(() => {
     let cancelled = false;
-
     initializeDatabase().then(() => {
       if (cancelled) return;
       loadStorage();
-      const session = getSession();
-      if (session) {
-        setUser(session);
+      const auth = getAuth();
+      if (auth?.kind === 'manager') {
+        setAuthPage('codes');
+      } else if (auth?.kind === 'employee') {
+        const session = getSession();
+        if (session) { setUser(session); setAuthPage('system'); }
+        else {
+          setUser({ id: auth.codeId, role: auth.allowedRoles?.[0] || 'waiter', name: auth.label, code: auth.codeId?.slice(0, 6) || 'EMP', username: auth.label });
+          setAuthPage('system');
+        }
       }
       setDatabaseReady(true);
     });
-
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, []);
 
+  // ── Sync events ──
   useEffect(() => {
-    const handleSync = () => {
+    const syncHandler = () => {
       setTables(getTables());
-      setNotifications(getNotifications().slice(0, 5));
       setDeptOrders(getDeptOrders());
-      setBills(getBills());
-      const storedMenu = getMenu();
-      if (storedMenu.length) {
-        setMenuItems(storedMenu);
-      }
+      const m = getMenu();
+      if (m.length) setMenuItems(m);
+      refreshNotifs();
     };
-
-    window.addEventListener('storage', handleSync);
-    window.addEventListener('takah_sync', handleSync);
-
+    const authHandler = () => {
+      const auth = getAuth();
+      if (!auth && user) { clearSession(); setUser(null); setAuthPage('login'); }
+    };
+    window.addEventListener('storage', syncHandler);
+    window.addEventListener('taka_sync', syncHandler);
+    window.addEventListener('takah_sync', syncHandler);
+    window.addEventListener('takka:auth-update', authHandler);
     return () => {
-      window.removeEventListener('storage', handleSync);
-      window.removeEventListener('takah_sync', handleSync);
+      window.removeEventListener('storage', syncHandler);
+      window.removeEventListener('taka_sync', syncHandler);
+      window.removeEventListener('takah_sync', syncHandler);
+      window.removeEventListener('takka:auth-update', authHandler);
     };
-  }, []);
+  }, [user, refreshNotifs]);
 
+  // ── Detect new orders / ready items → play sounds ──
   useEffect(() => {
-    if (!isMountedRef.current) {
-      isMountedRef.current = true;
-      prevDeptOrdersRef.current = deptOrders;
-      return;
-    }
-
-    const flattenOrders = (orders) =>
-      Object.entries(orders).flatMap(([orderId, order]) =>
-        (order.items || []).map((item) => ({
-          key: `${orderId}-${item.id}`,
-          status: item.status,
-          tableName: order.tableName
-        }))
-      );
-
-    const prevFlat = flattenOrders(prevDeptOrdersRef.current || {});
-    const currFlat = flattenOrders(deptOrders);
-    const prevMap = new Map(prevFlat.map((item) => [item.key, item.status]));
-
-    const newOrderChanges = currFlat.filter(
-      (item) => item.status === 'new' && prevMap.get(item.key) !== 'new'
-    );
-    const readyChanges = currFlat.filter(
-      (item) => item.status === 'ready' && prevMap.get(item.key) !== 'ready'
-    );
-
-    if (newOrderChanges.length) {
-      playNewOrderSound();
-    }
-    if (readyChanges.length) {
-      playReadySound();
-    }
-
+    if (!isMountedRef.current) { isMountedRef.current = true; prevDeptOrdersRef.current = deptOrders; return; }
+    const flatten = (orders) => Object.entries(orders).flatMap(([id, o]) => (o.items || []).map(item => ({ key: `${id}-${item.id}`, status: item.status })));
+    const prev = new Map(flatten(prevDeptOrdersRef.current || {}).map(i => [i.key, i.status]));
+    const curr = flatten(deptOrders);
+    const newOnes = curr.filter(i => i.status === 'new' && !prev.has(i.key));
+    const readyOnes = curr.filter(i => i.status === 'ready' && prev.get(i.key) !== 'ready');
+    if (newOnes.length) playNewOrder();
+    if (readyOnes.length) playReady();
     prevDeptOrdersRef.current = deptOrders;
-  }, [deptOrders, playNewOrderSound, playReadySound]);
+  }, [deptOrders, playNewOrder, playReady]);
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setElapsedTimes((prev) => {
-        const next = { ...prev };
-        Object.entries(deptOrders).forEach(([orderId, order]) => {
-          const key = `order-${orderId}`;
-          if (!next[key]) {
-            next[key] = Math.floor((Date.now() - order.timestamp) / 1000);
-          } else {
-            next[key] = Math.floor((Date.now() - order.timestamp) / 1000);
-          }
-        });
-        return next;
-      });
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [deptOrders]);
-
-  const handleLoginSuccess = (userData) => {
-    setUser(userData);
+  const handleSaveTables = (newTables) => { setTables(newTables); saveTables(newTables); };
+  const handleLogout = () => { clearSession(); authLogout(); setUser(null); setAuthPage('login'); };
+  const handleManagerLogin = () => setAuthPage('codes');
+  const handleEmployeeLogin = (session) => {
+    setUser(session);
+    setAuthPage('system');
   };
-
-  const handleLogout = () => {
-    clearSession();
-    setUser(null);
-  };
-
-  const printBill = (bill) => {
-    const printWindow = window.open('', '', 'height=600,width=400');
-    const receipt = `
-      <html>
-        <head>
-          <title>فاتورة - ${bill.tableName}</title>
-          <style>
-            body { font-family: Arial, sans-serif; direction: rtl; text-align: right; padding: 20px; }
-            .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px; }
-            .restaurant-name { font-size: 24px; font-weight: bold; }
-            .details { margin-bottom: 15px; font-size: 12px; }
-            .items { margin-bottom: 20px; }
-            .item { display: flex; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px dashed #999; }
-            .totals { border-top: 2px solid #000; border-bottom: 2px solid #000; padding: 10px 0; margin-bottom: 15px; }
-            .total-row { display: flex; justify-content: space-between; font-weight: bold; }
-            .payment { text-align: center; margin-top: 20px; font-size: 14px; }
-            .thank-you { text-align: center; margin-top: 20px; font-size: 12px; color: #666; }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <div class="restaurant-name">مطعم تكة</div>
-            <div class="restaurant-name">Taka Restaurant</div>
-          </div>
-
-          <div class="details">
-            <div>الطاولة: ${bill.tableName}</div>
-            <div>التاريخ: ${bill.dateFormatted}</div>
-            <div>الوقت: ${bill.timeFormatted}</div>
-            <div>رقم الفاتورة: ${bill.id}</div>
-            <div>المحاسب: ${bill.cashierCode}</div>
-            <div>النادل: ${bill.waiterCode}</div>
-          </div>
-
-          <div class="items">
-            ${(bill.items || [])
-              .map(
-                (item) =>
-                  `<div class="item">
-                    <span>${item.name} × ${item.qty}</span>
-                    <span>${(item.qty * item.price).toFixed(2)} د.أ</span>
-                  </div>`
-              )
-              .join('')}
-          </div>
-
-          <div class="totals">
-            <div class="total-row">
-              <span>المجموع الفرعي:</span>
-              <span>${bill.subtotal.toFixed(2)} د.أ</span>
-            </div>
-            <div class="total-row" style="margin-top: 8px;">
-              <span>الضريبة (15%):</span>
-              <span>${bill.tax.toFixed(2)} د.أ</span>
-            </div>
-            <div class="total-row" style="margin-top: 8px; font-size: 16px;">
-              <span>الإجمالي:</span>
-              <span>${bill.total.toFixed(2)} د.أ</span>
-            </div>
-          </div>
-
-          <div class="payment">
-            <div>طريقة الدفع: ${paymentLabels[bill.paymentMethod] || 'نقداً'}</div>
-          </div>
-
-          <div class="thank-you">
-            شكراً لزيارتكم 🙏
-            <br/>
-            Thank you for your visit
-          </div>
-        </body>
-      </html>
-    `;
-    printWindow.document.write(receipt);
-    printWindow.document.close();
-    setTimeout(() => printWindow.print(), 250);
-  };
-
-  const handleSaveTables = (newTables) => {
-    setTables(newTables);
-    saveTables(newTables);
-  };
-
-  const handleDismissNotification = (id) => {
-    const activeNotifs = getNotifications();
-    const updated = activeNotifs.filter((n) => n.id !== id);
-    saveNotifications(updated);
-    setNotifications(updated.slice(0, 5));
-  };
-
-  const toggleSound = () => {
-    setSoundEnabled((prev) => !prev);
-  };
-
-  const formatElapsedTime = (seconds) => {
-    if (!seconds || seconds < 0) return '0:00';
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const getRoleBadgeText = (role) => {
-    switch (role) {
-      case 'manager':
-        return 'المدير العام';
-      case 'waiter':
-        return 'نادل صالة';
-      case 'cashier':
-        return 'محاسب كاشير';
-      case 'kitchen':
-        return 'قسم المطبخ';
-      case 'bar':
-        return 'قسم البار';
-      case 'shisha':
-        return 'قسم الشيشة';
-      default:
-        return '';
-    }
-  };
-
-  const readyAlerts = Object.entries(deptOrders).flatMap(([orderId, order]) =>
-    (order.items || [])
-      .filter((item) => item.status === 'ready')
-      .map((item) => ({ ...item, orderId, tableName: order.tableName }))
-  );
-
-  const handleDeliverItem = (orderId, itemId) => {
-    updateDeptOrderItem(orderId, itemId, { status: 'delivered' });
-    const updated = getDeptOrders();
-    setDeptOrders(updated);
-    addNotification('تسليم صنف', `تم تسليم الصنف للطاولة ${getDeptOrders()[orderId]?.tableName || ''}`, 'success');
-  };
-
-  const handleReadyItem = (orderId, itemId) => {
-    updateDeptOrderItem(orderId, itemId, { status: 'ready' });
-    const updated = getDeptOrders();
-    setDeptOrders(updated);
-    addNotification('الصنف جاهز', `الصنف جاهز للطاولة ${getDeptOrders()[orderId]?.tableName || ''}`, 'info');
-  };
-
-  const cashierTables = tables.filter((t) => t.status === 'eating' || t.status === 'bill_requested');
-  const selectedCashTable = cashierTables.find((t) => t.id === selectedCashTableId) || cashierTables[0] || null;
-
-  const paymentStatsCount = bills.reduce(
-    (acc, bill) => {
-      const method = bill.paymentMethod || 'cash';
-      acc[method] = (acc[method] || 0) + 1;
-      return acc;
-    },
-    { cash: 0, card: 0, app: 0 }
-  );
-
-  const paymentStatsAmount = bills.reduce(
-    (acc, bill) => {
-      const method = bill.paymentMethod || 'cash';
-      acc[method] = (acc[method] || 0) + (bill.total || 0);
-      return acc;
-    },
-    { cash: 0, card: 0, app: 0 }
-  );
-
-  const handleProcessPayment = () => {
-    if (!selectedCashTable) return;
-
-    const pending = (selectedCashTable.currentOrder || []).some(
-      (item) => item.status === 'new' || item.status === 'preparing'
-    );
-    setPaymentWarning(
-      pending
-        ? 'تحذير: هناك أصناف لم تكتمل بعد، سيتم إغلاق الطاولة مع تسجيل عملية الدفع.'
-        : ''
-    );
-
-    const invoiceDate = new Date();
-    const invoiceTimestamp = invoiceDate.getTime();
-    const invoice = {
-      id: `INV-${invoiceTimestamp.toString().slice(-6)}`,
-      tableId: selectedCashTable.id,
-      tableName: selectedCashTable.name,
-      items: selectedCashTable.currentOrder || [],
-      subtotal: selectedCashTable.subtotal || 0,
-      tax: selectedCashTable.tax || 0,
-      total: selectedCashTable.total || 0,
-      cashierCode: user.code,
-      waiterCode: selectedCashTable.waiterCode,
-      notes: selectedCashTable.notes,
-      paymentMethod: selectedPaymentMethod,
-      timestamp: invoiceTimestamp,
-      timeFormatted: invoiceDate.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
-      dateFormatted: invoiceDate.toLocaleDateString('ar-EG')
-    };
-
-    const updatedBills = [invoice, ...bills];
-    saveBills(updatedBills);
-    setBills(updatedBills);
-
-    const updatedTables = tables.map((t) =>
-      t.id === selectedCashTable.id
-        ? {
-            ...t,
-            status: 'empty',
-            currentOrder: [],
-            notes: '',
-            subtotal: 0,
-            tax: 0,
-            total: 0,
-            waiterCode: null
-          }
-        : t
-    );
-    saveTables(updatedTables);
-    setTables(updatedTables);
-    addNotification('دفع الطلب', `تم دفع ${selectedCashTable.name} باستخدام ${paymentLabels[selectedPaymentMethod]}`, 'success');
-    setSelectedCashTableId(null);
-  };
-
-  const servedTablesTodayCount = new Set(bills.map((bill) => bill.tableId)).size;
-  const salesByDept = bills.reduce(
-    (acc, bill) => {
-      (bill.items || []).forEach((item) => {
-        const menu = menuItems.find((menuItem) => menuItem.id === item.id);
-        const dept = menu?.department || 'other';
-        acc[dept] = (acc[dept] || 0) + (item.price || 0) * (item.qty || 0);
-      });
-      return acc;
-    },
-    { kitchen: 0, bar: 0, shisha: 0, other: 0 }
-  );
-
-  const itemSales = bills.reduce((acc, bill) => {
-    (bill.items || []).forEach((item) => {
-      acc[item.id] = (acc[item.id] || 0) + (item.qty || 0);
+  const dismissToast = (id) => {
+    setDismissedNotifs(prev => {
+      const newSet = new Set(prev);
+      newSet.add(id);
+      return newSet;
     });
-    return acc;
-  }, {});
-
-  const topItems = Object.entries(itemSales)
-    .map(([id, qty]) => ({ ...menuItems.find((item) => item.id === id), qty }))
-    .filter(Boolean)
-    .sort((a, b) => b.qty - a.qty)
-    .slice(0, 5);
-
-  const handleStartPriceEdit = (item) => {
-    setEditingPriceId(item.id);
-    setPriceDraft(item.price.toFixed(2));
   };
+  const toggleSound = () => setSoundEnabled(p => !p);
 
-  const handleSavePriceEdit = (itemId) => {
-    const nextMenu = menuItems.map((item) =>
-      item.id === itemId ? { ...item, price: Number(priceDraft) } : item
-    );
-    setMenuItems(nextMenu);
-    saveMenu(nextMenu);
-    setEditingPriceId(null);
-    setPriceDraft('');
-    const updated = nextMenu.find((item) => item.id === itemId);
-    addNotification('تم تعديل السعر', `تم تحديث السعر لصنف ${updated?.name}`, 'info');
-  };
-
-  const departmentOrdersForRole = Object.entries(deptOrders)
-    .map(([orderId, order]) => ({ orderId, ...order }))
-    .filter((order) =>
-      (order.items || []).some((item) => item.department === user.role && item.status !== 'delivered')
-    );
-
-  const renderWaiterScreen = () => (
-    <div className="section-shell">
-      <div className="section-top">
-        <div>
-          <h2 className="section-title">شاشة النادل</h2>
-          <p className="section-description">البار الأخضر يظهر عند وجود أصناف جاهزة للتسليم.</p>
-        </div>
-        <button className="sound-toggle" onClick={toggleSound}>
-          {soundEnabled ? <Bell size={18} /> : <BellOff size={18} />}
-          {soundEnabled ? 'تشغيل الصوت' : 'إيقاف الصوت'}
-        </button>
-      </div>
-
-      {readyAlerts.length > 0 && (
-        <div className="ready-alert-bar">
-          {readyAlerts.map((item) => (
-            <div key={`${item.orderId}-${item.id}`} className="ready-alert">
-              <div>
-                <strong>{item.tableName}</strong> · {item.name} · <span className="num-font">{item.qty}</span>
-              </div>
-              <button className="btn btn-small btn-primary" onClick={() => handleDeliverItem(item.orderId, item.id)}>
-                تسليم ✓
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-
-      <WaiterView tables={tables} onSaveTables={handleSaveTables} employee={user} menuItems={menuItems} />
-    </div>
-  );
-
-  const renderDepartmentScreen = () => (
-    <div className="section-shell">
-      <div className="section-top">
-        <div>
-          <h2 className="section-title">شاشة قسم {departmentLabels[user.role]}</h2>
-          <p className="section-description">أوقف/أشر على الطلبات الجاهزة ليصل تنبيه للنادل.</p>
-        </div>
-        <button className="sound-toggle" onClick={toggleSound}>
-          {soundEnabled ? <Bell size={18} /> : <BellOff size={18} />}
-          {soundEnabled ? 'تشغيل الصوت' : 'إيقاف الصوت'}
-        </button>
-      </div>
-
-      {departmentOrdersForRole.length === 0 ? (
-        <div className="glass-card" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
-          <Star size={40} style={{ marginBottom: '12px', opacity: 0.35 }} />
-          <p style={{ fontSize: '0.95rem' }}>لا توجد طلبات جديدة لقسم {departmentLabels[user.role]} حالياً.</p>
-        </div>
-      ) : (
-        <div style={{ display: 'grid', gap: '18px' }}>
-          {departmentOrdersForRole
-            .sort((a, b) => {
-              const statusOrder = { new: 0, preparing: 1, ready: 2 };
-              const aStatus = (a.items || []).find((item) => item.department === user.role)?.status || 'new';
-              const bStatus = (b.items || []).find((item) => item.department === user.role)?.status || 'new';
-              return (statusOrder[aStatus] ?? 3) - (statusOrder[bStatus] ?? 3);
-            })
-            .map((order) => {
-              const elapsed = elapsedTimes[`order-${order.orderId}`] || 0;
-              const hasNew = (order.items || []).some((item) => item.status === 'new' && item.department === user.role);
-              return (
-                <div
-                  key={order.orderId}
-                  className="dept-ticket"
-                  style={{
-                    borderLeft: hasNew ? '4px solid #ff6b6b' : '4px solid transparent',
-                    animation: hasNew ? 'pulse 1.5s infinite' : 'none'
-                  }}
-                >
-                  <div className="dept-ticket-header">
-                    <div>
-                      <div className="ticket-title">{order.tableName}</div>
-                      <div className="ticket-meta">النادل: <strong>{order.waiterCode}</strong></div>
-                      <div className="ticket-meta">الوقت: <strong className="num-font">{formatElapsedTime(elapsed)}</strong></div>
-                    </div>
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                      <div className="ticket-status">{departmentLabels[user.role]}</div>
-                      {hasNew && <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#ff6b6b', animation: 'pulse 1.5s infinite' }} />}
-                    </div>
-                  </div>
-
-                  {(order.items || [])
-                    .filter((item) => item.department === user.role)
-                    .map((item) => {
-                      const urgency = elapsed > 300 ? 'urgent' : elapsed > 180 ? 'warning' : 'normal';
-                      return (
-                        <div
-                          key={item.id}
-                          className="ticket-item"
-                          style={{
-                            background: urgency === 'urgent' ? 'rgba(255, 107, 107, 0.1)' : urgency === 'warning' ? 'rgba(255, 193, 7, 0.1)' : 'transparent'
-                          }}
-                        >
-                          <div>
-                            <div style={{ fontWeight: 700 }}>{item.name}</div>
-                            <div className="ticket-meta">الكمية: <span className="num-font">{item.qty}</span></div>
-                            {item.notes && <div className="ticket-meta" style={{ color: '#ffc107', fontSize: '0.85rem' }}>📝 {item.notes}</div>}
-                          </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            <span className={`ticket-tag ${item.status}`}>{item.status === 'ready' ? '✓ جاهز' : item.status === 'new' ? '🆕 جديد' : '⏳ قيد التجهيز'}</span>
-                            {(item.status === 'new' || item.status === 'preparing') && (
-                              <button className="btn btn-primary btn-small" onClick={() => handleReadyItem(order.orderId, item.id)}>
-                                جاهز
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                </div>
-              );
-            })}
-        </div>
-      )}
-
-      <style>{`
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.5; }
-        }
-        .ticket-tag.new { background: #ff6b6b; color: white; }
-        .ticket-tag.preparing { background: #ffc107; color: #333; }
-        .ticket-tag.ready { background: #51cf66; color: white; }
-      `}</style>
-    </div>
-  );
-
-  const renderCashierScreen = () => (
-    <div className="section-shell">
-      <div className="section-top">
-        <div>
-          <h2 className="section-title">شاشة المحاسب</h2>
-          <p className="section-description">اختر طريقة الدفع وحفظ الفاتورة مع تسجيل وسيلة الدفع.</p>
-        </div>
-        <button className="sound-toggle" onClick={toggleSound}>
-          {soundEnabled ? <Bell size={18} /> : <BellOff size={18} />}
-          {soundEnabled ? 'تشغيل الصوت' : 'إيقاف الصوت'}
-        </button>
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.8fr', gap: '24px' }}>
-        <div>
-          <h3 style={{ fontSize: '1.1rem', marginBottom: '16px', fontWeight: '700' }}>الطاولات النشطة</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {cashierTables.length === 0 ? (
-              <div className="glass-card" style={{ padding: '36px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                <Star size={32} style={{ marginBottom: '12px', opacity: 0.45 }} />
-                <p style={{ fontSize: '0.9rem' }}>لا توجد طاولات بحاجة للدفع حالياً.</p>
-              </div>
-            ) : (
-              cashierTables.map((table) => (
-                <div
-                  key={table.id}
-                  className="glass-card"
-                  style={{
-                    padding: '18px 20px',
-                    cursor: 'pointer',
-                    border: selectedCashTable?.id === table.id ? '2px solid var(--color-primary)' : '1px solid var(--border-light)'
-                  }}
-                  onClick={() => setSelectedCashTableId(table.id)}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
-                      <div style={{ fontWeight: 700, fontSize: '0.95rem' }}>{table.name}</div>
-                      <div className="ticket-meta">النادل: <span className="num-font">{table.waiterCode}</span></div>
-                    </div>
-                    <div className="num-font" style={{ fontWeight: 700, color: 'var(--color-primary)' }}>
-                      {table.total.toFixed(2)} د.أ
-                    </div>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-
-        <div>
-          {selectedCashTable ? (
-            <div className="glass-card" style={{ padding: '24px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                <div>
-                  <div style={{ fontSize: '1.2rem', fontWeight: 800 }}>{selectedCashTable.name}</div>
-                  <div className="ticket-meta">النادل: <strong className="num-font">{selectedCashTable.waiterCode}</strong></div>
-                  <div className="ticket-meta">الوقت المستغرق: <strong className="num-font">{formatElapsedTime(elapsedTimes[`order-${selectedCashTable.id}`] || 0)}</strong></div>
-                </div>
-                <span className="ticket-tag" style={{ fontSize: '0.9rem' }}>{selectedCashTable.status === 'bill_requested' ? '🧾 طلب حساب' : '💳 قيد الدفع'}</span>
-              </div>
-
-              <div style={{ display: 'grid', gap: '12px', maxHeight: '300px', overflowY: 'auto' }}>
-                {(selectedCashTable.currentOrder || []).map((item) => {
-                  const isReady = item.status === 'ready' || item.status === 'delivered';
-                  const isPending = item.status === 'new' || item.status === 'preparing';
-                  return (
-                    <div
-                      key={item.id}
-                      className="ticket-item"
-                      style={{
-                        background: isPending ? 'rgba(255, 193, 7, 0.1)' : isReady ? 'rgba(81, 207, 102, 0.1)' : 'transparent'
-                      }}
-                    >
-                      <div>
-                        <div style={{ fontWeight: 700 }}>{item.name}</div>
-                        <div className="ticket-meta">{item.qty} × {item.price.toFixed(2)} = <strong className="num-font">{(item.qty * item.price).toFixed(2)}</strong></div>
-                        {item.notes && <div className="ticket-meta" style={{ color: '#ffc107', fontSize: '0.85rem' }}>📝 {item.notes}</div>}
-                      </div>
-                      <div className="ticket-tag" style={{ minWidth: '80px' }}>
-                        {item.status === 'ready' ? '✓ جاهز' : item.status === 'delivered' ? '📦 مسلم' : item.status === 'new' ? '🆕 جديد' : '⏳ تجهيز'}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div style={{ marginTop: '22px', display: 'grid', gap: '10px' }}>
-                <div className="ticket-meta">المجموع الفرعي: <strong className="num-font">{selectedCashTable.subtotal.toFixed(2)} د.أ</strong></div>
-                <div className="ticket-meta">الضريبة: <strong className="num-font">{selectedCashTable.tax.toFixed(2)} د.أ</strong></div>
-                <div className="ticket-meta" style={{ fontSize: '1.05rem', fontWeight: 700 }}>المجموع النهائي: <span className="num-font">{selectedCashTable.total.toFixed(2)} د.أ</span></div>
-              </div>
-
-              <div className="payment-methods">
-                {['cash', 'card', 'app'].map((method) => (
-                  <button
-                    key={method}
-                    type="button"
-                    className={`payment-method ${selectedPaymentMethod === method ? 'active' : ''}`}
-                    onClick={() => setSelectedPaymentMethod(method)}
-                  >
-                    {paymentLabels[method]}
-                  </button>
-                ))}
-              </div>
-
-              {paymentWarning && <div className="payment-warning">{paymentWarning}</div>}
-
-              <button className="btn btn-primary" onClick={handleProcessPayment} style={{ marginTop: '18px', width: '100%' }}>
-                <CreditCard size={18} /> دفع وإغلاق
-              </button>
-            </div>
-          ) : (
-            <div className="glass-card" style={{ padding: '46px', textAlign: 'center', color: 'var(--text-muted)' }}>
-              <div style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '10px' }}>اختر طاولة من الجهة اليسرى</div>
-              <p style={{ fontSize: '0.9rem' }}>لعرض تفاصيل الطلب وإتمام الدفع</p>
-            </div>
-          )}
-
-          <div className="glass-card" style={{ padding: '20px', marginTop: '18px' }}>
-            <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '14px' }}>ملخص طرق الدفع اليوم</h3>
-            <div style={{ display: 'grid', gap: '12px' }}>
-              {['cash', 'card', 'app'].map((method) => (
-                <div key={method} className="ticket-item" style={{ justifyContent: 'space-between' }}>
-                  <span>{paymentLabels[method]}</span>
-                  <span className="num-font">{paymentStatsCount[method]} دفعات | {paymentStatsAmount[method].toFixed(2)} د.أ</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderManagerScreen = () => {
-    const overviewContent = (
-      <>
-        <div className="stats-grid">
-          <div className="stat-card">
-            <div style={{ fontSize: '0.9rem', color: 'var(--muted)', marginBottom: '10px' }}>🏪 الطاولات النشطة الآن</div>
-            <div className="num-font" style={{ fontSize: '2.5rem', fontWeight: 800, color: '#51cf66' }}>
-              {tables.filter((t) => t.status === 'eating' || t.status === 'bill_requested').length}
-            </div>
-            <div className="ticket-meta" style={{ marginTop: '8px' }}>من أصل {tables.length} طاولة</div>
-          </div>
-
-          <div className="stat-card">
-            <div style={{ fontSize: '0.9rem', color: 'var(--muted)', marginBottom: '10px' }}>📊 الطلبات الجاهزة</div>
-            <div className="num-font" style={{ fontSize: '2.5rem', fontWeight: 800, color: '#ffc107' }}>
-              {readyAlerts.length}
-            </div>
-            <div className="ticket-meta" style={{ marginTop: '8px' }}>بانتظار التسليم</div>
-          </div>
-
-          <div className="stat-card">
-            <div style={{ fontSize: '0.9rem', color: 'var(--muted)', marginBottom: '10px' }}>🧾 الفواتير اليوم</div>
-            <div className="num-font" style={{ fontSize: '2.5rem', fontWeight: 800, color: '#51cf66' }}>{bills.length}</div>
-            <div className="ticket-meta" style={{ marginTop: '8px', fontSize: '0.85rem', color: '#ffc107' }}>
-              <strong className="num-font">{bills.reduce((sum, b) => sum + (b.total || 0), 0).toFixed(2)} د.أ</strong>
-            </div>
-          </div>
-
-          <div className="stat-card">
-            <div style={{ fontSize: '0.9rem', color: 'var(--muted)', marginBottom: '10px' }}>👥 الطاولات المخدومة</div>
-            <div className="num-font" style={{ fontSize: '2.5rem', fontWeight: 800, color: '#ff6b6b' }}>{servedTablesTodayCount}</div>
-            <div className="ticket-meta" style={{ marginTop: '8px' }}>طاولة فريدة</div>
-          </div>
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginTop: '24px' }}>
-          <div className="stat-card">
-            <div style={{ fontSize: '0.9rem', color: 'var(--muted)', marginBottom: '14px' }}>🔝 أعلى 5 أصناف مبيعاً</div>
-            <div className="bar-chart">
-              {topItems.length === 0 ? (
-                <div className="ticket-meta">لا توجد بيانات مبيعات بعد.</div>
-              ) : (
-                topItems.map((item) => {
-                  const ratio = Math.min(100, (item.qty / (topItems[0]?.qty || 1)) * 100);
-                  return (
-                    <div key={item.id} className="bar-row">
-                      <span className="bar-label">{item.name}</span>
-                      <div className="bar-progress"><span style={{ width: `${ratio}%` }} /></div>
-                      <span className="bar-value num-font">{item.qty}</span>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </div>
-
-          <div className="stat-card">
-            <div style={{ fontSize: '0.9rem', color: 'var(--muted)', marginBottom: '14px' }}>📈 المبيعات حسب القسم</div>
-            <div className="bar-chart">
-              {Object.entries(salesByDept).map(([dept, amount]) => (
-                <div key={dept} className="bar-row">
-                  <span className="bar-label">{departmentLabels[dept] || 'أخرى'}</span>
-                  <div className="bar-progress"><span style={{ width: `${Math.min(100, (amount / (Math.max(...Object.values(salesByDept)) || 1)) * 100)}%`, background: dept === 'kitchen' ? '#ff9800' : dept === 'bar' ? '#2196f3' : '#00c853' }} /></div>
-                  <span className="bar-value num-font">{amount.toFixed(2)}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </>
-    );
-
-    const menuContent = (
-      <div className="glass-card" style={{ padding: '24px' }}>
-        <h3 style={{ fontSize: '1.1rem', marginBottom: '18px', fontWeight: 700 }}>تعديل أسعار المنيو</h3>
-        {(menuItems || []).map((item) => (
-          <div key={item.id} className="ticket-item" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
-              <div>
-                <div style={{ fontWeight: 700 }}>{item.name}</div>
-                <div className="ticket-meta">القسم: {departmentLabels[item.department] || 'عام'}</div>
-              </div>
-
-              {editingPriceId === item.id ? (
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                  <input
-                    type="number"
-                    className="form-input"
-                    value={priceDraft}
-                    onChange={(e) => setPriceDraft(e.target.value)}
-                    style={{ width: '100px', padding: '10px' }}
-                  />
-                  <button className="btn btn-primary" onClick={() => handleSavePriceEdit(item.id)}>
-                    حفظ
-                  </button>
-                </div>
-              ) : (
-                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                  <div className="num-font" style={{ fontWeight: 700 }}>{item.price.toFixed(2)} د.أ</div>
-                  <button className="btn btn-secondary btn-small" onClick={() => handleStartPriceEdit(item)}>
-                    <Edit3 size={14} /> تعديل
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
-    );
-
-    const reportsContent = (
-      <div style={{ display: 'grid', gap: '20px' }}>
-        <div className="glass-card" style={{ padding: '24px' }}>
-          <h3 style={{ fontSize: '1.1rem', marginBottom: '18px', fontWeight: 700 }}>📊 ملخص الأداء اليومي</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-            <div className="ticket-meta">
-              إجمالي المبيعات: <strong className="num-font" style={{ fontSize: '1.1rem', color: '#51cf66' }}>
-                {bills.reduce((sum, b) => sum + (b.total || 0), 0).toFixed(2)} د.أ
-              </strong>
-            </div>
-            <div className="ticket-meta">
-              متوسط الفاتورة: <strong className="num-font" style={{ fontSize: '1.1rem', color: '#2196f3' }}>
-                {bills.length > 0 ? (bills.reduce((sum, b) => sum + (b.total || 0), 0) / bills.length).toFixed(2) : '0.00'} د.أ
-              </strong>
-            </div>
-            <div className="ticket-meta">
-              أصناف مباعة: <strong className="num-font" style={{ fontSize: '1.1rem', color: '#ff9800' }}>
-                {Object.values(itemSales).reduce((sum, qty) => sum + qty, 0)}
-              </strong>
-            </div>
-            <div className="ticket-meta">
-              عدد العملاء: <strong className="num-font" style={{ fontSize: '1.1rem', color: '#9c27b0' }}>
-                {bills.length}
-              </strong>
-            </div>
-          </div>
-        </div>
-
-        <div className="glass-card" style={{ padding: '24px' }}>
-          <h3 style={{ fontSize: '1.1rem', marginBottom: '14px', fontWeight: 700 }}>💳 توزيع طرق الدفع</h3>
-          <div style={{ display: 'grid', gap: '12px' }}>
-            {['cash', 'card', 'app'].map((method) => (
-              <div key={method} className="ticket-item" style={{ justifyContent: 'space-between' }}>
-                <span>{paymentLabels[method]}</span>
-                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                  <span className="num-font">{paymentStatsCount[method]} عملية</span>
-                  <span className="num-font" style={{ fontWeight: 700, color: 'var(--color-primary)' }}>
-                    {paymentStatsAmount[method].toFixed(2)} د.أ
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="glass-card" style={{ padding: '24px' }}>
-          <h3 style={{ fontSize: '1.1rem', marginBottom: '14px', fontWeight: 700 }}>⏱️ معلومات الطلبات</h3>
-          <div style={{ display: 'grid', gap: '10px' }}>
-            <div className="ticket-meta">
-              إجمالي الطلبات النشطة: <strong className="num-font">{Object.keys(deptOrders).length}</strong>
-            </div>
-            <div className="ticket-meta">
-              الطلبات الجاهزة: <strong className="num-font" style={{ color: '#51cf66' }}>{readyAlerts.length}</strong>
-            </div>
-            <div className="ticket-meta">
-              أطول وقت طلب: <strong className="num-font">
-                {Math.max(...Object.entries(deptOrders).map(([id]) => elapsedTimes[`order-${id}`] || 0), 0) > 0
-                  ? formatElapsedTime(Math.max(...Object.entries(deptOrders).map(([id]) => elapsedTimes[`order-${id}`] || 0)))
-                  : '0:00'}
-              </strong>
-            </div>
-          </div>
-        </div>
-
-        <div className="glass-card" style={{ padding: '24px' }}>
-          <h3 style={{ fontSize: '1.1rem', marginBottom: '14px', fontWeight: 700 }}>🔝 الأصناف الأكثر طلباً</h3>
-          <div style={{ display: 'grid', gap: '10px' }}>
-            {topItems.length === 0 ? (
-              <div className="ticket-meta">لا توجد بيانات مبيعات بعد.</div>
-            ) : (
-              topItems.slice(0, 5).map((item, idx) => (
-                <div key={item.id} className="ticket-item">
-                  <span>{idx + 1}. {item.name}</span>
-                  <span className="num-font">{item.qty} طلب</span>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      </div>
-    );
-
+  // ── Loading ──
+  if (!databaseReady) {
     return (
-      <div className="section-shell">
-        <div className="section-top">
-          <div>
-            <h2 className="section-title">لوحة المدير</h2>
-            <p className="section-description">إحصائيات المبيعات، تعداد الطاولات، وتعديل أسعار الأصناف.</p>
-          </div>
-          <button className="sound-toggle" onClick={toggleSound}>
-            {soundEnabled ? <Bell size={18} /> : <BellOff size={18} />}
-            {soundEnabled ? 'تشغيل الصوت' : 'إيقاف الصوت'}
-          </button>
-        </div>
-
-        {activeManagerTab === 'overview' && overviewContent}
-        {activeManagerTab === 'menu' && menuContent}
-        {activeManagerTab === 'reports' && reportsContent}
-
-        {activeManagerTab === 'bills' && (
-          <div style={{ display: 'grid', gap: '20px' }}>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '12px' }}>📋 الفواتير المسجلة اليوم</h3>
-            {bills.length === 0 ? (
-              <div className="glass-card" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                <Star size={40} style={{ marginBottom: '12px', opacity: 0.35 }} />
-                <p style={{ fontSize: '0.95rem' }}>لا توجد فواتير مسجلة بعد.</p>
-              </div>
-            ) : (
-              <div style={{ display: 'grid', gap: '12px' }}>
-                {[...bills].reverse().map((bill) => (
-                  <div key={bill.id} className="glass-card" style={{ padding: '16px', cursor: 'pointer' }} onClick={() => printBill(bill)}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '12px', alignItems: 'center' }}>
-                      <div>
-                        <div style={{ fontWeight: 700 }}>{bill.tableName}</div>
-                        <div className="ticket-meta" style={{ fontSize: '0.85rem' }}>#{bill.id}</div>
-                      </div>
-                      <div>
-                        <div className="ticket-meta">الوقت</div>
-                        <div className="num-font" style={{ fontSize: '0.9rem', fontWeight: 700 }}>{bill.timeFormatted}</div>
-                      </div>
-                      <div>
-                        <div className="ticket-meta">العدد</div>
-                        <div className="num-font" style={{ fontSize: '0.9rem', fontWeight: 700 }}>{bill.items?.length || 0}</div>
-                      </div>
-                      <div style={{ textAlign: 'left' }}>
-                        <div className="ticket-tag" style={{ background: '#51cf66', fontSize: '1rem', fontWeight: 700 }}>
-                          <span className="num-font">{bill.total.toFixed(2)} د.أ</span>
-                        </div>
-                        <div className="ticket-meta" style={{ fontSize: '0.8rem', marginTop: '4px' }}>{paymentLabels[bill.paymentMethod]}</div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        <div className="bottom-navigation">
-          {['overview', 'menu', 'reports', 'bills'].map((tab) => (
-            <button
-              key={tab}
-              type="button"
-              className={activeManagerTab === tab ? 'active' : ''}
-              onClick={() => setActiveManagerTab(tab)}
-            >
-              <span>
-                {tab === 'overview' ? '📊 الرئيسية' : tab === 'menu' ? '🍽️ المنيو' : tab === 'reports' ? '📈 التقارير' : '🧾 الفواتير'}
-              </span>
-            </button>
-          ))}
+      <div className="app-shell" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: '3rem', marginBottom: '16px', animation: 'spin 1.5s linear infinite', display: 'inline-block' }}>⚙️</div>
+          <h2 style={{ fontSize: '1.3rem', marginBottom: '8px' }}>تكة | TAKA</h2>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>جاري تحميل النظام...</p>
         </div>
       </div>
     );
-  };
+  }
 
-  if (!user) {
+  // ── Auth screens ──
+  if (!user && authPage !== 'codes') {
     return (
       <div className="app-shell">
         <main className="app-main">
-          {databaseReady ? (
-            <Login onLoginSuccess={handleLoginSuccess} />
+          {authPage === 'employee' ? (
+            <EmployeeLogin onSwitch={() => setAuthPage('login')} onLoginSuccess={handleEmployeeLogin} />
           ) : (
-            <div className="login-container">
-              <div className="login-card glass-card" style={{ textAlign: 'center' }}>
-                <div className="brand" style={{ justifyContent: 'center', marginBottom: '16px' }}>
-                  <span className="brand-logo">تكة</span>
-                  <span className="brand-tag">TAKA OPS</span>
-                </div>
-                <h2 className="login-title">جاري تجهيز قاعدة البيانات</h2>
-                <p className="login-desc">يتم تحميل بيانات الطاولات والموظفين والمنيو.</p>
-              </div>
-            </div>
+            <ManagerLogin onSwitch={() => setAuthPage('employee')} onLogin={handleManagerLogin} />
           )}
         </main>
       </div>
     );
   }
 
+  if (authPage === 'codes') {
+    return (
+      <div className="app-shell">
+        <header className="header-bar">
+          <div className="brand">
+            <span className="brand-logo">🍽️ تكة | TAKA</span>
+            <span className="brand-tag">لوحة المدير</span>
+          </div>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button
+              className="btn-primary-gold"
+              onClick={() => { setUser({ id: 'admin-1', role: 'manager', name: 'مدير تكة', code: 'ADMIN', username: 'admin' }); setAuthPage('system'); }}
+            >
+              📊 لوحة التحكم الكاملة
+            </button>
+            <button className="btn btn-secondary" onClick={handleLogout} style={{ padding: '8px 14px', fontSize: '0.82rem' }}>
+              🚪 خروج
+            </button>
+          </div>
+        </header>
+        <main className="app-main" style={{ padding: '20px' }}>
+          <ManagerCodes onLogout={handleLogout} />
+        </main>
+      </div>
+    );
+  }
+
+  const isDept = ['kitchen', 'bar', 'shisha'].includes(user.role);
+
   return (
     <div className="app-shell">
+      {/* Header */}
       <header className="header-bar">
         <div className="brand">
           <span className="brand-logo">
-            <Coffee style={{ marginLeft: '10px', color: 'var(--color-primary)' }} />
-            تكة
+            <span style={{ color: 'var(--color-primary)', marginLeft: '10px', fontSize: '1.4rem' }}>🍽️</span>
+            تكة | TAKA
           </span>
-          <span className="brand-tag">لوحة {getRoleBadgeText(user.role)}</span>
+          <span className="brand-tag">{ROLE_LABELS[user.role] || user.role}</span>
         </div>
 
         <div className="user-profile">
+          <NotificationBell notifications={notifications} onRefresh={refreshNotifs} />
           <div className="user-info">
             <div className="user-name">{user.name}</div>
-            <div className="user-role num-font">
-              {user.role === 'manager' ? 'ADMIN' : `كود: ${user.code}`}
-            </div>
+            <div className="user-role num-font">{user.role === 'manager' ? 'ADMIN' : `#${user.code}`}</div>
           </div>
-
-          <button className="btn btn-secondary" onClick={handleLogout} style={{ padding: '8px 12px', fontSize: '0.85rem' }}>
-            <LogOut size={16} /> تسجيل الخروج
+          <button
+            className="btn btn-secondary"
+            onClick={handleLogout}
+            style={{ padding: '8px 14px', fontSize: '0.82rem', display: 'flex', gap: '6px', alignItems: 'center' }}
+          >
+            🚪 خروج
           </button>
         </div>
       </header>
 
       <main className="app-main">
-        {user.role === 'waiter' && renderWaiterScreen()}
-        {['kitchen', 'bar', 'shisha'].includes(user.role) && renderDepartmentScreen()}
-        {user.role === 'cashier' && renderCashierScreen()}
-        {user.role === 'manager' && renderManagerScreen()}
+        {user.role === 'manager' && (
+          <AdminDashboard user={user} onLogout={handleLogout} />
+        )}
+        {user.role === 'waiter' && (
+          <WaiterView tables={tables} onSaveTables={handleSaveTables} employee={user} menuItems={menuItems} />
+        )}
+        {user.role === 'cashier' && (
+          <CashierView tables={tables} onSaveTables={handleSaveTables} employee={user} />
+        )}
+        {isDept && (
+          <DeptScreen user={user} deptOrders={deptOrders} onUpdateOrders={setDeptOrders} soundEnabled={soundEnabled} toggleSound={toggleSound} />
+        )}
       </main>
 
-      {notifications.length > 0 && (
-        <NotificationsToast notifications={notifications} onClose={handleDismissNotification} />
+      {/* Toast notifications */}
+      {toastNotifs.length > 0 && (
+        <NotificationsToast notifications={toastNotifs} onClose={dismissToast} />
       )}
     </div>
   );
