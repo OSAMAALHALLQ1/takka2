@@ -385,14 +385,52 @@ export default function CashierView({ tables, onSaveTables, employee }) {
                 />
 
                 {/* Action buttons */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.6fr', gap: '10px' }}>
-                  <button className="btn-secondary" onClick={() => printBill({ ...selectedTable, id: 'PREVIEW', tableName: selectedTable.name, items: selectedTable.currentOrder, paymentMethod, cashierCode: employee.code, timeFormatted: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }), dateFormatted: new Date().toLocaleDateString('ar-EG') })}>
-                    🖨️ معاينة الفاتورة
-                  </button>
-                  <button className="send-order-btn" onClick={() => setShowConfirmModal(true)}>
-                    🔥 إغلاق الفاتورة والدفع
-                  </button>
-                </div>
+                {(() => {
+                  const { pending: oPending } = getOrderStatus(selectedTable);
+                  const isPendingOrders = oPending > 0;
+                  return (
+                    <>
+                      {isPendingOrders && (
+                        <div style={{ 
+                          marginBottom: '16px', 
+                          padding: '10px 14px', 
+                          background: 'rgba(231, 76, 60, 0.1)', 
+                          border: '1px solid rgba(231, 76, 60, 0.3)', 
+                          borderRadius: '8px', 
+                          fontSize: '0.82rem', 
+                          color: '#e74c3c',
+                          fontWeight: 600,
+                          textAlign: 'center'
+                        }}>
+                          ⚠️ لا يمكن إغلاق الفاتورة لوجود {oPending} طلبات قيد التحضير في الأقسام
+                        </div>
+                      )}
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.6fr', gap: '10px' }}>
+                        <button className="btn-secondary" onClick={() => printBill({ ...selectedTable, id: 'PREVIEW', tableName: selectedTable.name, items: selectedTable.currentOrder, paymentMethod, cashierCode: employee.code, timeFormatted: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }), dateFormatted: new Date().toLocaleDateString('ar-EG') })}>
+                          🖨️ معاينة الفاتورة
+                        </button>
+                        <button 
+                          className="send-order-btn" 
+                          onClick={() => {
+                            if (isPendingOrders) {
+                              alert('تنبيه: لا يمكن إغلاق الفاتورة لأن هناك طلبات لم تجهز بعد من الأقسام.');
+                              return;
+                            }
+                            setShowConfirmModal(true);
+                          }}
+                          disabled={isPendingOrders}
+                          style={{
+                            opacity: isPendingOrders ? 0.5 : 1,
+                            cursor: isPendingOrders ? 'not-allowed' : 'pointer',
+                            background: isPendingOrders ? '#7f8c8d' : ''
+                          }}
+                        >
+                          🔥 إغلاق الفاتورة والدفع
+                        </button>
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
             ) : (
               <div className="glass-card" style={{ padding: '60px', textAlign: 'center', color: 'var(--text-muted)' }}>

@@ -68,7 +68,7 @@ const DEPARTMENT_FIELD_MAP = {
   id: 'id',
   name: 'name',
   nameEn: 'name_en',
-  icon: 'icon',
+  image: 'icon',
   color: 'color',
   description: 'description',
   workHours: 'work_hours',

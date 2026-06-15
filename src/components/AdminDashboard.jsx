@@ -33,6 +33,7 @@ const PERMISSIONS = [
 
 export default function AdminDashboard({ user, onLogout }) {
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [tables, setTables] = useState(getTables());
   const [employees, setEmployees] = useState(getEmployees());
   const [menuItems, setMenuItems] = useState(getMenu());
@@ -76,8 +77,21 @@ export default function AdminDashboard({ user, onLogout }) {
 
   return (
     <div style={{ display: 'flex', minHeight: 'calc(100vh - 65px)' }}>
+      {/* Mobile Toggle Button */}
+      <button 
+        className="admin-mobile-toggle"
+        onClick={() => setSidebarOpen(o => !o)}
+      >
+        {sidebarOpen ? '✕ إغلاق' : '☰ قائمة الخيارات'}
+      </button>
+
+      {/* Sidebar Backdrop overlay on mobile */}
+      {sidebarOpen && (
+        <div className="admin-sidebar-backdrop" onClick={() => setSidebarOpen(false)} />
+      )}
+
       {/* Sidebar */}
-      <aside className="admin-sidebar">
+      <aside className={`admin-sidebar ${sidebarOpen ? 'open' : ''}`}>
         <div className="admin-sidebar-user">
           <div className="admin-avatar">{user.name?.charAt(0) || 'م'}</div>
           <div>
@@ -90,14 +104,14 @@ export default function AdminDashboard({ user, onLogout }) {
             <button
               key={tab.id}
               className={`admin-nav-btn ${activeTab === tab.id ? 'active' : ''}`}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => { setActiveTab(tab.id); setSidebarOpen(false); }}
             >
               <span>{tab.icon}</span>
               <span>{tab.label}</span>
             </button>
           ))}
         </nav>
-        <button className="admin-logout-btn" onClick={onLogout}>
+        <button className="admin-logout-btn" onClick={() => { setSidebarOpen(false); onLogout(); }}>
           🚪 تسجيل خروج
         </button>
       </aside>
@@ -229,14 +243,14 @@ function StatCard({ icon, label, value, color }) {
 function DepartmentsTab({ departments, setDepartments, employees, deptOrders }) {
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState(null);
-  const [form, setForm] = useState({ name: '', nameEn: '', icon: '🍽️', color: '#e67e22', description: '', workHours: '' });
+  const [form, setForm] = useState({ name: '', nameEn: '', image: '', color: '#e67e22', description: '', workHours: '' });
 
   const getDeptEmployeeCount = (deptId) => employees.filter(e => e.role === deptId).length;
   const getDeptActiveOrders = (deptId) => Object.values(deptOrders).filter(o =>
     (o.items || []).some(i => i.department === deptId && i.status !== 'delivered')
   ).length;
 
-  const resetForm = () => { setForm({ name: '', nameEn: '', icon: '🍽️', color: '#e67e22', description: '', workHours: '' }); setEditId(null); };
+  const resetForm = () => { setForm({ name: '', nameEn: '', image: '', color: '#e67e22', description: '', workHours: '' }); setEditId(null); };
 
   const handleSave = () => {
     if (!form.name.trim()) return;
@@ -254,7 +268,7 @@ function DepartmentsTab({ departments, setDepartments, employees, deptOrders }) 
   };
 
   const handleEdit = (dept) => {
-    setForm({ name: dept.name, nameEn: dept.nameEn || '', icon: dept.icon, color: dept.color, description: dept.description || '', workHours: dept.workHours || '' });
+    setForm({ name: dept.name, nameEn: dept.nameEn || '', image: dept.image || '', color: dept.color, description: dept.description || '', workHours: dept.workHours || '' });
     setEditId(dept.id);
     setShowForm(true);
   };
@@ -287,8 +301,26 @@ function DepartmentsTab({ departments, setDepartments, employees, deptOrders }) 
               <input className="form-input" value={form.nameEn} onChange={e => setForm(p => ({ ...p, nameEn: e.target.value }))} placeholder="Kitchen" />
             </div>
             <div className="form-group">
-              <label className="form-label">الأيقونة</label>
-              <input className="form-input" value={form.icon} onChange={e => setForm(p => ({ ...p, icon: e.target.value }))} placeholder="🍳" />
+              <label className="form-label">صورة القسم (رابط أو ملف حتى 20 ميجا)</label>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <input className="form-input" value={form.image} onChange={e => setForm(p => ({ ...p, image: e.target.value }))} placeholder="رابط صورة القسم (URL)" style={{ flex: 1 }} />
+                <label className="btn-secondary" style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', padding: '0 12px', borderRadius: '8px', fontSize: '0.85rem' }}>
+                  <span>📁 رفع</span>
+                  <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    if (file.size > 20 * 1024 * 1024) {
+                      alert('حجم الصورة يجب أن لا يتجاوز 20 ميجابايت');
+                      return;
+                    }
+                    const reader = new FileReader();
+                    reader.onload = (ev) => {
+                      setForm(p => ({ ...p, image: ev.target.result }));
+                    };
+                    reader.readAsDataURL(file);
+                  }} />
+                </label>
+              </div>
             </div>
             <div className="form-group">
               <label className="form-label">اللون</label>
@@ -315,7 +347,7 @@ function DepartmentsTab({ departments, setDepartments, employees, deptOrders }) 
           <div key={dept.id} className="admin-card dept-card" style={{ borderTop: `4px solid ${dept.color}` }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                <span style={{ fontSize: '2.5rem' }}>{dept.icon}</span>
+                {renderItemImage(dept.image, dept.name, false, 'dept')}
                 <div>
                   <div style={{ fontWeight: 700, fontSize: '1.1rem' }}>{dept.name}</div>
                   <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{dept.nameEn}</div>
@@ -345,7 +377,7 @@ function DepartmentsTab({ departments, setDepartments, employees, deptOrders }) 
   );
 }
 
-const renderItemImage = (image, name, isCard = false) => {
+const renderItemImage = (image, name, isCard = false, placeholderType = 'money') => {
   const isUrl = image && (image.startsWith('http') || image.startsWith('data:image/'));
   
   if (isUrl) {
@@ -398,10 +430,19 @@ const renderItemImage = (image, name, isCard = false) => {
         flexShrink: 0
       }}
     >
-      <svg width={isCard ? 24 : 16} height={isCard ? 24 : 16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 2v20" />
-        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-      </svg>
+      {placeholderType === 'dept' ? (
+        <svg width={isCard ? 24 : 16} height={isCard ? 24 : 16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="4" y="2" width="16" height="20" rx="2" ry="2" />
+          <line x1="9" y1="22" x2="9" y2="16" />
+          <line x1="15" y1="22" x2="15" y2="16" />
+          <line x1="9" y1="16" x2="15" y2="16" />
+        </svg>
+      ) : (
+        <svg width={isCard ? 24 : 16} height={isCard ? 24 : 16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 2v20" />
+          <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+        </svg>
+      )}
     </div>
   );
 };

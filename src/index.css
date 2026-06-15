@@ -675,9 +675,14 @@ select.form-input option { background: var(--bg-surface-2); }
 }
 .deliver-btn:hover { background: rgba(39,174,96,0.2); }
 
-/* ────────────────────────────────────────────────────────────────
-   ADMIN DASHBOARD
-─────────────────────────────────────────────────────────────────*/
+/* Admin mobile elements hidden on desktop */
+.admin-mobile-toggle {
+  display: none;
+}
+.admin-sidebar-backdrop {
+  display: none;
+}
+
 .admin-sidebar {
   width: 220px;
   min-width: 220px;
@@ -1058,8 +1063,61 @@ select.form-input option { background: var(--bg-surface-2); }
     position: static;
     max-height: 340px;
   }
-  .admin-sidebar { display: none; }
-  .admin-main { padding: 16px; }
+  /* Admin Mobile Toggle Button */
+  .admin-mobile-toggle {
+    display: flex !important;
+    align-items: center;
+    gap: 8px;
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 1002;
+    background: var(--color-primary);
+    color: #fff;
+    border: none;
+    border-radius: 50px;
+    padding: 12px 24px;
+    font-weight: 700;
+    box-shadow: 0 8px 24px var(--color-primary-glow);
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+  }
+  .admin-mobile-toggle:hover {
+    transform: scale(1.05);
+  }
+
+  /* Admin Sidebar slide-out drawer */
+  .admin-sidebar {
+    display: flex !important;
+    position: fixed !important;
+    top: 65px;
+    right: -260px; /* Hidden off-screen right */
+    bottom: 0;
+    width: 250px;
+    min-width: 250px;
+    z-index: 1001;
+    background: var(--bg-surface);
+    border-left: 1px solid var(--border-light);
+    box-shadow: -10px 0 30px rgba(0,0,0,0.5);
+    transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    height: calc(100vh - 65px);
+  }
+  .admin-sidebar.open {
+    right: 0 !important;
+  }
+
+  /* Backdrop filter when admin sidebar drawer is open */
+  .admin-sidebar-backdrop {
+    display: block !important;
+    position: fixed;
+    inset: 65px 0 0 0;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(4px);
+    z-index: 1000;
+  }
+
+  .admin-main { padding: 16px; width: 100%; }
   .menu-items-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
 }
 
