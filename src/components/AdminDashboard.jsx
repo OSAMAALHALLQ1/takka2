@@ -872,11 +872,33 @@ function StaffTab({ employees, setEmployees }) {
   const nonManagers = employees.filter(e => e.role !== 'manager');
 
   const handleSave = () => {
-    if (!form.name || !form.username) return;
-    if (!editId && employees.find(e => e.username === form.username)) { alert('اسم المستخدم موجود مسبقاً'); return; }
+    if (!form.name.trim()) { alert('يرجى إدخال الاسم الكامل'); return; }
+
+    const cleanPhone = String(form.phone || '').trim();
+    if (!cleanPhone) {
+      alert('يرجى إدخال رقم الهاتف');
+      return;
+    }
+    const phoneRegex = /^(059|056)\d{7}$/;
+    if (!phoneRegex.test(cleanPhone)) {
+      alert('رقم الهاتف يجب أن يبدأ بـ 059 أو 056 ويتكون من 10 أرقام');
+      return;
+    }
+
     const PREFIXES = { waiter: 'W', cashier: 'C', kitchen: 'K', bar: 'B', shisha: 'S', manager: 'M' };
     const code = editId ? employees.find(e => e.id === editId)?.code : `${PREFIXES[form.role] || 'E'}-${Math.floor(1000 + Math.random() * 9000)}`;
-    const emp = { id: editId || `emp-${Date.now()}`, ...form, code, salary: parseFloat(form.salary) || 0, lastLogin: null };
+    const username = editId ? (employees.find(e => e.id === editId)?.username || code.toLowerCase()) : code.toLowerCase();
+
+    const emp = {
+      id: editId || `emp-${Date.now()}`,
+      ...form,
+      username,
+      code,
+      phone: cleanPhone,
+      salary: parseFloat(form.salary) || 0,
+      lastLogin: null
+    };
+
     let updated;
     if (editId) {
       updated = employees.map(e => e.id === editId ? { ...e, ...emp } : e);
@@ -888,7 +910,7 @@ function StaffTab({ employees, setEmployees }) {
     setShowForm(false);
     setEditId(null);
     setForm(emptyForm);
-    addNotification('موظف', editId ? `تم تعديل ${form.name}` : `تمت إضافة ${form.name} (${form.username})`, 'success');
+    addNotification('موظف', editId ? `تم تعديل ${form.name}` : `تمت إضافة ${form.name}`, 'success');
   };
 
   const toggleActive = (emp) => {
@@ -928,14 +950,6 @@ function StaffTab({ employees, setEmployees }) {
               <input className="form-input" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} placeholder="محمد علي" />
             </div>
             <div className="form-group">
-              <label className="form-label">اسم المستخدم *</label>
-              <input className="form-input" value={form.username} onChange={e => setForm(p => ({ ...p, username: e.target.value }))} placeholder="waiter2" />
-            </div>
-            <div className="form-group">
-              <label className="form-label">كلمة المرور</label>
-              <input className="form-input" value={form.password} onChange={e => setForm(p => ({ ...p, password: e.target.value }))} placeholder="1234" />
-            </div>
-            <div className="form-group">
               <label className="form-label">الدور</label>
               <select className="form-input" value={form.role} onChange={e => setForm(p => ({ ...p, role: e.target.value }))}>
                 <option value="waiter">جرسون</option>
@@ -946,16 +960,8 @@ function StaffTab({ employees, setEmployees }) {
               </select>
             </div>
             <div className="form-group">
-              <label className="form-label">رقم الهاتف</label>
-              <input className="form-input" value={form.phone} onChange={e => setForm(p => ({ ...p, phone: e.target.value }))} placeholder="079XXXXXXX" />
-            </div>
-            <div className="form-group">
-              <label className="form-label">البريد الإلكتروني</label>
-              <input type="email" className="form-input" value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} placeholder="emp@taka.com" />
-            </div>
-            <div className="form-group">
-              <label className="form-label">الراتب (₪)</label>
-              <input type="number" className="form-input" value={form.salary} onChange={e => setForm(p => ({ ...p, salary: e.target.value }))} placeholder="500" />
+              <label className="form-label">رقم الهاتف *</label>
+              <input className="form-input" value={form.phone} onChange={e => setForm(p => ({ ...p, phone: e.target.value }))} placeholder="059XXXXXXX أو 056XXXXXXX" />
             </div>
             <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '12px', paddingTop: '24px' }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.9rem' }}>
@@ -977,7 +983,6 @@ function StaffTab({ employees, setEmployees }) {
             <thead>
               <tr>
                 <th>الموظف</th>
-                <th>اسم المستخدم</th>
                 <th>الدور</th>
                 <th>كود الدخول</th>
                 <th>الحالة</th>
@@ -996,7 +1001,6 @@ function StaffTab({ employees, setEmployees }) {
                       </div>
                     </div>
                   </td>
-                  <td><code style={{ fontSize: '0.85rem', background: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: '4px' }}>{emp.username}</code></td>
                   <td><span className="role-badge" style={{ background: `${ROLE_COLORS[emp.role]}22`, color: ROLE_COLORS[emp.role], border: `1px solid ${ROLE_COLORS[emp.role]}44` }}>{ROLE_LABELS[emp.role]}</span></td>
                   <td><code style={{ fontFamily: 'Outfit, sans-serif', color: 'var(--color-primary)' }}>{emp.code}</code></td>
                   <td>
