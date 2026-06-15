@@ -271,31 +271,42 @@ export default function ManagerLogin({ onSwitch, onLogin }) {
       {/* Activation simulation modal */}
       {showActivationModal && (
         <div className="modal-overlay" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 }}>
-          <div className="modal-content glass-card" style={{ maxWidth: '440px', padding: '24px', textAlign: 'center', border: '1px solid #27ae60' }}>
-            <div style={{ fontSize: '3rem', color: '#27ae60', marginBottom: '14px' }}>✉️</div>
-            <h3 style={{ fontSize: '1.3rem', fontWeight: 800, color: '#27ae60', marginBottom: '10px' }}>تم إرسال طلب تفعيل إلى بريدك الإلكتروني</h3>
+          <div className="modal-content glass-card" style={{ maxWidth: '440px', padding: '24px', textAlign: 'center', border: '1px solid #e74c3c' }}>
+            <div style={{ fontSize: '3rem', color: '#e74c3c', marginBottom: '14px' }}>🛡️</div>
+            <h3 style={{ fontSize: '1.3rem', fontWeight: 800, color: '#e74c3c', marginBottom: '10px' }}>تم إرسال طلب الانضمام إلى الإدارة</h3>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '15px' }}>
+              تم إرسال طلب التفعيل إلى البريد الإلكتروني للمسؤول العام للمراجعة والموافقة عليه.
+            </p>
             
             <div style={{ background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: '10px', border: '1px solid var(--border-light)', margin: '16px 0', textAlign: 'right', fontSize: '0.88rem' }}>
-              <p style={{ marginBottom: '8px' }}>📬 <b>محاكاة صندوق الوارد:</b></p>
-              <p style={{ color: 'var(--text-muted)' }}>مستلم: <span style={{ color: '#fff' }}>{signupEmail}</span></p>
-              <p style={{ color: 'var(--text-muted)', marginTop: '4px' }}>المرسل: <span style={{ color: '#d4af37' }}>تكة | TAKKA AUTH</span></p>
-              <p style={{ color: 'var(--text-muted)', marginTop: '4px' }}>الموضوع: <span style={{ color: '#fff' }}>رابط تفعيل حساب مدير مطعم تكة</span></p>
+              <p style={{ marginBottom: '8px' }}>📬 <b>محاكاة صندوق الوارد للمسؤول العام:</b></p>
+              <p style={{ color: 'var(--text-muted)' }}>مستلم: <span style={{ color: '#fff' }}>osaco221@gmail.com</span></p>
+              <p style={{ color: 'var(--text-muted)', marginTop: '4px' }}>المرسل: <span style={{ color: '#e74c3c' }}>تكة | TAKKA AUTH</span></p>
+              <p style={{ color: 'var(--text-muted)', marginTop: '4px' }}>الموضوع: <span style={{ color: '#fff' }}>طلب تفعيل حساب مدير مطعم جديد ({restaurantName})</span></p>
               <hr style={{ border: 'none', borderTop: '1px dashed var(--border-light)', margin: '10px 0' }} />
-              <p style={{ fontSize: '0.82rem', lineHeight: '1.4' }}>مرحباً {managerName}، تم إنشاء حسابك لـ ({restaurantName}). يرجى النقر على الرابط لتفعيله.</p>
+              <p style={{ fontSize: '0.82rem', lineHeight: '1.4', color: '#fff' }}>
+                مرحباً مسؤول النظام،
+              </p>
+              <p style={{ fontSize: '0.82rem', lineHeight: '1.4', marginTop: '6px' }}>
+                لقد قام المستخدم <b>{managerName}</b> (<span style={{ color: '#e74c3c' }}>{signupEmail}</span>) بتقديم طلب لإنشاء حساب مدير للمطعم/المقهى: <b>({restaurantName})</b>.
+              </p>
+              <p style={{ fontSize: '0.82rem', lineHeight: '1.4', marginTop: '6px', color: 'var(--text-muted)' }}>
+                يرجى النقر على زر القبول والتفعيل أدناه لتنشيط الحساب وتمكينه من الدخول إلى النظام.
+              </p>
             </div>
 
             <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '20px' }}>
-              انقر على زر التفعيل أدناه لتنشيط الحساب والانتقال لشاشة تسجيل الدخول:
+              (كمسؤول عام، انقر أدناه للموافقة وتفعيل هذا الحساب):
             </p>
 
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
               <button 
                 type="button" 
-                className="btn-primary-gold" 
+                className="btn-primary" 
                 onClick={handleMockActivation}
-                style={{ padding: '10px 20px', borderRadius: '8px', cursor: 'pointer', display: 'flex', gap: '6px', alignItems: 'center' }}
+                style={{ padding: '10px 20px', borderRadius: '8px', cursor: 'pointer', display: 'flex', gap: '6px', alignItems: 'center', background: '#27ae60', borderColor: '#27ae60' }}
               >
-                <CheckCircle size={16} /> تفعيل الحساب الآن
+                <CheckCircle size={16} /> قبول وتفعيل الحساب
               </button>
               <button 
                 type="button" 
@@ -303,7 +314,7 @@ export default function ManagerLogin({ onSwitch, onLogin }) {
                 onClick={() => setShowActivationModal(false)}
                 style={{ padding: '10px 16px', borderRadius: '8px', cursor: 'pointer' }}
               >
-                إغلاق
+                إلغاء
               </button>
             </div>
           </div>
