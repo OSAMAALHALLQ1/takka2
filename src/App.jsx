@@ -58,9 +58,41 @@ function DeptScreen({ user, deptOrders, onUpdateOrders, soundEnabled, toggleSoun
     const updated = getDeptOrders();
     onUpdateOrders(updated);
     if (newStatus === 'ready') {
-      const wCode = updated[orderId]?.waiterCode;
+      const order = updated[orderId];
+      const tableId = order?.tableId || '';
+      const wCode = order?.waiterCode;
       const targets = wCode ? [wCode, 'manager'] : ['waiter', 'manager'];
-      addNotification(`${DEPT_ICONS[myRole]} جاهز`, `صنف جاهز للتسليم - ${updated[orderId]?.tableName || ''}`, 'success', targets);
+      const deptName = myRole === 'kitchen' ? 'المطبخ' : myRole === 'bar' ? 'البار' : 'الشيشة';
+
+      // Check if all items in this order are now ready or delivered
+      const allReady = (order?.items || []).every(i => ['ready', 'delivered'].includes(i.status));
+
+      // Check if this table has requested the bill
+      const currentTables = getTables();
+      const thisTable = currentTables.find(t => t.id === tableId);
+
+      if (thisTable && thisTable.status === 'bill_requested' && allReady) {
+        addNotification(
+          `✅ فاتورة الطاولة #${tableId} مكتملة - انتظار الدفع`,
+          `جميع الطلبات جاهزة، يرجى تحصيل المبلغ: ${(thisTable.total || 0).toFixed(2)} ₪`,
+          'success',
+          ['cashier', 'manager']
+        );
+      } else if (allReady) {
+        addNotification(
+          `✅ كل طلبات الطاولة #${tableId} جاهزة!`,
+          `جميع الأصناف أصبحت جاهزة للتسليم من قسم ${deptName}`,
+          'success',
+          targets
+        );
+      } else {
+        addNotification(
+          `✅ طلب الطاولة #${tableId} جاهز!`,
+          `- من ${deptName}`,
+          'success',
+          targets
+        );
+      }
     }
   };
 
@@ -300,29 +332,45 @@ function NotificationBell({ notifications, onRefresh }) {
       </button>
 
       {open && (
-        <div style={{ position: 'absolute', top: 'calc(100% + 8px)', left: 0, width: '340px', background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: '14px', boxShadow: '0 16px 48px rgba(0,0,0,0.5)', zIndex: 1000, overflow: 'hidden' }}>
+        <div className="notifications-dropdown">
           <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border-light)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <strong style={{ fontSize: '0.9rem' }}>🔔 الإشعارات ({notifications.length})</strong>
-            {unread > 0 && <button onClick={handleMarkAll} style={{ background: 'none', border: 'none', color: '#d4af37', cursor: 'pointer', fontSize: '0.78rem' }}>تحديد كمقروء</button>}
+            {unread > 0 && <button onClick={handleMarkAll} style={{ background: 'none', border: 'none', color: 'var(--color-primary)', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600 }}>تحديد الكل كمقروء</button>}
           </div>
           <div style={{ maxHeight: '380px', overflowY: 'auto' }}>
             {notifications.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)', fontSize: '0.85rem' }}>لا توجد إشعارات</div>
             ) : (
               notifications.slice(0, 10).map(n => (
-                <div key={n.id} onClick={() => handleMarkRead(n.id)}
-                  style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-light)', background: n.read ? 'transparent' : 'rgba(212,175,55,0.05)', cursor: 'pointer', display: 'flex', gap: '10px', alignItems: 'flex-start' }}
+                <div key={n.id} 
+                  style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-light)', background: n.read ? 'transparent' : 'rgba(255,255,255,0.02)', display: 'flex', gap: '10px', flexDirection: 'column' }}
                 >
-                  <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: n.read ? 'transparent' : TYPE_COLORS[n.type], marginTop: '7px', flexShrink: 0 }} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: n.read ? 400 : 700, fontSize: '0.85rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{n.title}</div>
-                    <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{n.message}</div>
-                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '3px', fontFamily: 'Outfit, sans-serif' }}>{n.time}</div>
+                  <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: n.read ? 'transparent' : TYPE_COLORS[n.type], marginTop: '6px', flexShrink: 0 }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: n.read ? 500 : 800, fontSize: '0.88rem', color: n.read ? 'var(--text-muted)' : 'var(--text-main)' }}>{n.title}</div>
+                      <div style={{ fontSize: '0.82rem', color: n.read ? 'var(--text-muted)' : 'var(--text-main)', marginTop: '4px', whiteSpace: 'normal', wordBreak: 'break-word' }}>{n.message}</div>
+                    </div>
                   </div>
-                  <button
-                    onClick={e => { e.stopPropagation(); handleDelete(n.id); }}
-                    style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '1rem', padding: '0', flexShrink: 0 }}
-                  >×</button>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                    <span className="num-font">⏱️ {n.time}</span>
+                    <div style={{ display: 'flex', gap: '12px' }}>
+                      {!n.read && (
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); handleMarkRead(n.id); }} 
+                          style={{ background: 'none', border: 'none', color: 'var(--color-primary)', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600 }}
+                        >
+                          ✓ تحديد كمقروء
+                        </button>
+                      )}
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); handleDelete(n.id); }} 
+                        style={{ background: 'none', border: 'none', color: '#e74c3c', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600 }}
+                      >
+                        🗑️ حذف
+                      </button>
+                    </div>
+                  </div>
                 </div>
               ))
             )}
@@ -475,6 +523,64 @@ export default function App() {
     prevDeptOrdersRef.current = deptOrders;
   }, [deptOrders, playNewOrder, playReady]);
 
+  // Background check for forgotten/delayed orders (10+ minutes) and table duration (2+ hours)
+  const alertedDelayedRef = useRef(new Set());
+  const alertedTablesRef = useRef(new Set());
+  
+  useEffect(() => {
+    if (!user) return;
+    const interval = setInterval(() => {
+      const now = Date.now();
+      
+      // 1. Check for forgotten orders
+      const orders = getDeptOrders();
+      Object.entries(orders).forEach(([orderId, order]) => {
+        const elapsed = now - order.timestamp;
+        if (elapsed >= 10 * 60000) { // 10 minutes
+          const pendingItems = (order.items || []).filter(i => ['new', 'preparing'].includes(i.status));
+          if (pendingItems.length > 0) {
+            const depts = [...new Set(pendingItems.map(i => i.department))];
+            depts.forEach(dept => {
+              const alertKey = `${orderId}-${dept}-delayed`;
+              if (!alertedDelayedRef.current.has(alertKey)) {
+                alertedDelayedRef.current.add(alertKey);
+                addNotification(
+                  `⏰ طلب الطاولة #${order.tableId} منسي! 10 دقائق قيد الانتظار`,
+                  `يرجى الاستعجال في تحضير الطلب بقسم ${dept === 'kitchen' ? 'المطبخ' : dept === 'bar' ? 'البار' : 'الشيشة'}`,
+                  'warning',
+                  [dept, 'manager']
+                );
+              }
+            });
+          }
+        }
+      });
+      
+      // 2. Check for long-seated tables
+      const currentTables = getTables().filter(t => t.status === 'eating' || t.status === 'bill_requested');
+      currentTables.forEach(t => {
+        if (t.seatedAt) {
+          const elapsed = now - t.seatedAt;
+          if (elapsed >= 2 * 60 * 60000) { // 2 hours
+            const alertKey = `${t.id}-${t.seatedAt}-occupied`;
+            if (!alertedTablesRef.current.has(alertKey)) {
+              alertedTablesRef.current.add(alertKey);
+              const targets = t.waiterCode ? [t.waiterCode, 'manager'] : ['waiter', 'manager'];
+              addNotification(
+                `⏰ الطاولة #${t.id} مشغولة منذ 2 ساعة - تنبيه!`,
+                `${t.name} مشغولة لفترة طويلة تتجاوز الساعتين`,
+                'warning',
+                targets
+              );
+            }
+          }
+        }
+      });
+    }, 15000); // Check every 15 seconds
+    
+    return () => clearInterval(interval);
+  }, [user]);
+
   const handleSaveTables = (newTables) => { setTables(newTables); saveTables(newTables); };
   const handleLogout = () => { clearSession(); authLogout(); setUser(null); setAuthPage('login'); };
   const handleManagerLogin = () => setAuthPage('codes');
@@ -549,7 +655,7 @@ export default function App() {
   const isDept = ['kitchen', 'bar', 'shisha'].includes(user.role);
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell role-${user.role}`}>
       {/* Header */}
       <header className="header-bar">
         <div className="brand">
@@ -561,6 +667,26 @@ export default function App() {
         </div>
 
         <div className="user-profile">
+          <button
+            onClick={toggleSound}
+            style={{
+              background: 'rgba(255,255,255,0.08)',
+              border: '1px solid var(--border-light)',
+              borderRadius: '10px',
+              width: '40px',
+              height: '40px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--text-main)',
+              fontSize: '1.2rem',
+              transition: 'all 0.2s'
+            }}
+            title={soundEnabled ? 'تعطيل الصوت' : 'تفعيل الصوت'}
+          >
+            {soundEnabled ? '🔊' : '🔇'}
+          </button>
           <NotificationBell notifications={notifications} onRefresh={refreshNotifs} />
           <div className="user-info">
             <div className="user-name">{user.name}</div>

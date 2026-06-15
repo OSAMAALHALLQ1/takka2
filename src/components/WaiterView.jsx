@@ -185,8 +185,14 @@ export default function WaiterView({ tables, onSaveTables, employee, menuItems =
     const deptsInvolved = [...new Set(itemsWithStatus.map(i => i.department))];
     
     deptsInvolved.forEach(dept => {
-      const deptItemsCount = itemsWithStatus.filter(i => i.department === dept).length;
-      addNotification(`طلب جديد 🍳`, `طلب جديد من ${selectedTable.name} - ${deptItemsCount} صنف`, 'success', [dept, employee.code, 'manager']);
+      const deptItems = itemsWithStatus.filter(i => i.department === dept);
+      const itemsStr = deptItems.map(i => `${i.name} × ${i.qty}`).join('، ');
+      addNotification(
+        `📩 طلب جديد من الطاولة #${selectedTable.id}`,
+        `${itemsStr}`,
+        'success',
+        [dept, employee.code, 'manager']
+      );
     });
     
     setOrderSuccess(true);
@@ -196,15 +202,47 @@ export default function WaiterView({ tables, onSaveTables, employee, menuItems =
   const handleRequestBill = () => {
     const updatedTables = tables.map(t => t.id === selectedTable.id ? { ...t, status: 'bill_requested' } : t);
     onSaveTables(updatedTables);
-    addNotification('طلب حساب 🧾', `${selectedTable.name} تطلب الحساب`, 'warning', ['cashier', 'manager']);
+    
+    // Check if all items are already ready/delivered
+    const tableOrders = Object.values(deptOrders).filter(o => o.tableId === selectedTable.id);
+    const allItems = tableOrders.flatMap(o => o.items || []);
+    const allReady = allItems.length > 0 && allItems.every(i => ['ready', 'delivered'].includes(i.status));
+    
+    if (allReady) {
+      addNotification(
+        `✅ فاتورة الطاولة #${selectedTable.id} مكتملة - انتظار الدفع`,
+        `جميع الطلبات جاهزة، في انتظار تحصيل المبلغ: ${(selectedTable.total || 0).toFixed(2)} ₪`,
+        'success',
+        ['cashier', 'manager']
+      );
+    } else {
+      addNotification(
+        `💳 فاتورة جديدة من الطاولة #${selectedTable.id}`,
+        `${selectedTable.name} تطلب الحساب`,
+        'warning',
+        ['cashier', 'manager']
+      );
+    }
+    
     setBillConfirmOpen(false);
     setView('tables');
   };
 
   const handleDeliverItem = (orderId, itemId) => {
+    const order = deptOrders[orderId];
+    const item = (order?.items || []).find(i => i.id === itemId);
+    const dept = item?.department || 'kitchen';
+    const itemName = item?.name || 'صنف';
+    
     updateDeptOrderItem(orderId, itemId, { status: 'delivered' });
     setDeptOrders(getDeptOrders());
-    addNotification('تسليم', 'تم تسليم الطلب للزبون', 'success', ['manager']);
+    
+    addNotification(
+      `✓ تم تسليم طلب الطاولة #${order?.tableId || selectedTable?.id} إلى الجرسون`,
+      `صنف ${itemName} تم تسليمه`,
+      'success',
+      [dept, 'manager']
+    );
   };
 
   // Ready items for this waiter

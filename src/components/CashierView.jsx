@@ -95,9 +95,28 @@ export default function CashierView({ tables, onSaveTables, employee }) {
     saveDeptOrders(filtered);
     setDeptOrders(filtered);
 
-    // Notify waiter
-    addNotification('🟢 جاهزة للتنظيف', `الطاولة #${selectedTable.id} جاهزة للتنظيف`, 'success', ['waiter', 'manager']);
-    addNotification('💸 دفع مكتمل', `${selectedTable.name} - ${(selectedTable.total || 0).toFixed(2)} ₪ (${PAYMENT_LABELS[paymentMethod]})`, 'info', ['cashier', 'manager', 'waiter']);
+    // Calculate total daily revenue including this new invoice
+    const newTotalRevenue = allBills.reduce((s, b) => s + (b.total || 0), 0);
+
+    // Notify waiter & cashier & manager
+    addNotification(
+      `🟢 الطاولة #${selectedTable.id} أصبحت فاضية (دفع مكتمل)`,
+      `الطاولة جاهزة للتنظيف والتعقيم`,
+      'success',
+      ['waiter', 'manager']
+    );
+    addNotification(
+      `💸 الطاولة #${selectedTable.id} تم الدفع - المبلغ: ${(selectedTable.total || 0).toFixed(0)}₪`,
+      `طريقة الدفع: ${PAYMENT_LABELS[paymentMethod] || paymentMethod}`,
+      'info',
+      ['cashier', 'manager', 'waiter']
+    );
+    addNotification(
+      `📊 إجمالي الإيرادات اليوم: ${newTotalRevenue.toFixed(0)}₪`,
+      `تم تحديث إجمالي الإيرادات بعد تحصيل فاتورة الطاولة #${selectedTable.id}`,
+      'info',
+      ['manager']
+    );
 
     setShowConfirmModal(false);
     setShowSuccessModal(newBill);
@@ -156,9 +175,9 @@ export default function CashierView({ tables, onSaveTables, employee }) {
   const topItems = Object.values(itemSales).sort((a, b) => b.qty - a.qty).slice(0, 5);
 
   const TABS = [
-    { id: 'active', label: '1️⃣ الفواتير النشطة (Active Invoices)', icon: '🪑' },
-    { id: 'bills', label: '2️⃣ الفواتير المكتملة (Completed Invoices)', icon: '🧾' },
-    { id: 'reports', label: '3️⃣ التقارير اليومية (Daily Reports)', icon: '📊' }
+    { id: 'active', label: '1️⃣ الفواتير النشطة (Active Invoices)', shortLabel: '🪑 النشطة', icon: '🪑' },
+    { id: 'bills', label: '2️⃣ الفواتير المكتملة (Completed Invoices)', shortLabel: '🧾 المكتملة', icon: '🧾' },
+    { id: 'reports', label: '3️⃣ التقارير اليومية (Daily Reports)', shortLabel: '📊 التقارير', icon: '📊' }
   ];
 
   const topItemName = topItems[0] ? topItems[0].name : 'لا يوجد';
@@ -182,11 +201,11 @@ export default function CashierView({ tables, onSaveTables, employee }) {
   };
 
   return (
-    <div style={{ padding: '20px' }}>
+    <div className="cashier-view-container">
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '28px', background: 'rgba(255,255,255,0.02)', padding: '16px 20px', borderRadius: '16px', border: '1px solid var(--border-light)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--color-primary), var(--color-primary-dark))', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '1.2rem', boxShadow: '0 4px 12px rgba(16, 185, 129, 0.2)' }}>
+      <div className="cashier-header-container">
+        <div className="cashier-header-info">
+          <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--color-primary), var(--color-primary-dark))', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '1.2rem', boxShadow: '0 4px 12px var(--color-primary-glow)' }}>
             {employee.name?.charAt(0) || 'C'}
           </div>
           <div>
@@ -199,7 +218,7 @@ export default function CashierView({ tables, onSaveTables, employee }) {
           </div>
         </div>
         
-        <div style={{ display: 'flex', gap: '16px' }}>
+        <div className="cashier-header-stats">
           <div style={{ textAlign: 'center', background: 'rgba(39,174,96,0.08)', border: '1px solid rgba(39,174,96,0.2)', borderRadius: '12px', padding: '10px 20px', minWidth: '120px' }}>
             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '4px' }}>الفواتير المكتملة</div>
             <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: '1.6rem', color: '#27ae60' }}>{bills.length}</div>
@@ -215,16 +234,17 @@ export default function CashierView({ tables, onSaveTables, employee }) {
       <div className="bottom-navigation" style={{ position: 'static', marginBottom: '24px', borderRadius: '12px' }}>
         {TABS.map(tab => (
           <button key={tab.id} className={activeTab === tab.id ? 'active' : ''} onClick={() => setActiveTab(tab.id)}>
-            <span>{tab.icon} {tab.label}</span>
+            <span className="show-on-desktop">{tab.label}</span>
+            <span className="show-on-mobile-inline">{tab.shortLabel}</span>
           </button>
         ))}
       </div>
 
       {/* ACTIVE TABLES TAB */}
       {activeTab === 'active' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(240px, 1fr) 2fr', gap: '24px' }}>
+        <div className={`cashier-active-layout ${selectedTable ? 'has-selected' : ''}`}>
           {/* Tables list */}
-          <div>
+          <div className="cashier-tables-column">
             <h3 style={{ marginBottom: '14px', fontSize: '1rem', fontWeight: 700 }}>
               الطاولات النشطة <span className="badge badge-ordering">{sortedTables.length}</span>
             </h3>
@@ -262,9 +282,13 @@ export default function CashierView({ tables, onSaveTables, employee }) {
           </div>
 
           {/* Invoice detail */}
-          <div>
+          <div className="cashier-invoice-column">
             {selectedTable ? (
               <div className="glass-card" style={{ padding: '24px' }}>
+                {/* Back button for mobile view */}
+                <button className="btn-back-tables" onClick={() => setSelectedTable(null)} style={{ width: '100%', padding: '10px', fontSize: '0.88rem', background: 'rgba(255,255,255,0.08)', border: '1px solid var(--border-light)', borderRadius: '10px', cursor: 'pointer', color: 'var(--text-main)', marginBottom: '16px', fontWeight: 700 }}>
+                  ← عودة لقائمة الطاولات
+                </button>
                 {/* Title */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', paddingBottom: '16px', borderBottom: '1px solid var(--border-light)' }}>
                   <div>
@@ -438,7 +462,7 @@ export default function CashierView({ tables, onSaveTables, employee }) {
       {/* REPORTS TAB */}
       {activeTab === 'reports' && (
         <div style={{ display: 'grid', gap: '20px' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '12px' }}>
+          <div className="cashier-reports-grid">
             <div className="glass-card" style={{ padding: '16px', textAlign: 'center' }}>
               <div style={{ fontSize: '1.8rem', marginBottom: '4px' }}>🧾</div>
               <div style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.6rem', fontWeight: 800, color: '#3498db' }}>{bills.length}</div>
@@ -466,7 +490,7 @@ export default function CashierView({ tables, onSaveTables, employee }) {
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+          <div className="cashier-reports-bottom-grid">
             <div className="glass-card" style={{ padding: '20px' }}>
               <h3 style={{ fontWeight: 700, marginBottom: '14px' }}>💳 طرق الدفع</h3>
               {Object.entries(paymentBreakdown).length === 0 ? <p style={{ color: 'var(--text-muted)' }}>لا بيانات</p> :

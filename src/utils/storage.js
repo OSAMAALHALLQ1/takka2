@@ -609,17 +609,32 @@ export const authenticateUser = (username, password) => {
 
 export const authenticateByCode = (inputCode) => {
   const code = String(inputCode || '').trim().toLowerCase();
-  const emp = getEmployees().find(e =>
+  const empsList = getEmployees();
+  const emp = empsList.find(e =>
     e.active !== false &&
     (String(e.code || '').trim().toLowerCase() === code ||
      String(e.password || '') === code ||
      String(e.username || '').trim().toLowerCase() === code)
   );
   if (!emp) return null;
+  
+  const isFirstLogin = !emp.lastLogin;
   const session = { id: emp.id, role: emp.role, name: emp.name, code: emp.code, username: emp.username };
   persist(SESSION_KEY, session);
-  const emps = getEmployees().map(e => e.id === emp.id ? { ...e, lastLogin: Date.now() } : e);
+  
+  const emps = empsList.map(e => e.id === emp.id ? { ...e, lastLogin: Date.now() } : e);
   persist(EMPLOYEES_KEY, emps);
+
+  if (isFirstLogin) {
+    const roleAr = { manager: 'مدير', waiter: 'جرسون', cashier: 'محاسب', kitchen: 'مطبخ', bar: 'بار', shisha: 'شيشة' }[emp.role] || emp.role;
+    addNotification(
+      `👤 موظف جديد فعّل حسابه: ${emp.name} ${roleAr}`,
+      `الموظف قام بتسجيل الدخول لأول مرة وتفعيل الحساب`,
+      'success',
+      ['manager']
+    );
+  }
+
   return session;
 };
 

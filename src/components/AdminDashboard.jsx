@@ -652,6 +652,14 @@ function TablesTab({ tables, setTables }) {
     const updated = tables.map(t => t.id === tableId ? { ...t, status: newStatus } : t);
     saveTables(updated);
     setTables(updated);
+    if (newStatus === 'unavailable') {
+      addNotification(
+        `⚠️ الطاولة #${tableId} معطوبة - لا تقبل طلبات`,
+        `تم تحويل حالة الطاولة إلى غير متوفرة`,
+        'danger',
+        ['manager', 'waiter']
+      );
+    }
   };
 
   return (
