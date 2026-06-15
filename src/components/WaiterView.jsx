@@ -42,6 +42,38 @@ const renderItemImage = (image, name, isCard = false) => {
     );
   }
 
+  if (image && image.length <= 4) {
+    return (
+      <div 
+        style={isCard ? {
+          width: '100%',
+          height: '90px',
+          borderRadius: '6px',
+          marginBottom: '6px',
+          background: 'linear-gradient(135deg, rgba(212,175,55,0.1) 0%, rgba(212,175,55,0.02) 100%)',
+          border: '1px dashed rgba(212, 175, 55, 0.3)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '2rem'
+        } : {
+          width: '40px',
+          height: '40px',
+          borderRadius: '6px',
+          background: 'linear-gradient(135deg, rgba(212,175,55,0.1) 0%, rgba(212,175,55,0.02) 100%)',
+          border: '1px dashed rgba(212, 175, 55, 0.3)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '1.4rem',
+          flexShrink: 0
+        }}
+      >
+        {image}
+      </div>
+    );
+  }
+
   return (
     <div 
       style={isCard ? {

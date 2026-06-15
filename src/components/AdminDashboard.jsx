@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   getTables, saveTables, getEmployees, saveEmployees,
   getMenu, saveMenu, getBills, getDepartments, saveDepartments,
@@ -261,6 +261,7 @@ function DepartmentsTab({ departments, setDepartments, employees, deptOrders }) 
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState(null);
   const [form, setForm] = useState({ name: '', nameEn: '', image: '', color: '#e67e22', description: '', workHours: '' });
+  const fileInputRef = useRef(null);
 
   const getDeptEmployeeCount = (deptId) => employees.filter(e => e.role === deptId).length;
   const getDeptActiveOrders = (deptId) => Object.values(deptOrders).filter(o =>
@@ -272,10 +273,11 @@ function DepartmentsTab({ departments, setDepartments, employees, deptOrders }) 
   const handleSave = () => {
     if (!form.name.trim()) return;
     let updated;
+    const finalForm = { ...form, icon: form.image };
     if (editId) {
-      updated = departments.map(d => d.id === editId ? { ...d, ...form } : d);
+      updated = departments.map(d => d.id === editId ? { ...d, ...finalForm } : d);
     } else {
-      updated = [...departments, { ...form, id: `dept-${Date.now()}`, activeOrders: 0, lastOrderAt: null }];
+      updated = [...departments, { ...finalForm, id: `dept-${Date.now()}`, activeOrders: 0, lastOrderAt: null }];
     }
     saveDepartments(updated);
     setDepartments(updated);
@@ -285,7 +287,7 @@ function DepartmentsTab({ departments, setDepartments, employees, deptOrders }) 
   };
 
   const handleEdit = (dept) => {
-    setForm({ name: dept.name, nameEn: dept.nameEn || '', image: dept.image || '', color: dept.color, description: dept.description || '', workHours: dept.workHours || '' });
+    setForm({ name: dept.name, nameEn: dept.nameEn || '', image: dept.image || dept.icon || '', color: dept.color, description: dept.description || '', workHours: dept.workHours || '' });
     setEditId(dept.id);
     setShowForm(true);
   };
@@ -321,9 +323,29 @@ function DepartmentsTab({ departments, setDepartments, employees, deptOrders }) 
               <label className="form-label">صورة القسم (رابط أو ملف حتى 20 ميجا)</label>
               <div style={{ display: 'flex', gap: '8px' }}>
                 <input className="form-input" value={form.image} onChange={e => setForm(p => ({ ...p, image: e.target.value }))} placeholder="رابط صورة القسم (URL)" style={{ flex: 1 }} />
-                <label className="btn-secondary" style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', padding: '0 12px', borderRadius: '8px', fontSize: '0.85rem' }}>
-                  <span>📁 رفع</span>
-                  <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => {
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => fileInputRef.current?.click()}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '8px 12px',
+                    borderRadius: '10px',
+                    fontSize: '0.85rem',
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  📁 إرفاق صورة
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                  onChange={e => {
                     const file = e.target.files[0];
                     if (!file) return;
                     if (file.size > 20 * 1024 * 1024) {
@@ -335,8 +357,8 @@ function DepartmentsTab({ departments, setDepartments, employees, deptOrders }) 
                       setForm(p => ({ ...p, image: ev.target.result }));
                     };
                     reader.readAsDataURL(file);
-                  }} />
-                </label>
+                  }}
+                />
               </div>
             </div>
             <div className="form-group">
@@ -353,8 +375,8 @@ function DepartmentsTab({ departments, setDepartments, employees, deptOrders }) 
             </div>
           </div>
           <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
-            <button className="btn-primary-gold" onClick={handleSave}>{editId ? 'حفظ التعديلات' : 'إضافة القسم'}</button>
-            <button className="btn-secondary" onClick={() => { setShowForm(false); resetForm(); }}>إلغاء</button>
+            <button className="btn btn-primary" onClick={handleSave}>{editId ? 'حفظ التعديلات' : 'إضافة القسم'}</button>
+            <button className="btn btn-secondary" onClick={() => { setShowForm(false); resetForm(); }}>إلغاء</button>
           </div>
         </div>
       )}
@@ -418,6 +440,38 @@ const renderItemImage = (image, name, isCard = false, placeholderType = 'money')
           flexShrink: 0
         }} 
       />
+    );
+  }
+
+  if (image && image.length <= 4) {
+    return (
+      <div 
+        style={isCard ? {
+          width: '100%',
+          height: '90px',
+          borderRadius: '6px',
+          marginBottom: '6px',
+          background: 'linear-gradient(135deg, rgba(212,175,55,0.1) 0%, rgba(212,175,55,0.02) 100%)',
+          border: '1px dashed rgba(212, 175, 55, 0.3)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '2rem'
+        } : {
+          width: '40px',
+          height: '40px',
+          borderRadius: '6px',
+          background: 'linear-gradient(135deg, rgba(212,175,55,0.1) 0%, rgba(212,175,55,0.02) 100%)',
+          border: '1px dashed rgba(212, 175, 55, 0.3)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '1.4rem',
+          flexShrink: 0
+        }}
+      >
+        {image}
+      </div>
     );
   }
 
