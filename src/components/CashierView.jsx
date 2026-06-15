@@ -186,7 +186,7 @@ export default function CashierView({ tables, onSaveTables, employee }) {
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '28px', background: 'rgba(255,255,255,0.02)', padding: '16px 20px', borderRadius: '16px', border: '1px solid var(--border-light)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'linear-gradient(135deg, #d4af37, #aa841c)', color: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '1.2rem', boxShadow: '0 4px 12px rgba(212, 175, 55, 0.2)' }}>
+          <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--color-primary), var(--color-primary-dark))', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '1.2rem', boxShadow: '0 4px 12px rgba(16, 185, 129, 0.2)' }}>
             {employee.name?.charAt(0) || 'C'}
           </div>
           <div>
@@ -204,9 +204,9 @@ export default function CashierView({ tables, onSaveTables, employee }) {
             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '4px' }}>الفواتير المكتملة</div>
             <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: '1.6rem', color: '#27ae60' }}>{bills.length}</div>
           </div>
-          <div style={{ textAlign: 'center', background: 'rgba(212,175,55,0.08)', border: '1px solid rgba(212,175,55,0.2)', borderRadius: '12px', padding: '10px 20px', minWidth: '140px' }}>
+          <div style={{ textAlign: 'center', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: '12px', padding: '10px 20px', minWidth: '140px' }}>
             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '4px' }}>إجمالي الإيرادات لليوم</div>
-            <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: '1.6rem', color: '#d4af37' }}>{totalRevenue.toFixed(2)} ₪</div>
+            <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: '1.6rem', color: 'var(--color-primary)' }}>{totalRevenue.toFixed(2)} ₪</div>
           </div>
         </div>
       </div>
@@ -251,7 +251,7 @@ export default function CashierView({ tables, onSaveTables, employee }) {
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>⏱ {elapsedTime(t)}</div>
                       </div>
                       <div style={{ textAlign: 'left' }}>
-                        <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800, color: '#d4af37', fontSize: '1rem' }}>{(t.total || 0).toFixed(2)} ₪</div>
+                        <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800, color: 'var(--color-primary)', fontSize: '1rem' }}>{(t.total || 0).toFixed(2)} ₪</div>
                         {oTotal > 0 && <div style={{ fontSize: '0.72rem', color: pending === 0 ? '#27ae60' : '#f39c12', marginTop: '2px' }}>✅ {ready}/{oTotal}</div>}
                       </div>
                     </div>
@@ -322,7 +322,7 @@ export default function CashierView({ tables, onSaveTables, employee }) {
                     <span style={{ fontFamily: 'Outfit, sans-serif' }}>{(selectedTable.subtotal || 0).toFixed(2)} ₪</span>
                   </div>
                   <div style={{ marginTop: '16px', background: 'rgba(255,255,255,0.03)', padding: '16px', borderRadius: '12px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 800, fontSize: '1.2rem', marginTop: '12px', paddingTop: '12px', borderTop: '2px solid rgba(255,255,255,0.1)', color: '#d4af37' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 800, fontSize: '1.2rem', marginTop: '12px', paddingTop: '12px', borderTop: '2px solid rgba(255,255,255,0.1)', color: 'var(--color-primary)' }}>
                       <span>الإجمالي المطلوب</span>
                       <span>{(selectedTable.total || selectedTable.subtotal || 0).toFixed(2)} ₪</span>
                     </div>
@@ -338,9 +338,9 @@ export default function CashierView({ tables, onSaveTables, employee }) {
                         key={pm.id}
                         onClick={() => setPaymentMethod(pm.id)}
                         style={{
-                          padding: '10px 6px', borderRadius: '10px', border: `2px solid ${paymentMethod === pm.id ? '#d4af37' : 'var(--border-light)'}`,
-                          background: paymentMethod === pm.id ? 'rgba(212,175,55,0.15)' : 'rgba(255,255,255,0.03)',
-                          cursor: 'pointer', color: paymentMethod === pm.id ? '#d4af37' : 'var(--text-main)',
+                          padding: '10px 6px', borderRadius: '10px', border: `2px solid ${paymentMethod === pm.id ? 'var(--color-primary)' : 'var(--border-light)'}`,
+                          background: paymentMethod === pm.id ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.03)',
+                          cursor: 'pointer', color: paymentMethod === pm.id ? 'var(--color-primary)' : 'var(--text-main)',
                           fontSize: '0.78rem', fontWeight: 600, textAlign: 'center', transition: 'all 0.2s'
                         }}
                       >
@@ -411,7 +411,7 @@ export default function CashierView({ tables, onSaveTables, employee }) {
                 <tbody>
                   {[...bills].reverse().map(bill => (
                     <tr key={bill.id}>
-                      <td><code style={{ color: '#d4af37', fontFamily: 'Outfit, sans-serif' }}>{bill.id}</code></td>
+                      <td><code style={{ color: 'var(--color-primary)', fontFamily: 'Outfit, sans-serif' }}>{bill.id}</code></td>
                       <td>{bill.tableName}</td>
                       <td style={{ fontFamily: 'Outfit, sans-serif' }}>{(bill.items || []).reduce((s, i) => s + i.qty, 0)} صنف</td>
                       <td><strong style={{ color: '#27ae60', fontFamily: 'Outfit, sans-serif' }}>{(bill.total || 0).toFixed(2)} ₪</strong></td>
@@ -456,7 +456,7 @@ export default function CashierView({ tables, onSaveTables, employee }) {
             </div>
             <div className="glass-card" style={{ padding: '16px', textAlign: 'center' }}>
               <div style={{ fontSize: '1.8rem', marginBottom: '4px' }}>🔥</div>
-              <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#d4af37', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', direction: 'rtl', marginTop: '6px' }} title={topItemName}>{topItemName}</div>
+              <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--color-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', direction: 'rtl', marginTop: '6px' }} title={topItemName}>{topItemName}</div>
               <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '4px' }}>أكثر الأصناف مبيعاً</div>
             </div>
             <div className="glass-card" style={{ padding: '16px', textAlign: 'center' }}>
@@ -487,7 +487,7 @@ export default function CashierView({ tables, onSaveTables, employee }) {
               {topItems.length === 0 ? <p style={{ color: 'var(--text-muted)' }}>لا بيانات</p> :
                 topItems.map((item, i) => (
                   <div key={item.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                    <span style={{ fontSize: '0.88rem' }}><strong style={{ color: i === 0 ? '#d4af37' : 'var(--text-muted)' }}>{i + 1}.</strong> {item.name}</span>
+                    <span style={{ fontSize: '0.88rem' }}><strong style={{ color: i === 0 ? 'var(--color-primary)' : 'var(--text-muted)' }}>{i + 1}.</strong> {item.name}</span>
                     <span style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, color: '#3498db' }}>{item.qty} ✕</span>
                   </div>
                 ))
@@ -513,9 +513,9 @@ export default function CashierView({ tables, onSaveTables, employee }) {
                 <div><span style={{ color: 'var(--text-muted)' }}>طريقة الدفع: </span><strong>{PAYMENT_LABELS[paymentMethod]}</strong></div>
               </div>
 
-              <div style={{ background: 'rgba(212,175,55,0.08)', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '12px', padding: '16px', marginBottom: '20px', textAlign: 'center' }}>
+              <div style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: '12px', padding: '16px', marginBottom: '20px', textAlign: 'center' }}>
                 <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '4px' }}>الإجمالي النهائي</div>
-                <div style={{ fontFamily: 'Outfit, sans-serif', fontSize: '2rem', fontWeight: 800, color: '#d4af37' }}>{(selectedTable.total || 0).toFixed(2)} ₪</div>
+                <div style={{ fontFamily: 'Outfit, sans-serif', fontSize: '2rem', fontWeight: 800, color: 'var(--color-primary)' }}>{(selectedTable.total || 0).toFixed(2)} ₪</div>
               </div>
 
               <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', padding: '10px 14px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px' }}>
@@ -559,7 +559,7 @@ export default function CashierView({ tables, onSaveTables, employee }) {
             </div>
             <div className="modal-body">
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '0.85rem', marginBottom: '16px' }}>
-                <div>رقم: <strong style={{ color: '#d4af37', fontFamily: 'Outfit, sans-serif' }}>{selectedBill.id}</strong></div>
+                <div>رقم: <strong style={{ color: 'var(--color-primary)', fontFamily: 'Outfit, sans-serif' }}>{selectedBill.id}</strong></div>
                 <div>الوقت: <strong>{selectedBill.timeFormatted}</strong></div>
                 <div>النادل: <strong>{selectedBill.waiterCode}</strong></div>
                 <div>الكاشير: <strong>{selectedBill.cashierCode}</strong></div>

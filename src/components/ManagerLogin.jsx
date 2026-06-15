@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Coffee, KeyRound, Eye, EyeOff, LogIn, ShieldCheck, UserRound, Building, Mail, Phone, CheckCircle } from 'lucide-react';
 import { ensureDefaultPassword, verifyManagerPassword, loginManager, registerManager, getManagerAccount, activateManagerAccount, DEFAULT_MANAGER_PASSWORD } from '../utils/auth-store';
+import BrandLogo from './BrandLogo';
 
 export default function ManagerLogin({ onSwitch, onLogin }) {
   const [tab, setTab] = useState('login'); // 'login' | 'signup'
@@ -91,11 +92,11 @@ export default function ManagerLogin({ onSwitch, onLogin }) {
         <div className="login-header">
           <div className="brand" style={{ justifyContent: 'center', marginBottom: '20px' }}>
             <span className="brand-logo">
-              <Coffee style={{ marginLeft: '10px', color: '#eab308' }} /> تكة | TAKA
+              <BrandLogo size={28} style={{ marginLeft: '10px' }} /> تكة | TAKA
             </span>
             <span className="brand-tag">لوحة التحكم والعمليات</span>
           </div>
-          <div className="login-icon-box" style={{ background: 'rgba(231,76,60,0.15)', color: '#e74c3c' }}>
+          <div className="login-icon-box" style={{ background: 'rgba(16,185,129,0.15)', color: '#10b981' }}>
             <ShieldCheck size={32} />
           </div>
           <h2 className="login-title">{tab === 'login' ? 'دخول المدير العام' : 'إنشاء حساب مدير جديد'}</h2>
@@ -111,14 +112,14 @@ export default function ManagerLogin({ onSwitch, onLogin }) {
           <button 
             type="button" 
             onClick={() => { setTab('login'); setError(null); }}
-            style={{ flex: 1, padding: '10px', borderRadius: '8px', border: 'none', background: tab === 'login' ? '#e74c3c' : 'transparent', color: '#fff', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }}
+            style={{ flex: 1, padding: '10px', borderRadius: '8px', border: 'none', background: tab === 'login' ? '#10b981' : 'transparent', color: '#fff', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }}
           >
             تسجيل الدخول
           </button>
           <button 
             type="button" 
             onClick={() => { setTab('signup'); setError(null); }}
-            style={{ flex: 1, padding: '10px', borderRadius: '8px', border: 'none', background: tab === 'signup' ? '#e74c3c' : 'transparent', color: '#fff', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }}
+            style={{ flex: 1, padding: '10px', borderRadius: '8px', border: 'none', background: tab === 'signup' ? '#10b981' : 'transparent', color: '#fff', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }}
           >
             إنشاء حساب
           </button>
@@ -168,7 +169,7 @@ export default function ManagerLogin({ onSwitch, onLogin }) {
               </div>
             </div>
 
-            <button type="submit" disabled={busy} className="btn btn-primary" style={{ width: '100%', padding: '12px', background: '#e74c3c', borderColor: '#e74c3c' }}>
+            <button type="submit" disabled={busy} className="btn btn-primary" style={{ width: '100%', padding: '12px', background: '#10b981', borderColor: '#10b981' }}>
               <LogIn size={18} /> {busy ? 'جاري التحقق...' : 'تسجيل الدخول'}
             </button>
 
@@ -250,7 +251,7 @@ export default function ManagerLogin({ onSwitch, onLogin }) {
               </div>
             </div>
 
-            <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: '12px', background: '#e74c3c', borderColor: '#e74c3c' }}>
+            <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: '12px', background: '#10b981', borderColor: '#10b981' }}>
               📝 إنشاء حساب المدير
             </button>
           </form>
@@ -271,9 +272,9 @@ export default function ManagerLogin({ onSwitch, onLogin }) {
       {/* Activation simulation modal */}
       {showActivationModal && (
         <div className="modal-overlay" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 }}>
-          <div className="modal-content glass-card" style={{ maxWidth: '440px', padding: '24px', textAlign: 'center', border: '1px solid #e74c3c' }}>
-            <div style={{ fontSize: '3rem', color: '#e74c3c', marginBottom: '14px' }}>🛡️</div>
-            <h3 style={{ fontSize: '1.3rem', fontWeight: 800, color: '#e74c3c', marginBottom: '10px' }}>تم إرسال طلب الانضمام إلى الإدارة</h3>
+          <div className="modal-content glass-card" style={{ maxWidth: '440px', padding: '24px', textAlign: 'center', border: '1px solid #10b981' }}>
+            <div style={{ fontSize: '3rem', color: '#10b981', marginBottom: '14px' }}>🛡️</div>
+            <h3 style={{ fontSize: '1.3rem', fontWeight: 800, color: '#10b981', marginBottom: '10px' }}>تم إرسال طلب الانضمام إلى الإدارة</h3>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '15px' }}>
               تم إرسال طلب التفعيل إلى البريد الإلكتروني للمسؤول العام للمراجعة والموافقة عليه.
             </p>
@@ -281,14 +282,14 @@ export default function ManagerLogin({ onSwitch, onLogin }) {
             <div style={{ background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: '10px', border: '1px solid var(--border-light)', margin: '16px 0', textAlign: 'right', fontSize: '0.88rem' }}>
               <p style={{ marginBottom: '8px' }}>📬 <b>محاكاة صندوق الوارد للمسؤول العام:</b></p>
               <p style={{ color: 'var(--text-muted)' }}>مستلم: <span style={{ color: '#fff' }}>osaco221@gmail.com</span></p>
-              <p style={{ color: 'var(--text-muted)', marginTop: '4px' }}>المرسل: <span style={{ color: '#e74c3c' }}>تكة | TAKKA AUTH</span></p>
+              <p style={{ color: 'var(--text-muted)', marginTop: '4px' }}>المرسل: <span style={{ color: '#10b981' }}>تكة | TAKKA AUTH</span></p>
               <p style={{ color: 'var(--text-muted)', marginTop: '4px' }}>الموضوع: <span style={{ color: '#fff' }}>طلب تفعيل حساب مدير مطعم جديد ({restaurantName})</span></p>
               <hr style={{ border: 'none', borderTop: '1px dashed var(--border-light)', margin: '10px 0' }} />
               <p style={{ fontSize: '0.82rem', lineHeight: '1.4', color: '#fff' }}>
                 مرحباً مسؤول النظام،
               </p>
               <p style={{ fontSize: '0.82rem', lineHeight: '1.4', marginTop: '6px' }}>
-                لقد قام المستخدم <b>{managerName}</b> (<span style={{ color: '#e74c3c' }}>{signupEmail}</span>) بتقديم طلب لإنشاء حساب مدير للمطعم/المقهى: <b>({restaurantName})</b>.
+                لقد قام المستخدم <b>{managerName}</b> (<span style={{ color: '#10b981' }}>{signupEmail}</span>) بتقديم طلب لإنشاء حساب مدير للمطعم/المقهى: <b>({restaurantName})</b>.
               </p>
               <p style={{ fontSize: '0.82rem', lineHeight: '1.4', marginTop: '6px', color: 'var(--text-muted)' }}>
                 يرجى النقر على زر القبول والتفعيل أدناه لتنشيط الحساب وتمكينه من الدخول إلى النظام.

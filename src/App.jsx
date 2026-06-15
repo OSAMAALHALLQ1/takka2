@@ -14,6 +14,7 @@ import WaiterView from './components/WaiterView';
 import CashierView from './components/CashierView';
 import AdminDashboard from './components/AdminDashboard';
 import NotificationsToast from './components/NotificationsToast';
+import BrandLogo from './components/BrandLogo';
 
 // ──────────────────────────────────────────────────────
 // Dept Screen (Kitchen / Bar / Shisha)
@@ -516,7 +517,7 @@ export default function App() {
       <div className="app-shell">
         <header className="header-bar">
           <div className="brand">
-            <span className="brand-logo">🍽️ تكة | TAKA</span>
+            <span className="brand-logo"><BrandLogo size={28} style={{ marginLeft: '8px' }} /> تكة | TAKA</span>
             <span className="brand-tag">لوحة المدير</span>
           </div>
           <div style={{ display: 'flex', gap: '10px' }}>
@@ -546,7 +547,7 @@ export default function App() {
       <header className="header-bar">
         <div className="brand">
           <span className="brand-logo">
-            <span style={{ color: 'var(--color-primary)', marginLeft: '10px', fontSize: '1.4rem' }}>🍽️</span>
+            <BrandLogo size={28} style={{ marginLeft: '8px' }} />
             تكة | TAKA
           </span>
           <span className="brand-tag">{ROLE_LABELS[user.role] || user.role}</span>

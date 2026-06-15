@@ -194,7 +194,7 @@ function DashboardTab({ tables, bills, occupied, activeOrders, activeStaff, menu
         <h3 className="card-title">📈 ملخص إحصائي</h3>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginTop: '12px' }}>
           <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#d4af37' }}>{bills.length}</div>
+            <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--color-primary)' }}>{bills.length}</div>
             <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>إجمالي الفواتير</div>
           </div>
           <div style={{ textAlign: 'center' }}>
@@ -275,7 +275,7 @@ function DepartmentsTab({ departments, setDepartments, employees, deptOrders }) 
       </div>
 
       {showForm && (
-        <div className="admin-card" style={{ marginBottom: '24px', borderColor: '#d4af37' }}>
+        <div className="admin-card" style={{ marginBottom: '24px', borderColor: 'var(--color-primary)' }}>
           <h3 className="card-title">{editId ? 'تعديل القسم' : 'قسم جديد'}</h3>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '16px' }}>
             <div className="form-group">
@@ -384,7 +384,7 @@ const renderItemImage = (image, name, isCard = false) => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        color: '#d4af37'
+        color: 'var(--color-primary)'
       } : {
         width: '40px',
         height: '40px',
@@ -394,7 +394,7 @@ const renderItemImage = (image, name, isCard = false) => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        color: '#d4af37',
+        color: 'var(--color-primary)',
         flexShrink: 0
       }}
     >
@@ -488,7 +488,7 @@ function MenuTab({ menuItems, setMenuItems, departments }) {
       </div>
 
       {showForm && (
-        <div className="admin-card" style={{ marginBottom: '24px', borderColor: '#d4af37' }}>
+        <div className="admin-card" style={{ marginBottom: '24px', borderColor: 'var(--color-primary)' }}>
           <h3 className="card-title">{editId ? 'تعديل الصنف' : 'صنف جديد'}</h3>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '16px' }}>
             <div className="form-group">
@@ -547,7 +547,7 @@ function MenuTab({ menuItems, setMenuItems, departments }) {
             </div>
             <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '12px', paddingTop: '24px' }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.9rem' }}>
-                <input type="checkbox" checked={form.available} onChange={e => setForm(p => ({ ...p, available: e.target.checked }))} style={{ width: '18px', height: '18px', accentColor: '#d4af37' }} />
+                <input type="checkbox" checked={form.available} onChange={e => setForm(p => ({ ...p, available: e.target.checked }))} style={{ width: '18px', height: '18px', accentColor: 'var(--color-primary)' }} />
                 متوفر للطلب
               </label>
             </div>
@@ -585,7 +585,7 @@ function MenuTab({ menuItems, setMenuItems, departments }) {
                       </div>
                     </div>
                   </td>
-                  <td><span style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, color: '#d4af37' }}>{item.price} ₪</span></td>
+                  <td><span style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, color: 'var(--color-primary)' }}>{item.price} ₪</span></td>
                   <td><span className="role-badge" style={{ background: '#1a1a2e', border: '1px solid rgba(255,255,255,0.1)' }}>{departments.find(d => d.id === item.department)?.name || item.department}</span></td>
                   <td>{CATEGORY_LABELS[item.category] || item.category}</td>
                   <td>
@@ -672,7 +672,7 @@ function TablesTab({ tables, setTables }) {
       </div>
 
       {showForm && (
-        <div className="admin-card" style={{ marginBottom: '24px', borderColor: '#d4af37' }}>
+        <div className="admin-card" style={{ marginBottom: '24px', borderColor: 'var(--color-primary)' }}>
           <h3 className="card-title">{editId ? `تعديل طاولة ${editId}` : 'طاولة جديدة'}</h3>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginTop: '16px' }}>
             {!editId && (
@@ -711,21 +711,21 @@ function TablesTab({ tables, setTables }) {
             <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>{t.name}</div>
             <div style={{ fontSize: '0.75rem', color: STATUS_COLORS[t.status], fontWeight: 600, marginTop: '4px' }}>{STATUS_LABELS[t.status]}</div>
             <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px' }}>🪑 {t.seats} | {AREA_LABELS[t.area]}</div>
-            {t.total > 0 && <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, color: '#d4af37', fontSize: '0.85rem', marginTop: '4px' }}>{t.total.toFixed(2)} ₪</div>}
+            {t.total > 0 && <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, color: 'var(--color-primary)', fontSize: '0.85rem', marginTop: '4px' }}>{t.total.toFixed(2)} ₪</div>}
           </div>
         ))}
       </div>
 
       {/* Selected table details */}
       {selected && (
-        <div className="admin-card" style={{ marginTop: '24px', borderColor: '#d4af37' }}>
+        <div className="admin-card" style={{ marginTop: '24px', borderColor: 'var(--color-primary)' }}>
           <h3 className="card-title">{selected.name} - تفاصيل</h3>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginTop: '12px', fontSize: '0.85rem' }}>
             <div><span style={{ color: 'var(--text-muted)' }}>الحالة: </span><strong>{STATUS_LABELS[selected.status]}</strong></div>
             <div><span style={{ color: 'var(--text-muted)' }}>المقاعد: </span><strong>{selected.seats}</strong></div>
             <div><span style={{ color: 'var(--text-muted)' }}>المنطقة: </span><strong>{AREA_LABELS[selected.area]}</strong></div>
             {selected.waiterCode && <div><span style={{ color: 'var(--text-muted)' }}>الجرسون: </span><strong>{selected.waiterCode}</strong></div>}
-            {selected.total > 0 && <div><span style={{ color: 'var(--text-muted)' }}>الإجمالي: </span><strong style={{ color: '#d4af37' }}>{selected.total.toFixed(2)} ₪</strong></div>}
+            {selected.total > 0 && <div><span style={{ color: 'var(--text-muted)' }}>الإجمالي: </span><strong style={{ color: 'var(--color-primary)' }}>{selected.total.toFixed(2)} ₪</strong></div>}
           </div>
           <div style={{ display: 'flex', gap: '8px', marginTop: '16px', flexWrap: 'wrap' }}>
             <button className="icon-btn" onClick={() => { setForm({ number: selected.id, seats: selected.seats, area: selected.area, description: selected.description || '' }); setEditId(selected.id); setShowForm(true); setSelected(null); }}>✏️ تعديل</button>
@@ -800,7 +800,7 @@ function StaffTab({ employees, setEmployees }) {
       </div>
 
       {showForm && (
-        <div className="admin-card" style={{ marginBottom: '24px', borderColor: '#d4af37' }}>
+        <div className="admin-card" style={{ marginBottom: '24px', borderColor: 'var(--color-primary)' }}>
           <h3 className="card-title">{editId ? 'تعديل موظف' : 'موظف جديد'}</h3>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '16px' }}>
             <div className="form-group">
@@ -839,7 +839,7 @@ function StaffTab({ employees, setEmployees }) {
             </div>
             <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '12px', paddingTop: '24px' }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.9rem' }}>
-                <input type="checkbox" checked={form.active} onChange={e => setForm(p => ({ ...p, active: e.target.checked }))} style={{ width: '18px', height: '18px', accentColor: '#d4af37' }} />
+                <input type="checkbox" checked={form.active} onChange={e => setForm(p => ({ ...p, active: e.target.checked }))} style={{ width: '18px', height: '18px', accentColor: 'var(--color-primary)' }} />
                 نشط
               </label>
             </div>
@@ -878,7 +878,7 @@ function StaffTab({ employees, setEmployees }) {
                   </td>
                   <td><code style={{ fontSize: '0.85rem', background: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: '4px' }}>{emp.username}</code></td>
                   <td><span className="role-badge" style={{ background: `${ROLE_COLORS[emp.role]}22`, color: ROLE_COLORS[emp.role], border: `1px solid ${ROLE_COLORS[emp.role]}44` }}>{ROLE_LABELS[emp.role]}</span></td>
-                  <td><code style={{ fontFamily: 'Outfit, sans-serif', color: '#d4af37' }}>{emp.code}</code></td>
+                  <td><code style={{ fontFamily: 'Outfit, sans-serif', color: 'var(--color-primary)' }}>{emp.code}</code></td>
                   <td>
                     <button onClick={() => toggleActive(emp)} style={{ padding: '4px 10px', borderRadius: '20px', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '0.78rem', background: emp.active ? '#27ae6022' : '#e74c3c22', color: emp.active ? '#27ae60' : '#e74c3c' }}>
                       {emp.active ? '✅ نشط' : '❌ معطل'}
@@ -992,7 +992,7 @@ function CodesTab({ codes, setCodes }) {
           <div style={{ marginTop: '20px', padding: '20px', background: 'rgba(39,174,96,0.08)', border: '1px solid rgba(39,174,96,0.3)', borderRadius: '12px' }}>
             <div style={{ color: '#27ae60', fontWeight: 700, marginBottom: '12px' }}>✅ تم إنشاء الكود بنجاح!</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-              <code style={{ fontSize: '1.4rem', fontFamily: 'Outfit, sans-serif', letterSpacing: '3px', color: '#d4af37', background: 'rgba(0,0,0,0.2)', padding: '8px 16px', borderRadius: '8px', direction: 'ltr' }}>{generatedCode.code}</code>
+              <code style={{ fontSize: '1.4rem', fontFamily: 'Outfit, sans-serif', letterSpacing: '3px', color: 'var(--color-primary)', background: 'rgba(0,0,0,0.2)', padding: '8px 16px', borderRadius: '8px', direction: 'ltr' }}>{generatedCode.code}</code>
               <button className="btn-primary-gold" onClick={() => copyCode(generatedCode.code)}>{copySuccess === generatedCode.code ? '✅ تم النسخ' : '📋 نسخ'}</button>
             </div>
             <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
@@ -1014,7 +1014,7 @@ function CodesTab({ codes, setCodes }) {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
                   <div>
                     <div style={{ fontWeight: 700, marginBottom: '4px' }}>{code.label}</div>
-                    <code style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.1rem', letterSpacing: '2px', color: '#d4af37', direction: 'ltr', display: 'block' }}>{code.code}</code>
+                    <code style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.1rem', letterSpacing: '2px', color: 'var(--color-primary)', direction: 'ltr', display: 'block' }}>{code.code}</code>
                     <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '4px' }}>
                       الدور: <span style={{ color: ROLE_COLORS[code.allowedRoles?.[0]] }}>{ROLE_LABELS[code.allowedRoles?.[0]] || code.allowedRoles?.[0]}</span>
                       {' | '}صلاحية: <strong>{daysLeft(code)}</strong>
@@ -1132,15 +1132,15 @@ function ReportsTab({ bills, menuItems, tables }) {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '12px' }}>
               {topItems.map((item, i) => (
                 <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <span style={{ width: '20px', fontWeight: 700, color: i === 0 ? '#d4af37' : 'var(--text-muted)', textAlign: 'center' }}>{i + 1}</span>
+                  <span style={{ width: '20px', fontWeight: 700, color: i === 0 ? 'var(--color-primary)' : 'var(--text-muted)', textAlign: 'center' }}>{i + 1}</span>
                   <span style={{ fontSize: '1.2rem' }}>{item.image}</span>
                   <span style={{ flex: 1, fontSize: '0.85rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</span>
                   <div style={{ flex: 0, minWidth: '80px' }}>
                     <div style={{ height: '6px', borderRadius: '3px', background: 'rgba(255,255,255,0.06)' }}>
-                      <div style={{ height: '100%', borderRadius: '3px', background: '#d4af37', width: `${(item.qty / maxQty) * 100}%` }} />
+                      <div style={{ height: '100%', borderRadius: '3px', background: 'var(--color-primary)', width: `${(item.qty / maxQty) * 100}%` }} />
                     </div>
                   </div>
-                  <span style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, color: '#d4af37', minWidth: '30px', textAlign: 'left' }}>{item.qty}</span>
+                  <span style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, color: 'var(--color-primary)', minWidth: '30px', textAlign: 'left' }}>{item.qty}</span>
                 </div>
               ))}
             </div>
@@ -1240,7 +1240,7 @@ function BillsTab({ bills }) {
             <tbody>
               {[...bills].reverse().map(bill => (
                 <tr key={bill.id}>
-                  <td><code style={{ fontFamily: 'Outfit, sans-serif', color: '#d4af37' }}>{bill.id}</code></td>
+                  <td><code style={{ fontFamily: 'Outfit, sans-serif', color: 'var(--color-primary)' }}>{bill.id}</code></td>
                   <td>{bill.tableName}</td>
                   <td><strong style={{ color: '#27ae60', fontFamily: 'Outfit, sans-serif' }}>{(bill.total || 0).toFixed(2)} ₪</strong></td>
                   <td>{PAYMENT_LABELS[bill.paymentMethod] || bill.paymentMethod || 'نقد'}</td>
@@ -1269,7 +1269,7 @@ function BillsTab({ bills }) {
             </div>
             <div className="modal-body">
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '0.85rem', marginBottom: '16px' }}>
-                <div>رقم: <strong style={{ fontFamily: 'Outfit, sans-serif', color: '#d4af37' }}>{selected.id}</strong></div>
+                <div>رقم: <strong style={{ fontFamily: 'Outfit, sans-serif', color: 'var(--color-primary)' }}>{selected.id}</strong></div>
                 <div>الوقت: <strong>{selected.timeFormatted}</strong></div>
                 <div>الجرسون: <strong>{selected.waiterCode}</strong></div>
                 <div>الكاشير: <strong>{selected.cashierCode}</strong></div>

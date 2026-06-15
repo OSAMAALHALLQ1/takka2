@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { authenticateUser, getEmployees } from '../utils/storage';
 import { Coffee, KeyRound, Lock, ShieldCheck, UserRound } from 'lucide-react';
+import BrandLogo from './BrandLogo';
 
 const roleLabels = {
   manager: 'مدير',
@@ -55,7 +56,7 @@ export default function Login({ onLoginSuccess }) {
         <div className="login-header">
           <div className="brand" style={{ justifyContent: 'center', marginBottom: '16px' }}>
             <span className="brand-logo">
-              <Coffee style={{ marginRight: '8px', color: '#eab308' }} /> تكة
+              <BrandLogo size={24} style={{ marginLeft: '8px' }} /> تكة
             </span>
             <span className="brand-tag">TAKA OPS</span>
           </div>

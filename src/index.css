@@ -1,48 +1,50 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=Outfit:wght@300;400;500;600;700;800&display=swap');
 
 /* ────────────────────────────────────────────────────────────────
    DESIGN SYSTEM TOKENS
-─────────────────────────────────────────────────────────────────*/
+   Inspired by green branding (emerald/slate visual identity)
+   ─────────────────────────────────────────────────────────────────*/
 :root {
-  --font-arabic: 'Inter', sans-serif;
+  --font-arabic: 'Cairo', sans-serif;
   --font-english: 'Outfit', sans-serif;
 
-  /* Dark Palette */
-  --bg-main:           #0b0e17;
-  --bg-surface:        #131929;
-  --bg-surface-2:      #1a2238;
-  --bg-surface-glass:  rgba(19, 25, 41, 0.88);
-  --border-light:      rgba(255, 255, 255, 0.07);
-  --border-hover:      rgba(212, 175, 55, 0.35);
+  /* Premium Dark Green & Slate Palette */
+  --bg-main:           #070c10;
+  --bg-surface:        #0d141b;
+  --bg-surface-2:      #121c25;
+  --bg-surface-glass:  rgba(13, 20, 27, 0.9);
+  --border-light:      rgba(255, 255, 255, 0.05);
+  --border-hover:      rgba(16, 185, 129, 0.35);
 
-  /* Gold Primary */
-  --color-primary:       #d4af37;
-  --color-primary-dark:  #b8962e;
-  --color-primary-light: #e8c94b;
-  --color-primary-glow:  rgba(212, 175, 55, 0.18);
+  /* Emerald Green Primary */
+  --color-primary:       #10b981;
+  --color-primary-dark:  #059669;
+  --color-primary-light: #34d399;
+  --color-primary-glow:  rgba(16, 185, 129, 0.15);
 
   /* Text */
-  --text-main:  #f0f4ff;
-  --text-muted: #8892a4;
-  --text-dark:  #0b0e17;
+  --text-main:  #f3f4f6;
+  --text-muted: #8b9bb4;
+  --text-dark:  #070c10;
 
   /* Status */
-  --status-empty:           #27ae60;
-  --status-eating:          #3498db;
-  --status-bill-requested:  #e74c3c;
-  --status-ordering:        #f39c12;
-  --status-unavailable:     #555;
+  --status-empty:           #10b981;
+  --status-eating:          #ef4444;
+  --status-bill-requested:  #f59e0b;
+  --status-ordering:        #3b82f6;
+  --status-unavailable:     #4b5563;
 
-  /* Shadows */
+  /* Shadows & Glows */
   --shadow-sm:    0 2px 8px rgba(0,0,0,0.5);
   --shadow-md:    0 8px 24px rgba(0,0,0,0.6);
   --shadow-lg:    0 20px 48px rgba(0,0,0,0.8);
-  --shadow-gold:  0 0 24px rgba(212,175,55,0.3);
+  --shadow-gold:  0 0 24px rgba(16, 185, 129, 0.25);
 
   /* Transitions */
   --tr-fast:   0.15s ease;
   --tr-normal: 0.25s cubic-bezier(0.4,0,0.2,1);
 }
+
 
 /* ────────────────────────────────────────────────────────────────
    RESET & BASE

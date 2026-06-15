@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Coffee, LogIn, ShieldCheck, UserRound, KeyRound } from 'lucide-react';
 import { authenticateByCode } from '../utils/storage';
+import BrandLogo from './BrandLogo';
 
 export default function EmployeeLogin({ onSwitch, onLoginSuccess }) {
   const [codeInput, setCodeInput] = useState('');
@@ -36,11 +37,11 @@ export default function EmployeeLogin({ onSwitch, onLoginSuccess }) {
         <div className="login-header">
           <div className="brand" style={{ justifyContent: 'center', marginBottom: '20px' }}>
             <span className="brand-logo">
-              <Coffee style={{ marginLeft: '10px', color: '#eab308' }} /> تكة | TAKA
+              <BrandLogo size={28} style={{ marginLeft: '10px' }} /> تكة | TAKA
             </span>
             <span className="brand-tag">تسجيل دخول الموظفين</span>
           </div>
-          <div className="login-icon-box" style={{ background: 'rgba(59,130,246,0.15)', color: '#3b82f6' }}>
+          <div className="login-icon-box" style={{ background: 'rgba(16,185,129,0.15)', color: '#10b981' }}>
             <UserRound size={32} />
           </div>
           <h2 className="login-title">دخول الموظفين بالكود</h2>

@@ -54,7 +54,7 @@ const renderItemImage = (image, name, isCard = false) => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        color: '#d4af37'
+        color: 'var(--color-primary)'
       } : {
         width: '40px',
         height: '40px',
@@ -64,7 +64,7 @@ const renderItemImage = (image, name, isCard = false) => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        color: '#d4af37',
+        color: 'var(--color-primary)',
         flexShrink: 0
       }}
     >
@@ -274,7 +274,7 @@ export default function WaiterView({ tables, onSaveTables, employee, menuItems =
                     {renderItemImage(item.image, item.nameAr || item.name, true)}
                     <div style={{ fontWeight: 600, fontSize: '0.88rem', lineHeight: 1.3 }}>{item.name || item.nameAr}</div>
                     {item.description && <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px' }}>{item.description}</div>}
-                    <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, color: '#d4af37', marginTop: '8px' }}>{item.price} ₪</div>
+                    <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, color: 'var(--color-primary)', marginTop: '8px' }}>{item.price} ₪</div>
                     {inCart && <div className="cart-badge">+{inCart.qty}</div>}
                   </div>
                 );
@@ -301,7 +301,7 @@ export default function WaiterView({ tables, onSaveTables, employee, menuItems =
                   <div key={item.id} className="cart-item-row">
                     <div style={{ flex: 1 }}>
                       <div style={{ fontWeight: 600, fontSize: '0.88rem' }}>{item.name}</div>
-                      <div style={{ fontFamily: 'Outfit, sans-serif', color: '#d4af37', fontSize: '0.82rem' }}>{(item.price * item.qty).toFixed(2)} ₪</div>
+                      <div style={{ fontFamily: 'Outfit, sans-serif', color: 'var(--color-primary)', fontSize: '0.82rem' }}>{(item.price * item.qty).toFixed(2)} ₪</div>
                       <input
                         type="text"
                         className="note-input"
@@ -573,7 +573,7 @@ export default function WaiterView({ tables, onSaveTables, employee, menuItems =
               <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>🪑 {t.seats} مقعد</div>
               <span className={`badge ${STATUS_BADGE[t.status] || ''}`}>{STATUS_LABELS_AR[t.status] || t.status}</span>
               {t.status !== 'empty' && t.total > 0 && (
-                <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, color: '#d4af37', fontSize: '0.88rem' }}>{t.total.toFixed(2)} ₪</div>
+                <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, color: 'var(--color-primary)', fontSize: '0.88rem' }}>{t.total.toFixed(2)} ₪</div>
               )}
               {t.status !== 'empty' && t.seatedAt && (
                 <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>⏱ {elMin} دقيقة</div>
@@ -594,7 +594,7 @@ export default function WaiterView({ tables, onSaveTables, employee, menuItems =
             </div>
             <div className="modal-body" style={{ textAlign: 'center' }}>
               <p>هل تريد إرسال طلب الحساب للمحاسب؟</p>
-              <p style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.4rem', fontWeight: 800, color: '#d4af37', margin: '12px 0' }}>
+              <p style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.4rem', fontWeight: 800, color: 'var(--color-primary)', margin: '12px 0' }}>
                 {tableData ? (tableData.total || 0).toFixed(2) : '0.00'} ₪
               </p>
             </div>
