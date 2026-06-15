@@ -11,7 +11,7 @@ const DEPT_TABS = [
   { id: 'shisha', label: 'شيشة', icon: '💨' }
 ];
 
-const STATUS_COLORS = { empty: '#27ae60', eating: '#e74c3c', bill_requested: '#f39c12', unavailable: '#555' };
+const STATUS_COLORS = { empty: '#15803d', eating: '#dc2626', bill_requested: '#ca8a04', unavailable: '#8a92a2' };
 const STATUS_LABELS_AR = { empty: 'فاضية', eating: 'مشغولة', bill_requested: 'تنتظر دفع', unavailable: 'غير متوفرة' };
 const STATUS_BADGE = { empty: 'badge-empty', eating: 'badge-eating', bill_requested: 'badge-bill-requested', unavailable: 'badge-unavailable' };
 
@@ -466,14 +466,15 @@ export default function WaiterView({ tables, onSaveTables, employee, menuItems =
                           
                           const percent = Math.min(100, Math.floor((elapsedSec / expectedPrepSec) * 100));
                           const statusText = item.status === 'preparing' ? 'يتحضر' : 'جديد';
-                          const statusColor = item.status === 'preparing' ? '#f39c12' : '#e74c3c';
+                          const statusColor = item.status === 'preparing' ? '#ca8a04' : '#dc2626';
+                          const statusBg = item.status === 'preparing' ? '#fffbeb' : '#fef2f2';
 
                           return (
-                            <div key={i} style={{ padding: '12px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', borderRight: `3px solid ${statusColor}` }}>
+                            <div key={i} style={{ padding: '12px', background: statusBg, borderRadius: '8px', borderRight: `3px solid ${statusColor}` }}>
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                 <div>
-                                  <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>{item.name} × {item.qty}</span>
-                                  {item.note && <div style={{ fontSize: '0.75rem', color: '#f39c12', marginTop: '2px' }}>📝 {item.note}</div>}
+                                  <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#1a1a1a' }}>{item.name} × {item.qty}</span>
+                                  {item.note && <div style={{ fontSize: '0.75rem', color: '#ca8a04', marginTop: '2px' }}>📝 {item.note}</div>}
                                 </div>
                                 <span style={{ fontSize: '0.78rem', color: statusColor, fontWeight: 700 }}>{statusText}</span>
                               </div>
@@ -496,7 +497,7 @@ export default function WaiterView({ tables, onSaveTables, employee, menuItems =
 
                   {/* ✅ الطلبات الجاهزة */}
                   <div>
-                    <h4 style={{ fontSize: '0.92rem', fontWeight: 700, marginBottom: '8px', color: '#27ae60', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <h4 style={{ fontSize: '0.92rem', fontWeight: 700, marginBottom: '8px', color: '#15803d', display: 'flex', alignItems: 'center', gap: '6px' }}>
                       ✅ الطلبات الجاهزة للتسليم ({readyItemsList.length})
                     </h4>
                     {readyItemsList.length === 0 ? (
@@ -507,9 +508,9 @@ export default function WaiterView({ tables, onSaveTables, employee, menuItems =
                           const readyDuration = item.readyAt ? Math.floor((now - item.readyAt) / 60000) : 0;
                           const ordId = getOrderIdForItem(item.id);
                           return (
-                            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: 'rgba(39, 174, 96, 0.05)', borderRight: '3px solid #27ae60', borderRadius: '8px' }}>
+                            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: '#f0fdf4', borderRight: '3px solid #15803d', borderRadius: '8px' }}>
                               <div>
-                                <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{item.name} × {item.qty}</div>
+                                <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#1a1a1a' }}>{item.name} × {item.qty}</div>
                                 <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>
                                   ⏱ جاهز منذ: {readyDuration} دقائق
                                 </div>
@@ -518,7 +519,7 @@ export default function WaiterView({ tables, onSaveTables, employee, menuItems =
                                 className="deliver-btn"
                                 onClick={() => ordId && handleDeliverItem(ordId, item.id)}
                                 disabled={!ordId}
-                                style={{ padding: '6px 12px', fontSize: '0.78rem', background: '#27ae60', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 700 }}
+                                style={{ padding: '6px 12px', fontSize: '0.78rem', background: '#15803d', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 700 }}
                               >
                                 [تم تسليم الطلب ✓]
                               </button>

@@ -396,6 +396,7 @@ export default function App() {
   const [databaseReady, setDatabaseReady] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [toastNotifs, setToastNotifs] = useState([]);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const isMountedRef = useRef(false);
   const prevDeptOrdersRef = useRef(null);
@@ -588,13 +589,18 @@ export default function App() {
     setUser(session);
     setAuthPage('system');
   };
-  const dismissToast = (id) => {
+  const dismissToast = useCallback((id) => {
     setDismissedNotifs(prev => {
       const newSet = new Set(prev);
       newSet.add(id);
       return newSet;
     });
-  };
+  }, []);
+
+  useEffect(() => {
+    refreshNotifs();
+  }, [dismissedNotifs, refreshNotifs]);
+
   const toggleSound = () => setSoundEnabled(p => !p);
 
   // ── Loading ──
@@ -667,6 +673,27 @@ export default function App() {
         </div>
 
         <div className="user-profile">
+          {user.role === 'manager' && (
+            <button
+              className="header-hamburger md:hidden"
+              onClick={() => setSidebarOpen(o => !o)}
+              style={{
+                background: 'rgba(255,255,255,0.08)',
+                border: '1px solid var(--border-light)',
+                borderRadius: '10px',
+                width: '40px',
+                height: '40px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'var(--text-main)',
+                fontSize: '1.4rem'
+              }}
+            >
+              ☰
+            </button>
+          )}
           <button
             onClick={toggleSound}
             style={{
@@ -704,7 +731,7 @@ export default function App() {
 
       <main className="app-main">
         {user.role === 'manager' && (
-          <AdminDashboard user={user} onLogout={handleLogout} />
+          <AdminDashboard user={user} onLogout={handleLogout} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
         )}
         {user.role === 'waiter' && (
           <WaiterView tables={tables} onSaveTables={handleSaveTables} employee={user} menuItems={menuItems} />

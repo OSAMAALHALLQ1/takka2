@@ -1,13 +1,19 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { CheckCircle, AlertTriangle, Info, XCircle, X } from 'lucide-react';
 
 function ToastItem({ n, onClose }) {
+  const onCloseRef = useRef(onClose);
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
   useEffect(() => {
     const timer = setTimeout(() => {
-      onClose(n.id);
+      onCloseRef.current(n.id);
     }, 4000); // 4 seconds as requested
     return () => clearTimeout(timer);
-  }, [n.id, onClose]);
+  }, [n.id]);
 
   const getIcon = (type) => {
     switch (type) {
@@ -43,15 +49,24 @@ function ToastItem({ n, onClose }) {
           <span className="toast-title">{n.title}</span>
         </div>
         <button
-          onClick={() => onClose(n.id)}
+          onClick={(e) => {
+            e.stopPropagation();
+            onClose(n.id);
+          }}
           style={{
             background: 'transparent',
             border: 'none',
             color: '#94a3b8',
             cursor: 'pointer',
             display: 'flex',
-            alignItems: 'center'
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '6px',
+            borderRadius: '50%',
+            transition: 'background-color 0.2s'
           }}
+          className="toast-close-btn"
+          title="إغلاق"
         >
           <X size={16} />
         </button>

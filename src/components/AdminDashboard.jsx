@@ -31,9 +31,8 @@ const PERMISSIONS = [
   { key: 'reports', label: 'عرض التقارير', manager: true, waiter: false, cashier: false, kitchen: false, bar: false, shisha: false },
 ];
 
-export default function AdminDashboard({ user, onLogout }) {
+export default function AdminDashboard({ user, onLogout, sidebarOpen, setSidebarOpen }) {
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [tables, setTables] = useState(getTables());
   const [employees, setEmployees] = useState(getEmployees());
   const [menuItems, setMenuItems] = useState(getMenu());
@@ -76,15 +75,7 @@ export default function AdminDashboard({ user, onLogout }) {
   const activeStaff = employees.filter(e => e.active && e.role !== 'manager').length;
 
   return (
-    <div style={{ display: 'flex', minHeight: 'calc(100vh - 65px)' }}>
-      {/* Mobile Toggle Button */}
-      <button 
-        className="admin-mobile-toggle"
-        onClick={() => setSidebarOpen(o => !o)}
-      >
-        {sidebarOpen ? '✕ إغلاق' : '☰ قائمة الخيارات'}
-      </button>
-
+    <div style={{ display: 'flex', minHeight: 'calc(100vh - 65px)', width: '100%', position: 'relative' }}>
       {/* Sidebar Backdrop overlay on mobile */}
       {sidebarOpen && (
         <div className="admin-sidebar-backdrop" onClick={() => setSidebarOpen(false)} />
@@ -92,6 +83,26 @@ export default function AdminDashboard({ user, onLogout }) {
 
       {/* Sidebar */}
       <aside className={`admin-sidebar ${sidebarOpen ? 'open' : ''}`}>
+        {/* Close Button on Mobile Drawer */}
+        <button 
+          className="admin-sidebar-close md:hidden"
+          onClick={() => setSidebarOpen(false)}
+          style={{
+            position: 'absolute',
+            top: '16px',
+            left: '16px',
+            background: 'none',
+            border: 'none',
+            fontSize: '1.6rem',
+            cursor: 'pointer',
+            color: '#1a1a1a',
+            fontWeight: 'bold',
+            zIndex: 2100
+          }}
+        >
+          ✕
+        </button>
+
         <div className="admin-sidebar-user">
           <div className="admin-avatar">{user.name?.charAt(0) || 'م'}</div>
           <div>
@@ -105,14 +116,20 @@ export default function AdminDashboard({ user, onLogout }) {
               key={tab.id}
               className={`admin-nav-btn ${activeTab === tab.id ? 'active' : ''}`}
               onClick={() => { setActiveTab(tab.id); setSidebarOpen(false); }}
+              title={tab.label}
             >
               <span>{tab.icon}</span>
               <span>{tab.label}</span>
             </button>
           ))}
         </nav>
-        <button className="admin-logout-btn" onClick={() => { setSidebarOpen(false); onLogout(); }}>
-          🚪 تسجيل خروج
+        <button 
+          className="admin-logout-btn" 
+          onClick={() => { setSidebarOpen(false); onLogout(); }}
+          title="تسجيل خروج"
+        >
+          <span>🚪</span>
+          <span> تسجيل خروج</span>
         </button>
       </aside>
 

@@ -219,11 +219,11 @@ export default function CashierView({ tables, onSaveTables, employee }) {
         </div>
         
         <div className="cashier-header-stats">
-          <div style={{ textAlign: 'center', background: 'rgba(39,174,96,0.08)', border: '1px solid rgba(39,174,96,0.2)', borderRadius: '12px', padding: '10px 20px', minWidth: '120px' }}>
+          <div style={{ textAlign: 'center', background: '#f0fdf4', border: '1px solid #dcfce7', borderRadius: '12px', padding: '10px 20px', minWidth: '120px' }}>
             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '4px' }}>الفواتير المكتملة</div>
-            <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: '1.6rem', color: '#27ae60' }}>{bills.length}</div>
+            <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: '1.6rem', color: '#15803d' }}>{bills.length}</div>
           </div>
-          <div style={{ textAlign: 'center', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: '12px', padding: '10px 20px', minWidth: '140px' }}>
+          <div style={{ textAlign: 'center', background: 'var(--color-primary-glow)', border: '1px solid var(--border-light)', borderRadius: '12px', padding: '10px 20px', minWidth: '140px' }}>
             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '4px' }}>إجمالي الإيرادات لليوم</div>
             <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: '1.6rem', color: 'var(--color-primary)' }}>{totalRevenue.toFixed(2)} ₪</div>
           </div>
@@ -259,7 +259,7 @@ export default function CashierView({ tables, onSaveTables, employee }) {
                 return (
                   <div key={t.id}
                     className="cashier-table-item"
-                    style={{ borderRight: `4px solid ${t.status === 'bill_requested' ? '#f39c12' : '#e74c3c'}`, background: selectedTable?.id === t.id ? 'rgba(212,175,55,0.08)' : '' }}
+                    style={{ borderRight: `4px solid ${t.status === 'bill_requested' ? '#ca8a04' : '#dc2626'}`, background: selectedTable?.id === t.id ? 'var(--bg-surface-2)' : '' }}
                     onClick={() => setSelectedTable(t)}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -272,7 +272,7 @@ export default function CashierView({ tables, onSaveTables, employee }) {
                       </div>
                       <div style={{ textAlign: 'left' }}>
                         <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800, color: 'var(--color-primary)', fontSize: '1rem' }}>{(t.total || 0).toFixed(2)} ₪</div>
-                        {oTotal > 0 && <div style={{ fontSize: '0.72rem', color: pending === 0 ? '#27ae60' : '#f39c12', marginTop: '2px' }}>✅ {ready}/{oTotal}</div>}
+                        {oTotal > 0 && <div style={{ fontSize: '0.72rem', color: pending === 0 ? '#15803d' : '#ca8a04', marginTop: '2px' }}>✅ {ready}/{oTotal}</div>}
                       </div>
                     </div>
                   </div>
@@ -307,12 +307,12 @@ export default function CashierView({ tables, onSaveTables, employee }) {
                   const { total: oTotal, ready, pending } = getOrderStatus(selectedTable);
                   return oTotal > 0 ? (
                     <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
-                      <div style={{ flex: 1, padding: '8px 12px', borderRadius: '8px', background: 'rgba(39,174,96,0.08)', border: '1px solid rgba(39,174,96,0.2)', textAlign: 'center' }}>
-                        <div style={{ fontWeight: 700, color: '#27ae60' }}>✅ {ready}</div>
+                      <div style={{ flex: 1, padding: '8px 12px', borderRadius: '8px', background: '#f0fdf4', border: '1px solid #dcfce7', textAlign: 'center' }}>
+                        <div style={{ fontWeight: 700, color: '#15803d' }}>✅ {ready}</div>
                         <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>جاهز</div>
                       </div>
-                      <div style={{ flex: 1, padding: '8px 12px', borderRadius: '8px', background: pending > 0 ? 'rgba(243,156,18,0.08)' : 'rgba(255,255,255,0.03)', border: `1px solid ${pending > 0 ? 'rgba(243,156,18,0.3)' : 'var(--border-light)'}`, textAlign: 'center' }}>
-                        <div style={{ fontWeight: 700, color: pending > 0 ? '#f39c12' : 'var(--text-muted)' }}>⏳ {pending}</div>
+                      <div style={{ flex: 1, padding: '8px 12px', borderRadius: '8px', background: pending > 0 ? '#fffbeb' : '#f8f9fa', border: `1px solid ${pending > 0 ? '#fef3c7' : 'var(--border-light)'}`, textAlign: 'center' }}>
+                        <div style={{ fontWeight: 700, color: pending > 0 ? '#ca8a04' : 'var(--text-muted)' }}>⏳ {pending}</div>
                         <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>قيد التحضير</div>
                       </div>
                     </div>
@@ -394,11 +394,11 @@ export default function CashierView({ tables, onSaveTables, employee }) {
                         <div style={{ 
                           marginBottom: '16px', 
                           padding: '10px 14px', 
-                          background: 'rgba(231, 76, 60, 0.1)', 
-                          border: '1px solid rgba(231, 76, 60, 0.3)', 
+                          background: '#fef2f2', 
+                          border: '1px solid #fee2e2', 
                           borderRadius: '8px', 
                           fontSize: '0.82rem', 
-                          color: '#e74c3c',
+                          color: '#dc2626',
                           fontWeight: 600,
                           textAlign: 'center'
                         }}>

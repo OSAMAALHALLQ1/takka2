@@ -8,37 +8,38 @@
   --font-arabic: 'Cairo', sans-serif;
   --font-english: 'Outfit', sans-serif;
 
-  /* Premium Dark Green & Slate Palette */
-  --bg-main:           #070c10;
-  --bg-surface:        #0d141b;
-  --bg-surface-2:      #121c25;
-  --bg-surface-glass:  rgba(13, 20, 27, 0.9);
-  --border-light:      rgba(255, 255, 255, 0.05);
-  --border-hover:      rgba(16, 185, 129, 0.35);
+  /* Comfortable Light Theme Palette */
+  --bg-main:           #f8f9fa;      /* Main background (رمادي فاتح جداً) */
+  --bg-surface:        #ffffff;      /* Secondary background (أبيض نقي) */
+  --bg-surface-2:      #e8ecf1;      /* Bar background (رمادي فاتح) */
+  --bg-surface-glass:  #ffffff;      /* Card background (أبيض) */
+  --border-light:      #e2e8f0;      /* Light border (حد خفيف) */
+  --border-hover:      #cbd5e0;      /* Medium border (حد متوسط) */
 
-  /* Emerald Green Primary */
+  /* Default Primary Color (Emerald Green) */
   --color-primary:       #10b981;
   --color-primary-dark:  #059669;
   --color-primary-light: #34d399;
-  --color-primary-glow:  rgba(16, 185, 129, 0.15);
+  --color-primary-glow:  rgba(16, 185, 129, 0.08);
 
-  /* Text */
-  --text-main:  #f3f4f6;
-  --text-muted: #8b9bb4;
-  --text-dark:  #070c10;
+  /* Text Colors */
+  --text-main:  #1a1a1a;  /* Main text (نص رئيسي أسود داكن مريح) */
+  --text-muted: #4a5568;  /* Secondary text (نص ثانوي رمادي غامق) */
+  --text-light: #8a92a2;  /* Light text (نص خفيف رمادي متوسط) */
+  --text-dark:  #ffffff;  /* Text color for dark buttons */
 
-  /* Status */
-  --status-empty:           #10b981;
-  --status-eating:          #ef4444;
-  --status-bill-requested:  #f59e0b;
+  /* Status Colors */
+  --status-empty:           #27ae60;
+  --status-eating:          #e74c3c;
+  --status-bill-requested:  #f39c12;
   --status-ordering:        #3b82f6;
-  --status-unavailable:     #4b5563;
+  --status-unavailable:     #8a92a2;
 
-  /* Shadows & Glows */
-  --shadow-sm:    0 2px 8px rgba(0,0,0,0.5);
-  --shadow-md:    0 8px 24px rgba(0,0,0,0.6);
-  --shadow-lg:    0 20px 48px rgba(0,0,0,0.8);
-  --shadow-gold:  0 0 24px rgba(16, 185, 129, 0.25);
+  /* Shadows (Soft & Elegant) */
+  --shadow-sm:    0 1px 3px rgba(0,0,0,0.03);
+  --shadow-md:    0 4px 16px rgba(0,0,0,0.04);
+  --shadow-lg:    0 10px 30px rgba(0,0,0,0.05);
+  --shadow-gold:  0 0 12px rgba(16, 185, 129, 0.1);
 
   /* Transitions */
   --tr-fast:   0.15s ease;
@@ -46,33 +47,43 @@
 }
 
 /* ────────────────────────────────────────────────────────────────
-   ROLE THEMES (Organized Colors for Roles)
+   ROLE THEMES (Comfortable & Softer Role Palette)
    ─────────────────────────────────────────────────────────────────*/
 .app-shell.role-manager {
-  --color-primary:       #8b5cf6; /* Purple for Manager */
-  --color-primary-dark:  #6d28d9;
-  --color-primary-light: #a78bfa;
-  --color-primary-glow:  rgba(139, 92, 246, 0.15);
+  --color-primary:       #e74c3c; /* المدير: أحمر أخف */
+  --color-primary-dark:  #c0392b;
+  --color-primary-light: #ff7675;
+  --color-primary-glow:  rgba(231, 76, 60, 0.08);
 }
 .app-shell.role-waiter {
-  --color-primary:       #3b82f6; /* Blue for Waiter */
-  --color-primary-dark:  #1d4ed8;
-  --color-primary-light: #60a5fa;
-  --color-primary-glow:  rgba(59, 130, 246, 0.15);
+  --color-primary:       #3498db; /* جرسون: أزرق أخف */
+  --color-primary-dark:  #2980b9;
+  --color-primary-light: #74b9ff;
+  --color-primary-glow:  rgba(52, 152, 219, 0.08);
 }
 .app-shell.role-cashier {
-  --color-primary:       #10b981; /* Emerald/Green for Cashier */
-  --color-primary-dark:  #059669;
-  --color-primary-light: #34d399;
-  --color-primary-glow:  rgba(16, 185, 129, 0.15);
+  --color-primary:       #9b59b6; /* محاسب: بنفسجي أخف */
+  --color-primary-dark:  #8e44ad;
+  --color-primary-light: #a29bfe;
+  --color-primary-glow:  rgba(155, 89, 182, 0.08);
 }
-.app-shell.role-kitchen,
-.app-shell.role-bar,
+.app-shell.role-kitchen {
+  --color-primary:       #e67e22; /* مطبخ: برتقالي أخف */
+  --color-primary-dark:  #d35400;
+  --color-primary-light: #f39c12;
+  --color-primary-glow:  rgba(230, 126, 34, 0.08);
+}
+.app-shell.role-bar {
+  --color-primary:       #1abc9c; /* بار: تركواز أخف */
+  --color-primary-dark:  #16a085;
+  --color-primary-light: #55efc4;
+  --color-primary-glow:  rgba(26, 188, 156, 0.08);
+}
 .app-shell.role-shisha {
-  --color-primary:       #f97316; /* Orange for Kitchen/Bar/Shisha */
-  --color-primary-dark:  #c2410c;
-  --color-primary-light: #fb923c;
-  --color-primary-glow:  rgba(249, 115, 22, 0.15);
+  --color-primary:       #27ae60; /* شيشة: أخضر أخف */
+  --color-primary-dark:  #219653;
+  --color-primary-light: #2ecc71;
+  --color-primary-glow:  rgba(39, 174, 96, 0.08);
 }
 
 
@@ -336,24 +347,24 @@ body {
 .form-label { font-size: 0.82rem; font-weight: 600; color: var(--text-muted); }
 
 .form-input {
-  background: rgba(255,255,255,0.05);
-  border: 1px solid var(--border-light);
+  background: #f8f9fa;
+  border: 1px solid var(--border-hover);
   border-radius: 10px;
   padding: 12px 14px;
   color: var(--text-main);
   font-family: var(--font-arabic);
   font-size: 0.9rem;
-  transition: border-color var(--tr-fast);
+  transition: all var(--tr-fast);
   width: 100%;
   outline: none;
 }
-.form-input::placeholder { color: var(--text-muted); }
-.form-input:focus { border-color: var(--color-primary); background: rgba(212,175,55,0.05); }
+.form-input::placeholder { color: var(--text-light); }
+.form-input:focus { border-color: var(--color-primary); background: #ffffff; box-shadow: 0 0 0 3px var(--color-primary-glow); }
 select.form-input { cursor: pointer; }
-select.form-input option { background: var(--bg-surface-2); }
+select.form-input option { background: #ffffff; color: var(--text-main); }
 
 .note-input {
-  background: rgba(255,255,255,0.04);
+  background: #f8f9fa;
   border: 1px solid var(--border-light);
   border-radius: 7px;
   padding: 5px 10px;
@@ -379,11 +390,33 @@ select.form-input option { background: var(--bg-surface-2); }
   font-weight: 700;
   line-height: 1.4;
 }
-.badge-empty          { background: rgba(39,174,96,0.15);  color: #27ae60;  border: 1px solid rgba(39,174,96,0.3); }
-.badge-eating         { background: rgba(52,152,219,0.15); color: #3498db; border: 1px solid rgba(52,152,219,0.3); }
-.badge-bill-requested { background: rgba(231,76,60,0.15);  color: #e74c3c;  border: 1px solid rgba(231,76,60,0.3); }
-.badge-ordering       { background: rgba(243,156,18,0.15); color: #f39c12; border: 1px solid rgba(243,156,18,0.3); }
-.badge-unavailable    { background: rgba(85,85,85,0.15);   color: #999;    border: 1px solid rgba(85,85,85,0.3); }
+.badge-empty          { background: #f0fdf4;  color: #15803d;  border: 1px solid #dcfce7; }
+.badge-eating         { background: #fef2f2;  color: #dc2626;  border: 1px solid #fee2e2; }
+.badge-bill-requested { background: #fffbeb;  color: #ca8a04;  border: 1px solid #fef3c7; }
+.badge-ordering       { background: #eff6ff;  color: #2563eb;  border: 1px solid #dbeafe; }
+.badge-unavailable    { background: #f3f4f6;  color: #4b5563;  border: 1px solid #e5e7eb; }
+
+/* Status Classes */
+.status-new {
+  background: #fef2f2 !important;
+  color: #dc2626 !important;
+  border: 1px solid #fee2e2 !important;
+}
+.status-preparing {
+  background: #fffbeb !important;
+  color: #ca8a04 !important;
+  border: 1px solid #fef3c7 !important;
+}
+.status-ready {
+  background: #f0fdf4 !important;
+  color: #15803d !important;
+  border: 1px solid #dcfce7 !important;
+}
+.status-complete {
+  background: #ecfdf5 !important;
+  color: #0891b2 !important;
+  border: 1px solid #ccfbf1 !important;
+}
 
 .role-badge {
   display: inline-block;
@@ -686,7 +719,7 @@ select.form-input option { background: var(--bg-surface-2); }
 .admin-sidebar {
   width: 220px;
   min-width: 220px;
-  background: rgba(10,13,22,0.97);
+  background: var(--bg-surface-2);
   border-left: 1px solid var(--border-light);
   display: flex;
   flex-direction: column;
@@ -695,6 +728,8 @@ select.form-input option { background: var(--bg-surface-2); }
   top: 65px;
   height: calc(100vh - 65px);
   overflow-y: auto;
+  z-index: 10;
+  transition: width 0.3s ease, right 0.3s ease;
 }
 .admin-sidebar-user {
   display: flex;
@@ -709,7 +744,7 @@ select.form-input option { background: var(--bg-surface-2); }
   height: 40px;
   border-radius: 50%;
   background: var(--color-primary-glow);
-  border: 2px solid rgba(212,175,55,0.35);
+  border: 2px solid var(--color-primary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -736,22 +771,23 @@ select.form-input option { background: var(--bg-surface-2); }
   transition: all var(--tr-fast);
   width: 100%;
 }
-.admin-nav-btn:hover { background: rgba(255,255,255,0.06); color: var(--text-main); }
-.admin-nav-btn.active { background: var(--color-primary-glow); color: var(--color-primary); border: 1px solid rgba(212,175,55,0.2); }
+.admin-nav-btn:hover { background: rgba(0, 0, 0, 0.03); color: var(--text-main); }
+.admin-nav-btn.active { background: var(--color-primary-glow); color: var(--color-primary); border: 1px solid var(--border-light); }
 .admin-logout-btn {
   margin: 12px 10px 0;
   padding: 10px 14px;
   border-radius: 10px;
   border: 1px solid rgba(231,76,60,0.2);
-  background: rgba(231,76,60,0.08);
+  background: rgba(231,76,60,0.05);
   color: #e74c3c;
   cursor: pointer;
   font-family: var(--font-arabic);
   font-size: 0.85rem;
   font-weight: 600;
   transition: all var(--tr-fast);
+  text-align: center;
 }
-.admin-logout-btn:hover { background: rgba(231,76,60,0.15); }
+.admin-logout-btn:hover { background: rgba(231,76,60,0.1); }
 
 .admin-main {
   flex: 1;
@@ -904,10 +940,172 @@ select.form-input option { background: var(--bg-surface-2); }
 .toast-title { font-size: 0.88rem; font-weight: 700; }
 .toast-msg   { font-size: 0.8rem; color: var(--text-muted); line-height: 1.4; }
 .toast-time  { font-size: 0.7rem; color: var(--text-muted); font-family: var(--font-english); }
+.toast-close-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  color: #ffffff !important;
+}
 
 /* ────────────────────────────────────────────────────────────────
    MODAL
 ─────────────────────────────────────────────────────────────────*/
+/* ────────────────────────────────────────────────────────────────
+   RESPONSIVE DESIGN & SIDEBAR MEDIA QUERIES
+   ─────────────────────────────────────────────────────────────────*/
+
+/* Responsive Utility Classes (Tailwind-like) */
+.hidden { display: none !important; }
+@media (min-width: 641px) {
+  .md\:block { display: block !important; }
+  .md\:hidden { display: none !important; }
+  .md\:flex { display: flex !important; }
+}
+@media (min-width: 1025px) {
+  .lg\:block { display: block !important; }
+  .lg\:hidden { display: none !important; }
+}
+
+@media (max-width: 1100px) {
+  .stats-grid-4 { grid-template-columns: repeat(2, 1fr); }
+  .order-layout { grid-template-columns: 1fr 300px; }
+}
+
+/* 1. Mobile Drawer (0px - 640px) */
+@media (max-width: 640px) {
+  .admin-sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    right: -100% !important; /* hidden off-screen (RTL) */
+    width: 100% !important;
+    height: 100vh !important;
+    z-index: 2000 !important;
+    background: #ffffff !important;
+    color: #1a1a1a !important;
+    border-left: none !important;
+    padding: 60px 24px 24px 24px !important;
+    transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    box-shadow: -10px 0 30px rgba(0, 0, 0, 0.08) !important;
+    display: flex !important;
+  }
+  
+  .admin-sidebar.open {
+    right: 0 !important; /* Slide in */
+  }
+
+  .admin-sidebar-backdrop {
+    display: block !important;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+    z-index: 1999;
+  }
+
+  .admin-sidebar-user {
+    border-bottom: 1px solid #e2e8f0 !important;
+    margin-bottom: 20px !important;
+    color: #1a1a1a !important;
+    padding-bottom: 16px !important;
+  }
+
+  .admin-sidebar-user .admin-avatar {
+    border-color: var(--color-primary) !important;
+  }
+  
+  .admin-nav-btn {
+    width: 100% !important;
+    color: #4a5568 !important;
+    padding: 14px 18px !important;
+    font-size: 1rem !important;
+    border-radius: 12px !important;
+  }
+  
+  .admin-nav-btn:hover {
+    background: #eef2f7 !important;
+    color: #1a1a1a !important;
+  }
+
+  .admin-logout-btn {
+    width: calc(100% - 20px) !important;
+    margin: 20px 10px 0 !important;
+    padding: 14px !important;
+    font-size: 1rem !important;
+    border-radius: 12px !important;
+    background: #fff5f5 !important;
+    border: 1px solid #feb2b2 !important;
+    color: #c53030 !important;
+  }
+  
+  .admin-logout-btn:hover {
+    background: #fed7d7 !important;
+  }
+}
+
+/* 2. Tablet Collapsed Sidebar (641px - 1024px) */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .admin-sidebar {
+    width: 70px !important;
+    min-width: 70px !important;
+    align-items: center !important;
+    padding: 20px 0 !important;
+  }
+  
+  .admin-sidebar-user {
+    padding: 0 0 16px 0 !important;
+    justify-content: center !important;
+    width: 100% !important;
+    border-bottom: 1px solid var(--border-light) !important;
+  }
+  
+  .admin-sidebar-user > div:last-child {
+    display: none !important;
+  }
+  
+  .admin-nav {
+    align-items: center !important;
+    width: 100% !important;
+    padding: 0 8px !important;
+  }
+  
+  .admin-nav-btn {
+    justify-content: center !important;
+    padding: 12px !important;
+    border-radius: 50% !important;
+    width: 44px !important;
+    height: 44px !important;
+  }
+  
+  .admin-nav-btn span:last-child {
+    display: none !important;
+  }
+  
+  .admin-logout-btn {
+    width: 44px !important;
+    height: 44px !important;
+    border-radius: 50% !important;
+    padding: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: 12px 0 0 0 !important;
+  }
+  
+  .admin-logout-btn span:last-child {
+    display: none !important;
+  }
+}
+
+@media (max-width: 900px) {
+  .order-layout {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr auto;
+  }
+  .cart-col {
+    position: static;
+    max-height: 340px;
+  }
+  .admin-main { padding: 16px; width: 100%; }
+  .menu-items-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+}
 .modal-overlay {
   position: fixed;
   inset: 0;
