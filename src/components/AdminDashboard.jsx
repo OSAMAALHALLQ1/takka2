@@ -345,6 +345,67 @@ function DepartmentsTab({ departments, setDepartments, employees, deptOrders }) 
   );
 }
 
+const renderItemImage = (image, name, isCard = false) => {
+  const isUrl = image && (image.startsWith('http') || image.startsWith('data:image/'));
+  
+  if (isUrl) {
+    return (
+      <img 
+        src={image} 
+        alt={name} 
+        style={isCard ? { 
+          width: '100%', 
+          height: '90px', 
+          objectFit: 'cover', 
+          borderRadius: '6px', 
+          marginBottom: '6px', 
+          display: 'block' 
+        } : { 
+          width: '40px', 
+          height: '40px', 
+          objectFit: 'cover', 
+          borderRadius: '6px', 
+          display: 'block',
+          flexShrink: 0
+        }} 
+      />
+    );
+  }
+
+  return (
+    <div 
+      style={isCard ? {
+        width: '100%',
+        height: '90px',
+        borderRadius: '6px',
+        marginBottom: '6px',
+        background: 'linear-gradient(135deg, rgba(212,175,55,0.1) 0%, rgba(212,175,55,0.02) 100%)',
+        border: '1px dashed rgba(212, 175, 55, 0.3)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: '#d4af37'
+      } : {
+        width: '40px',
+        height: '40px',
+        borderRadius: '6px',
+        background: 'linear-gradient(135deg, rgba(212,175,55,0.1) 0%, rgba(212,175,55,0.02) 100%)',
+        border: '1px dashed rgba(212, 175, 55, 0.3)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: '#d4af37',
+        flexShrink: 0
+      }}
+    >
+      <svg width={isCard ? 24 : 16} height={isCard ? 24 : 16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 2v20" />
+        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+      </svg>
+    </div>
+  );
+};
+
 // ──────────────────────────────────────────────────────
 // MENU TAB
 // ──────────────────────────────────────────────────────
@@ -517,7 +578,7 @@ function MenuTab({ menuItems, setMenuItems, departments }) {
                 <tr key={item.id}>
                   <td>
                     <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                      <span style={{ fontSize: '1.5rem' }}>{item.image}</span>
+                      {renderItemImage(item.image, item.nameAr || item.name, false)}
                       <div>
                         <div style={{ fontWeight: 600 }}>{item.nameAr || item.name}</div>
                         {item.nameEn && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{item.nameEn}</div>}

@@ -15,6 +15,67 @@ const STATUS_COLORS = { empty: '#27ae60', eating: '#e74c3c', bill_requested: '#f
 const STATUS_LABELS_AR = { empty: 'فاضية', eating: 'مشغولة', bill_requested: 'تنتظر دفع', unavailable: 'غير متوفرة' };
 const STATUS_BADGE = { empty: 'badge-empty', eating: 'badge-eating', bill_requested: 'badge-bill-requested', unavailable: 'badge-unavailable' };
 
+const renderItemImage = (image, name, isCard = false) => {
+  const isUrl = image && (image.startsWith('http') || image.startsWith('data:image/'));
+  
+  if (isUrl) {
+    return (
+      <img 
+        src={image} 
+        alt={name} 
+        style={isCard ? { 
+          width: '100%', 
+          height: '90px', 
+          objectFit: 'cover', 
+          borderRadius: '6px', 
+          marginBottom: '6px', 
+          display: 'block' 
+        } : { 
+          width: '40px', 
+          height: '40px', 
+          objectFit: 'cover', 
+          borderRadius: '6px', 
+          display: 'block',
+          flexShrink: 0
+        }} 
+      />
+    );
+  }
+
+  return (
+    <div 
+      style={isCard ? {
+        width: '100%',
+        height: '90px',
+        borderRadius: '6px',
+        marginBottom: '6px',
+        background: 'linear-gradient(135deg, rgba(212,175,55,0.1) 0%, rgba(212,175,55,0.02) 100%)',
+        border: '1px dashed rgba(212, 175, 55, 0.3)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: '#d4af37'
+      } : {
+        width: '40px',
+        height: '40px',
+        borderRadius: '6px',
+        background: 'linear-gradient(135deg, rgba(212,175,55,0.1) 0%, rgba(212,175,55,0.02) 100%)',
+        border: '1px dashed rgba(212, 175, 55, 0.3)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: '#d4af37',
+        flexShrink: 0
+      }}
+    >
+      <svg width={isCard ? 24 : 16} height={isCard ? 24 : 16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 2v20" />
+        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+      </svg>
+    </div>
+  );
+};
+
 export default function WaiterView({ tables, onSaveTables, employee, menuItems = [] }) {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -210,7 +271,7 @@ export default function WaiterView({ tables, onSaveTables, employee, menuItems =
                 const inCart = cart.find(c => c.id === item.id);
                 return (
                   <div key={item.id} className={`menu-item-card ${inCart ? 'in-cart' : ''}`} onClick={() => addToCart(item)}>
-                    <div style={{ fontSize: '2rem', marginBottom: '6px' }}>{item.image}</div>
+                    {renderItemImage(item.image, item.nameAr || item.name, true)}
                     <div style={{ fontWeight: 600, fontSize: '0.88rem', lineHeight: 1.3 }}>{item.name || item.nameAr}</div>
                     {item.description && <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px' }}>{item.description}</div>}
                     <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, color: '#d4af37', marginTop: '8px' }}>{item.price} ₪</div>
