@@ -914,11 +914,11 @@ function CodesTab({ codes, setCodes }) {
   const [newLabel, setNewLabel] = useState('');
   const [generatedCode, setGeneratedCode] = useState(null);
   const [copySuccess, setCopySuccess] = useState('');
-  const [expireDays, setExpireDays] = useState(7);
+  const [expireDays, setExpireDays] = useState(null); // default to null (permanent)
 
   const handleGenerate = () => {
     if (!newLabel.trim()) { alert('أدخل اسم للموظف'); return; }
-    const expiresAt = Date.now() + expireDays * 24 * 60 * 60 * 1000;
+    const expiresAt = expireDays ? (Date.now() + expireDays * 24 * 60 * 60 * 1000) : null;
     const code = createCode({ label: newLabel.trim(), allowedRoles: [newRole], expiresAt });
     setCodes(getCodes());
     setGeneratedCode(code);
@@ -976,8 +976,9 @@ function CodesTab({ codes, setCodes }) {
             </select>
           </div>
           <div className="form-group" style={{ margin: 0 }}>
-            <label className="form-label">الصلاحية (أيام)</label>
-            <select className="form-input" value={expireDays} onChange={e => setExpireDays(parseInt(e.target.value))}>
+            <label className="form-label">الصلاحية</label>
+            <select className="form-input" value={expireDays || ''} onChange={e => setExpireDays(e.target.value ? parseInt(e.target.value) : null)}>
+              <option value="">دائم (لا تنتهي)</option>
               <option value={1}>يوم واحد</option>
               <option value={3}>3 أيام</option>
               <option value={7}>7 أيام</option>

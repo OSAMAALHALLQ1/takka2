@@ -280,7 +280,9 @@ export function registerEmployeeWithCode(codeString, employeeData) {
 
   const next = [...emps, newEmp];
   saveEmployees(next);
-  revokeCode(code.id);
+  if (code.expiresAt) {
+    revokeCode(code.id);
+  }
 
   return { success: true, employee: newEmp };
 }
