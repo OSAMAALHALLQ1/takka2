@@ -233,6 +233,8 @@ const seedIfMissing = async (key, fallback) => {
   }
 };
 
+import { supabase } from './supabaseClient';
+
 export const initializeDatabase = async () => {
   if (initialized) return true;
   await seedIfMissing(TABLES_KEY, DEFAULT_TABLES);
@@ -244,13 +246,66 @@ export const initializeDatabase = async () => {
   await seedIfMissing(SESSION_KEY, null);
   await seedIfMissing(DEPARTMENTS_KEY, DEFAULT_DEPARTMENTS);
   initialized = true;
+
+  // Background Sync from Supabase if configured
+  if (supabase) {
+    try {
+      const { data: tables } = await supabase.from('tables').select('*');
+      if (tables && tables.length > 0) { cache[TABLES_KEY] = clone(tables); await writeRecord(TABLES_KEY, tables); triggerSync(TABLES_KEY); }
+      
+      const { data: menu } = await supabase.from('menu').select('*');
+      if (menu && menu.length > 0) { cache[MENU_KEY] = clone(menu); await writeRecord(MENU_KEY, menu); triggerSync(MENU_KEY); }
+      
+      const { data: bills } = await supabase.from('bills').select('*');
+      if (bills && bills.length > 0) { cache[BILLS_KEY] = clone(bills); await writeRecord(BILLS_KEY, bills); triggerSync(BILLS_KEY); }
+      
+      // Subscribe to real-time changes
+      supabase.channel('public:tables').on('postgres_changes', { event: '*', schema: 'public', table: 'tables' }, async () => {
+        const { data } = await supabase.from('tables').select('*');
+        if (data) { cache[TABLES_KEY] = clone(data); await writeRecord(TABLES_KEY, data); triggerSync(TABLES_KEY); }
+      }).subscribe();
+      
+      supabase.channel('public:dept_orders').on('postgres_changes', { event: '*', schema: 'public', table: 'dept_orders' }, async () => {
+        const { data } = await supabase.from('dept_orders').select('*');
+        if (data) { 
+          const map = {}; data.forEach(d => map[d.id] = d);
+          cache[DEPT_ORDERS_KEY] = clone(map); await writeRecord(DEPT_ORDERS_KEY, map); triggerSync(DEPT_ORDERS_KEY); 
+        }
+      }).subscribe();
+    } catch (err) {
+      console.error('Supabase sync error:', err);
+    }
+  }
+
   return true;
 };
 
-const persist = (key, value) => {
+const persist = async (key, value) => {
   cache[key] = clone(value);
-  writeRecord(key, value).then((ok) => { if (ok) triggerSync(key); });
-  return true;
+  await writeRecord(key, value);
+  triggerSync(key);
+
+  // Background Push to Supabase if configured
+  if (supabase) {
+    try {
+      if (key === TABLES_KEY && Array.isArray(value)) {
+        await supabase.from('tables').upsert(value);
+      } else if (key === MENU_KEY && Array.isArray(value)) {
+        await supabase.from('menu').upsert(value);
+      } else if (key === DEPT_ORDERS_KEY) {
+        const arr = Object.values(value);
+        if (arr.length > 0) await supabase.from('dept_orders').upsert(arr);
+      } else if (key === BILLS_KEY && Array.isArray(value)) {
+        await supabase.from('bills').upsert(value);
+      } else if (key === EMPLOYEES_KEY && Array.isArray(value)) {
+        await supabase.from('employees').upsert(value);
+      } else if (key === DEPARTMENTS_KEY && Array.isArray(value)) {
+        await supabase.from('departments').upsert(value);
+      }
+    } catch (err) {
+      console.error('Supabase push error:', err);
+    }
+  }
 };
 
 // ───────── Tables ─────────
