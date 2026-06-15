@@ -174,17 +174,17 @@ function DeptScreen({ user, deptOrders, onUpdateOrders, soundEnabled, toggleSoun
                           </span>
                         </div>
 
-                        {item.status === 'preparing' && (
-                          <div style={{ margin: '8px 0' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '3px' }}>
-                              <span>الوقت المتوقع: {prepTime} د</span>
-                              <span>مضى: {elapsedMinPart}:{elapsedSecPart.toString().padStart(2, '0')} د ({percent}%)</span>
-                            </div>
-                            <div style={{ width: '100%', height: '6px', background: 'rgba(255,255,255,0.05)', borderRadius: '3px', overflow: 'hidden' }}>
-                              <div style={{ width: `${percent}%`, height: '100%', background: '#f39c12', borderRadius: '3px' }}></div>
-                            </div>
-                          </div>
-                        )}
+                         {(item.status === 'new' || item.status === 'preparing') && (
+                           <div style={{ margin: '8px 0' }}>
+                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '3px' }}>
+                               <span>الوقت المتوقع: {prepTime} د</span>
+                               <span>مضى: {elapsedMinPart}:{elapsedSecPart.toString().padStart(2, '0')} د ({percent}%)</span>
+                             </div>
+                             <div style={{ width: '100%', height: '6px', background: 'rgba(255,255,255,0.05)', borderRadius: '3px', overflow: 'hidden' }}>
+                               <div style={{ width: `${percent}%`, height: '100%', background: item.status === 'preparing' ? '#f39c12' : '#e74c3c', borderRadius: '3px' }}></div>
+                             </div>
+                           </div>
+                         )}
 
                         <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '8px' }}>
                           {item.status === 'new' && (

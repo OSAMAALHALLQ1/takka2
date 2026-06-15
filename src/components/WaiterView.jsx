@@ -157,13 +157,13 @@ export default function WaiterView({ tables, onSaveTables, employee, menuItems =
     if (cart.length === 0) return;
     const { subtotal, tax, serviceCharge, total } = calcTotals();
     const orderId = `order-${Date.now()}`;
-    const itemsWithStatus = cart.map(item => ({ ...item, status: 'preparing', orderedAt: Date.now() }));
+    const itemsWithStatus = cart.map(item => ({ ...item, status: 'new', orderedAt: Date.now() }));
 
     const newOrder = {
       id: orderId, tableId: selectedTable.id, tableName: selectedTable.name,
       waiterCode: employee.code, waiterName: employee.name,
       timestamp: Date.now(), items: itemsWithStatus,
-      subtotal, tax, serviceCharge, total, status: 'preparing'
+      subtotal, tax, serviceCharge, total, status: 'new'
     };
 
     const existing = getDeptOrders();
