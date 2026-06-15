@@ -16,8 +16,152 @@ export const SERVICE_RATE = 0;
 export const MAX_NOTIFICATIONS = 30;
 export const MAX_BILLS_KEPT = 1000;
 
+// Mapping helpers to resolve JS camelCase vs Database snake_case mismatch
+const TABLE_FIELD_MAP = {
+  id: 'id',
+  name: 'name',
+  seats: 'seats',
+  area: 'area',
+  status: 'status',
+  currentOrder: 'current_order',
+  notes: 'notes',
+  subtotal: 'subtotal',
+  tax: 'tax',
+  serviceCharge: 'service_charge',
+  total: 'total',
+  waiterCode: 'waiter_code',
+  seatedAt: 'seated_at',
+  guests: 'guests'
+};
+
+const EMPLOYEE_FIELD_MAP = {
+  id: 'id',
+  name: 'name',
+  nameEn: 'name_en',
+  role: 'role',
+  username: 'username',
+  password: 'password',
+  code: 'code',
+  phone: 'phone',
+  email: 'email',
+  salary: 'salary',
+  active: 'active',
+  lastLogin: 'last_login',
+  restaurantName: 'restaurant_name'
+};
+
+const MENU_FIELD_MAP = {
+  id: 'id',
+  nameAr: 'name_ar',
+  nameEn: 'name_en',
+  name: 'name',
+  category: 'category',
+  price: 'price',
+  description: 'description',
+  image: 'image',
+  department: 'department',
+  available: 'available',
+  prepTime: 'prep_time'
+};
+
+const DEPARTMENT_FIELD_MAP = {
+  id: 'id',
+  name: 'name',
+  nameEn: 'name_en',
+  icon: 'icon',
+  color: 'color',
+  description: 'description',
+  workHours: 'work_hours',
+  activeOrders: 'active_orders',
+  lastOrderAt: 'last_order_at'
+};
+
+const BILL_FIELD_MAP = {
+  id: 'id',
+  tableId: 'table_id',
+  tableName: 'table_name',
+  cashierCode: 'cashier_code',
+  cashierName: 'cashier_name',
+  timestamp: 'timestamp',
+  dateFormatted: 'date_formatted',
+  timeFormatted: 'time_formatted',
+  items: 'items',
+  subtotal: 'subtotal',
+  tax: 'tax',
+  serviceCharge: 'service_charge',
+  total: 'total',
+  paymentMethod: 'payment_method',
+  notes: 'notes',
+  waiterCode: 'waiter_code',
+  seatedAt: 'seated_at',
+  seatedDuration: 'seated_duration'
+};
+
+const NOTIFICATION_FIELD_MAP = {
+  id: 'id',
+  title: 'title',
+  message: 'message',
+  type: 'type',
+  targetRoles: 'target_roles',
+  timestamp: 'timestamp',
+  read: 'read'
+};
+
+const DEPT_ORDER_FIELD_MAP = {
+  id: 'id',
+  tableId: 'table_id',
+  tableName: 'table_name',
+  waiterCode: 'waiter_code',
+  waiterName: 'waiter_name',
+  timestamp: 'timestamp',
+  items: 'items',
+  subtotal: 'subtotal',
+  tax: 'tax',
+  serviceCharge: 'service_charge',
+  total: 'total',
+  status: 'status'
+};
+
+const mapToDB = (obj, map) => {
+  if (!obj || typeof obj !== 'object') return obj;
+  const dbObj = {};
+  for (const [jsKey, dbKey] of Object.entries(map)) {
+    if (obj[jsKey] !== undefined) {
+      dbObj[dbKey] = obj[jsKey];
+    }
+  }
+  for (const key of Object.keys(obj)) {
+    if (map[key] === undefined && !key.startsWith('_')) {
+      const autoSnake = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+      dbObj[autoSnake] = obj[key];
+    }
+  }
+  return dbObj;
+};
+
+const mapFromDB = (dbObj, map) => {
+  if (!dbObj || typeof dbObj !== 'object') return dbObj;
+  const jsObj = {};
+  const reverseMap = Object.fromEntries(Object.entries(map).map(([k, v]) => [v, k]));
+  for (const key of Object.keys(dbObj)) {
+    const jsKey = reverseMap[key];
+    if (jsKey) {
+      jsObj[jsKey] = dbObj[key];
+    } else {
+      const autoCamel = key.replace(/([-_][a-z])/g, group =>
+        group.toUpperCase().replace('-', '').replace('_', '')
+      );
+      jsObj[autoCamel] = dbObj[key];
+    }
+  }
+  return jsObj;
+};
+
 export const getRestaurantName = () => {
   try {
+    const emps = cache[EMPLOYEES_KEY] || [];
+    const mgr = emps.find(e => e.role === 'manager');
+    if (mgr && mgr.restaurantName) return mgr.restaurantName;
     const raw = localStorage.getItem('takka_manager_account');
     if (raw) {
       const acc = JSON.parse(raw);
@@ -26,7 +170,7 @@ export const getRestaurantName = () => {
   } catch (e) {
     // ignore
   }
-  return 'المطعم';
+  return 'تكة';
 };
 
 export const RESTAURANT_NAME = getRestaurantName();
@@ -250,26 +394,145 @@ export const initializeDatabase = async () => {
   // Background Sync from Supabase if configured
   if (supabase) {
     try {
+      // 1. Tables
       const { data: tables } = await supabase.from('tables').select('*');
-      if (tables && tables.length > 0) { cache[TABLES_KEY] = clone(tables); await writeRecord(TABLES_KEY, tables); triggerSync(TABLES_KEY); }
+      if (tables && tables.length > 0) {
+        const mapped = tables.map(t => mapFromDB(t, TABLE_FIELD_MAP));
+        cache[TABLES_KEY] = clone(mapped);
+        await writeRecord(TABLES_KEY, mapped);
+        triggerSync(TABLES_KEY);
+      }
       
+      // 2. Menu
       const { data: menu } = await supabase.from('menu').select('*');
-      if (menu && menu.length > 0) { cache[MENU_KEY] = clone(menu); await writeRecord(MENU_KEY, menu); triggerSync(MENU_KEY); }
+      if (menu && menu.length > 0) {
+        const mapped = menu.map(m => mapFromDB(m, MENU_FIELD_MAP));
+        cache[MENU_KEY] = clone(mapped);
+        await writeRecord(MENU_KEY, mapped);
+        triggerSync(MENU_KEY);
+      }
       
+      // 3. Bills
       const { data: bills } = await supabase.from('bills').select('*');
-      if (bills && bills.length > 0) { cache[BILLS_KEY] = clone(bills); await writeRecord(BILLS_KEY, bills); triggerSync(BILLS_KEY); }
+      if (bills && bills.length > 0) {
+        const mapped = bills.map(b => mapFromDB(b, BILL_FIELD_MAP));
+        cache[BILLS_KEY] = clone(mapped);
+        await writeRecord(BILLS_KEY, mapped);
+        triggerSync(BILLS_KEY);
+      }
+
+      // 4. Employees
+      const { data: employees } = await supabase.from('employees').select('*');
+      if (employees && employees.length > 0) {
+        const mapped = employees.map(e => mapFromDB(e, EMPLOYEE_FIELD_MAP));
+        cache[EMPLOYEES_KEY] = clone(mapped);
+        await writeRecord(EMPLOYEES_KEY, mapped);
+        triggerSync(EMPLOYEES_KEY);
+      }
+
+      // 5. Departments
+      const { data: depts } = await supabase.from('departments').select('*');
+      if (depts && depts.length > 0) {
+        const mapped = depts.map(d => mapFromDB(d, DEPARTMENT_FIELD_MAP));
+        cache[DEPARTMENTS_KEY] = clone(mapped);
+        await writeRecord(DEPARTMENTS_KEY, mapped);
+        triggerSync(DEPARTMENTS_KEY);
+      }
+
+      // 6. Notifications
+      const { data: notifs } = await supabase.from('notifications').select('*');
+      if (notifs && notifs.length > 0) {
+        const mapped = notifs.map(n => mapFromDB(n, NOTIFICATION_FIELD_MAP));
+        cache[NOTIFICATIONS_KEY] = clone(mapped);
+        await writeRecord(NOTIFICATIONS_KEY, mapped);
+        triggerSync(NOTIFICATIONS_KEY);
+      }
+
+      // 7. Dept Orders
+      const { data: deptOrders } = await supabase.from('dept_orders').select('*');
+      if (deptOrders && deptOrders.length > 0) {
+        const map = {};
+        deptOrders.forEach(d => {
+          const jsObj = mapFromDB(d, DEPT_ORDER_FIELD_MAP);
+          map[jsObj.id] = jsObj;
+        });
+        cache[DEPT_ORDERS_KEY] = clone(map);
+        await writeRecord(DEPT_ORDERS_KEY, map);
+        triggerSync(DEPT_ORDERS_KEY);
+      }
       
       // Subscribe to real-time changes
       supabase.channel('public:tables').on('postgres_changes', { event: '*', schema: 'public', table: 'tables' }, async () => {
         const { data } = await supabase.from('tables').select('*');
-        if (data) { cache[TABLES_KEY] = clone(data); await writeRecord(TABLES_KEY, data); triggerSync(TABLES_KEY); }
+        if (data) {
+          const mapped = data.map(t => mapFromDB(t, TABLE_FIELD_MAP));
+          cache[TABLES_KEY] = clone(mapped);
+          await writeRecord(TABLES_KEY, mapped);
+          triggerSync(TABLES_KEY);
+        }
       }).subscribe();
       
       supabase.channel('public:dept_orders').on('postgres_changes', { event: '*', schema: 'public', table: 'dept_orders' }, async () => {
         const { data } = await supabase.from('dept_orders').select('*');
         if (data) { 
-          const map = {}; data.forEach(d => map[d.id] = d);
-          cache[DEPT_ORDERS_KEY] = clone(map); await writeRecord(DEPT_ORDERS_KEY, map); triggerSync(DEPT_ORDERS_KEY); 
+          const map = {};
+          data.forEach(d => {
+            const jsObj = mapFromDB(d, DEPT_ORDER_FIELD_MAP);
+            map[jsObj.id] = jsObj;
+          });
+          cache[DEPT_ORDERS_KEY] = clone(map);
+          await writeRecord(DEPT_ORDERS_KEY, map);
+          triggerSync(DEPT_ORDERS_KEY);
+        }
+      }).subscribe();
+
+      supabase.channel('public:bills').on('postgres_changes', { event: '*', schema: 'public', table: 'bills' }, async () => {
+        const { data } = await supabase.from('bills').select('*');
+        if (data) {
+          const mapped = data.map(b => mapFromDB(b, BILL_FIELD_MAP));
+          cache[BILLS_KEY] = clone(mapped);
+          await writeRecord(BILLS_KEY, mapped);
+          triggerSync(BILLS_KEY);
+        }
+      }).subscribe();
+
+      supabase.channel('public:menu').on('postgres_changes', { event: '*', schema: 'public', table: 'menu' }, async () => {
+        const { data } = await supabase.from('menu').select('*');
+        if (data) {
+          const mapped = data.map(m => mapFromDB(m, MENU_FIELD_MAP));
+          cache[MENU_KEY] = clone(mapped);
+          await writeRecord(MENU_KEY, mapped);
+          triggerSync(MENU_KEY);
+        }
+      }).subscribe();
+
+      supabase.channel('public:employees').on('postgres_changes', { event: '*', schema: 'public', table: 'employees' }, async () => {
+        const { data } = await supabase.from('employees').select('*');
+        if (data) {
+          const mapped = data.map(e => mapFromDB(e, EMPLOYEE_FIELD_MAP));
+          cache[EMPLOYEES_KEY] = clone(mapped);
+          await writeRecord(EMPLOYEES_KEY, mapped);
+          triggerSync(EMPLOYEES_KEY);
+        }
+      }).subscribe();
+
+      supabase.channel('public:departments').on('postgres_changes', { event: '*', schema: 'public', table: 'departments' }, async () => {
+        const { data } = await supabase.from('departments').select('*');
+        if (data) {
+          const mapped = data.map(d => mapFromDB(d, DEPARTMENT_FIELD_MAP));
+          cache[DEPARTMENTS_KEY] = clone(mapped);
+          await writeRecord(DEPARTMENTS_KEY, mapped);
+          triggerSync(DEPARTMENTS_KEY);
+        }
+      }).subscribe();
+
+      supabase.channel('public:notifications').on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, async () => {
+        const { data } = await supabase.from('notifications').select('*');
+        if (data) {
+          const mapped = data.map(n => mapFromDB(n, NOTIFICATION_FIELD_MAP));
+          cache[NOTIFICATIONS_KEY] = clone(mapped);
+          await writeRecord(NOTIFICATIONS_KEY, mapped);
+          triggerSync(NOTIFICATIONS_KEY);
         }
       }).subscribe();
     } catch (err) {
@@ -289,18 +552,26 @@ const persist = async (key, value) => {
   if (supabase) {
     try {
       if (key === TABLES_KEY && Array.isArray(value)) {
-        await supabase.from('tables').upsert(value);
+        const mapped = value.map(t => mapToDB(t, TABLE_FIELD_MAP));
+        await supabase.from('tables').upsert(mapped);
       } else if (key === MENU_KEY && Array.isArray(value)) {
-        await supabase.from('menu').upsert(value);
+        const mapped = value.map(m => mapToDB(m, MENU_FIELD_MAP));
+        await supabase.from('menu').upsert(mapped);
       } else if (key === DEPT_ORDERS_KEY) {
-        const arr = Object.values(value);
+        const arr = Object.values(value).map(o => mapToDB(o, DEPT_ORDER_FIELD_MAP));
         if (arr.length > 0) await supabase.from('dept_orders').upsert(arr);
       } else if (key === BILLS_KEY && Array.isArray(value)) {
-        await supabase.from('bills').upsert(value);
+        const mapped = value.map(b => mapToDB(b, BILL_FIELD_MAP));
+        await supabase.from('bills').upsert(mapped);
       } else if (key === EMPLOYEES_KEY && Array.isArray(value)) {
-        await supabase.from('employees').upsert(value);
+        const mapped = value.map(e => mapToDB(e, EMPLOYEE_FIELD_MAP));
+        await supabase.from('employees').upsert(mapped);
       } else if (key === DEPARTMENTS_KEY && Array.isArray(value)) {
-        await supabase.from('departments').upsert(value);
+        const mapped = value.map(d => mapToDB(d, DEPARTMENT_FIELD_MAP));
+        await supabase.from('departments').upsert(mapped);
+      } else if (key === NOTIFICATIONS_KEY && Array.isArray(value)) {
+        const mapped = value.map(n => mapToDB(n, NOTIFICATION_FIELD_MAP));
+        await supabase.from('notifications').upsert(mapped);
       }
     } catch (err) {
       console.error('Supabase push error:', err);

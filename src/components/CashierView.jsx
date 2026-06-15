@@ -96,8 +96,8 @@ export default function CashierView({ tables, onSaveTables, employee }) {
     setDeptOrders(filtered);
 
     // Notify waiter
-    addNotification('🟢 جاهزة للتنظيف', `الطاولة #${selectedTable.id} جاهزة للتنظيف`, 'success');
-    addNotification('💸 دفع مكتمل', `${selectedTable.name} - ${(selectedTable.total || 0).toFixed(2)} ₪ (${PAYMENT_LABELS[paymentMethod]})`, 'info');
+    addNotification('🟢 جاهزة للتنظيف', `الطاولة #${selectedTable.id} جاهزة للتنظيف`, 'success', ['waiter', 'manager']);
+    addNotification('💸 دفع مكتمل', `${selectedTable.name} - ${(selectedTable.total || 0).toFixed(2)} ₪ (${PAYMENT_LABELS[paymentMethod]})`, 'info', ['cashier', 'manager', 'waiter']);
 
     setShowConfirmModal(false);
     setShowSuccessModal(newBill);

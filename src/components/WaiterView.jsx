@@ -415,10 +415,18 @@ export default function WaiterView({ tables, onSaveTables, employee, menuItems =
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                         {ongoingItems.map((item, i) => {
                           const orderedTime = item.orderedAt || tableData.seatedAt || now;
-                          const elapsedItemMin = Math.floor((now - orderedTime) / 60000);
+                          const elapsedSec = Math.floor((now - orderedTime) / 1000);
+                          const elapsedMinPart = Math.floor(elapsedSec / 60);
+                          const elapsedSecPart = elapsedSec % 60;
+                          
                           const expectedPrep = item.prepTime || 15;
-                          const remainingMin = Math.max(0, expectedPrep - elapsedItemMin);
-                          const percent = Math.min(100, Math.floor((elapsedItemMin / expectedPrep) * 100));
+                          const expectedPrepSec = expectedPrep * 60;
+                          
+                          const remainingSec = Math.max(0, expectedPrepSec - elapsedSec);
+                          const remainingMinPart = Math.floor(remainingSec / 60);
+                          const remainingSecPart = remainingSec % 60;
+                          
+                          const percent = Math.min(100, Math.floor((elapsedSec / expectedPrepSec) * 100));
                           const statusText = item.status === 'preparing' ? 'يتحضر' : 'جديد';
                           const statusColor = item.status === 'preparing' ? '#f39c12' : '#e74c3c';
 
@@ -435,7 +443,7 @@ export default function WaiterView({ tables, onSaveTables, employee, menuItems =
                               <div style={{ marginTop: '8px' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '3px' }}>
                                   <span>الوقت المتوقع: {expectedPrep} د</span>
-                                  <span>مضى: {elapsedItemMin} د (متبقي {remainingMin} د)</span>
+                                  <span>مضى: {elapsedMinPart}:{elapsedSecPart.toString().padStart(2, '0')} (متبقي {remainingMinPart}:{remainingSecPart.toString().padStart(2, '0')})</span>
                                 </div>
                                 <div style={{ width: '100%', height: '5px', background: 'rgba(255,255,255,0.05)', borderRadius: '3px', overflow: 'hidden' }}>
                                   <div style={{ width: `${percent}%`, height: '100%', background: statusColor, borderRadius: '3px', transition: 'width 0.5s ease' }}></div>

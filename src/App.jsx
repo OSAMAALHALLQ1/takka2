@@ -72,12 +72,12 @@ function DeptScreen({ user, deptOrders, onUpdateOrders, soundEnabled, toggleSoun
   const totalReady = myOrders.reduce((s, o) => s + o.items.filter(i => i.status === 'ready').length, 0);
 
   const handleDelay = (order, item) => {
-    addNotification('⏰ تأخير الطلب', `تم تأجيل تحضير صنف ${item.name} لطاولة ${order.tableName} بطلب من قسم ${DEPT_NAMES[myRole]}`, 'warning');
+    addNotification('⏰ تأخير الطلب', `تم تأجيل تحضير صنف ${item.name} لطاولة ${order.tableName} بطلب من قسم ${DEPT_NAMES[myRole]}`, 'warning', ['waiter', 'manager']);
     alert(`تم إرسال إشعار بتأخير الصنف ${item.name} لطاولة ${order.tableName}`);
   };
 
   const handleAlert = (order, item) => {
-    addNotification('⚠️ تنبيه للجرسون', `قسم ${DEPT_NAMES[myRole]} يحتاج لمراجعة جرسون طاولة ${order.tableName} بخصوص صنف ${item.name}`, 'danger');
+    addNotification('⚠️ تنبيه للجرسون', `قسم ${DEPT_NAMES[myRole]} يحتاج لمراجعة جرسون طاولة ${order.tableName} بخصوص صنف ${item.name}`, 'danger', ['waiter', 'manager']);
     alert(`تم إرسال تنبيه للجرسون بخصوص صنف ${item.name} لطاولة ${order.tableName}`);
   };
 
@@ -154,9 +154,12 @@ function DeptScreen({ user, deptOrders, onUpdateOrders, soundEnabled, toggleSoun
                   </div>
 
                   {order.items.map(item => {
-                    const elapsedItem = elapsedMin(item.orderedAt || order.timestamp);
+                    const elapsedSec = Math.floor((now - (item.orderedAt || order.timestamp)) / 1000);
+                    const elapsedMinPart = Math.floor(elapsedSec / 60);
+                    const elapsedSecPart = elapsedSec % 60;
                     const prepTime = item.prepTime || 15;
-                    const percent = Math.min(95, Math.floor((elapsedItem / prepTime) * 100));
+                    const expectedPrepSec = prepTime * 60;
+                    const percent = Math.min(95, Math.floor((elapsedSec / expectedPrepSec) * 100));
                     
                     return (
                       <div key={item.id} style={{ marginBottom: '16px', borderBottom: '1px dashed rgba(255,255,255,0.05)', paddingBottom: '12px' }}>
@@ -175,7 +178,7 @@ function DeptScreen({ user, deptOrders, onUpdateOrders, soundEnabled, toggleSoun
                           <div style={{ margin: '8px 0' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '3px' }}>
                               <span>الوقت المتوقع: {prepTime} د</span>
-                              <span>مضى: {elapsedItem} د ({percent}%)</span>
+                              <span>مضى: {elapsedMinPart}:{elapsedSecPart.toString().padStart(2, '0')} د ({percent}%)</span>
                             </div>
                             <div style={{ width: '100%', height: '6px', background: 'rgba(255,255,255,0.05)', borderRadius: '3px', overflow: 'hidden' }}>
                               <div style={{ width: `${percent}%`, height: '100%', background: '#f39c12', borderRadius: '3px' }}></div>
@@ -382,9 +385,7 @@ export default function App() {
     setTables(getTables());
     setMenuItems(getMenu().length ? getMenu() : DEFAULT_MENU);
     setDeptOrders(getDeptOrders());
-    const allNotifs = getNotifications();
-    setNotifications(allNotifs);
-    setToastNotifs(allNotifs.filter(n => !n.read).slice(0, 3));
+    refreshNotifs();
   };
 
   const [dismissedNotifs, setDismissedNotifs] = useState(new Set());
@@ -392,16 +393,22 @@ export default function App() {
   const refreshNotifs = useCallback(() => {
     if (!user) return;
     const all = getNotifications();
-    setNotifications(all);
-    const relevant = all.filter(n => {
+    
+    // Filter ALL notifications for the logged-in user's bell list
+    const filtered = all.filter(n => {
       if (n.targetRoles && n.targetRoles.length > 0) {
         const matchesRole = n.targetRoles.includes(user.role);
         const matchesCode = n.targetRoles.includes(user.code);
-        if (!matchesRole && !matchesCode) return false;
+        if (user.role === 'manager') return true; // Manager gets everything
+        return matchesRole || matchesCode;
       }
-      // Filter if dismissed locally
+      return user.role === 'manager' || user.role === 'waiter' || user.role === 'cashier';
+    });
+    setNotifications(filtered);
+
+    // Filter toast notifications (unread + younger than 15s + not dismissed)
+    const relevant = filtered.filter(n => {
       if (dismissedNotifs.has(n.id)) return false;
-      // Auto dismiss if older than 15 seconds
       if (Date.now() - n.timestamp > 15000) return false;
       return true;
     }).slice(0, 3);

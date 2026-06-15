@@ -415,7 +415,7 @@ function MenuTab({ menuItems, setMenuItems, departments }) {
   const [filterCat, setFilterCat] = useState('all');
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState(null);
-  const emptyForm = { nameAr: '', nameEn: '', description: '', price: '', category: 'mains', department: 'kitchen', image: '🍽️', available: true, prepTime: 15 };
+  const emptyForm = { nameAr: '', nameEn: '', description: '', price: '', category: 'mains', department: 'kitchen', image: '', available: true, prepTime: 15 };
   const [form, setForm] = useState(emptyForm);
 
   const filtered = menuItems.filter(item => {
@@ -516,9 +516,9 @@ function MenuTab({ menuItems, setMenuItems, departments }) {
               </select>
             </div>
             <div className="form-group">
-              <label className="form-label">الأيقونة / الصورة (حتى 20 ميجا)</label>
+              <label className="form-label">صورة الصنف (رابط أو ملف حتى 20 ميجا)</label>
               <div style={{ display: 'flex', gap: '8px' }}>
-                <input className="form-input" value={form.image} onChange={e => setForm(p => ({ ...p, image: e.target.value }))} placeholder="🍔 أو رابط صورة" style={{ flex: 1 }} />
+                <input className="form-input" value={form.image} onChange={e => setForm(p => ({ ...p, image: e.target.value }))} placeholder="رابط صورة الصنف (URL)" style={{ flex: 1 }} />
                 <label className="btn-secondary" style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', padding: '0 12px', borderRadius: '8px', fontSize: '0.85rem' }}>
                   <span>📁 رفع</span>
                   <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => {
