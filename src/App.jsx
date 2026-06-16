@@ -15,6 +15,8 @@ import CashierView from './components/CashierView';
 import AdminDashboard from './components/AdminDashboard';
 import NotificationsToast from './components/NotificationsToast';
 import BrandLogo from './components/BrandLogo';
+import TopBar from './components/Layout/TopBar';
+import BottomNavigation from './components/Layout/BottomNavigation';
 
 // ──────────────────────────────────────────────────────
 // Dept Screen (Kitchen / Bar / Shisha)
@@ -23,11 +25,12 @@ function DeptScreen({ user, deptOrders, onUpdateOrders, soundEnabled, toggleSoun
   const myRole = user.role; // 'kitchen' | 'bar' | 'shisha'
   const DEPT_ICONS = { kitchen: '🍳', bar: '🍺', shisha: '💨' };
   const DEPT_NAMES = { kitchen: 'المطبخ', bar: 'البار', shisha: 'الشيشة' };
-  const STATUS_COLORS = { new: '#e74c3c', preparing: '#f39c12', ready: '#27ae60', delivered: '#7f8c8d' };
-  const STATUS_LABELS = { new: 'جديد', preparing: 'يتحضر', ready: 'جاهز', delivered: 'مُسلَّم' };
+  const STATUS_COLORS = { new: '#f39c12', preparing: '#f39c12', ready: '#27ae60', delivered: '#7f8c8d' };
+  const STATUS_LABELS = { new: 'يتحضر', preparing: 'يتحضر', ready: 'جاهز', delivered: 'مُسلَّم' };
 
   const [now, setNow] = useState(() => Date.now());
   const [timeStr, setTimeStr] = useState('');
+  const [updatingItems, setUpdatingItems] = useState(new Set());
 
   useEffect(() => {
     const t = setInterval(() => {
@@ -53,46 +56,66 @@ function DeptScreen({ user, deptOrders, onUpdateOrders, soundEnabled, toggleSoun
   const activeOrders = myOrders.filter(o => o.items.some(i => ['new', 'preparing'].includes(i.status)));
   const readyOrders = myOrders.filter(o => o.items.every(i => i.status === 'ready' || i.status === 'delivered'));
 
-  const updateStatus = (orderId, itemId, newStatus) => {
-    updateDeptOrderItem(orderId, itemId, { status: newStatus });
-    const updated = getDeptOrders();
-    onUpdateOrders(updated);
-    if (newStatus === 'ready') {
-      const order = updated[orderId];
-      const tableId = order?.tableId || '';
-      const wCode = order?.waiterCode;
-      const targets = wCode ? [wCode, 'manager'] : ['waiter', 'manager'];
-      const deptName = myRole === 'kitchen' ? 'المطبخ' : myRole === 'bar' ? 'البار' : 'الشيشة';
+  const updateStatus = async (orderId, itemId, newStatus) => {
+    const itemKey = `${orderId}-${itemId}`;
+    if (updatingItems.has(itemKey)) return;
+    
+    setUpdatingItems(prev => {
+      const next = new Set(prev);
+      next.add(itemKey);
+      return next;
+    });
 
-      // Check if all items in this order are now ready or delivered
-      const allReady = (order?.items || []).every(i => ['ready', 'delivered'].includes(i.status));
+    try {
+      await updateDeptOrderItem(orderId, itemId, { status: newStatus });
+      const updated = getDeptOrders();
+      onUpdateOrders(updated);
+      
+      if (newStatus === 'ready') {
+        const order = updated[orderId];
+        const tableId = order?.tableId || '';
+        const wCode = order?.waiterCode;
+        const targets = wCode ? [wCode, 'manager'] : ['waiter', 'manager'];
+        const deptName = myRole === 'kitchen' ? 'المطبخ' : myRole === 'bar' ? 'البار' : 'الشيشة';
 
-      // Check if this table has requested the bill
-      const currentTables = getTables();
-      const thisTable = currentTables.find(t => t.id === tableId);
+        // Check if all items in this order are now ready or delivered
+        const allReady = (order?.items || []).every(i => ['ready', 'delivered'].includes(i.status));
 
-      if (thisTable && thisTable.status === 'bill_requested' && allReady) {
-        addNotification(
-          `✅ فاتورة الطاولة #${tableId} مكتملة - انتظار الدفع`,
-          `جميع الطلبات جاهزة، يرجى تحصيل المبلغ: ${(thisTable.total || 0).toFixed(2)} ₪`,
-          'success',
-          ['cashier', 'manager']
-        );
-      } else if (allReady) {
-        addNotification(
-          `✅ كل طلبات الطاولة #${tableId} جاهزة!`,
-          `جميع الأصناف أصبحت جاهزة للتسليم من قسم ${deptName}`,
-          'success',
-          targets
-        );
-      } else {
-        addNotification(
-          `✅ طلب الطاولة #${tableId} جاهز!`,
-          `- من ${deptName}`,
-          'success',
-          targets
-        );
+        // Check if this table has requested the bill
+        const currentTables = getTables();
+        const thisTable = currentTables.find(t => t.id === tableId);
+
+        if (thisTable && thisTable.status === 'bill_requested' && allReady) {
+          addNotification(
+            `✅ فاتورة الطاولة #${tableId} مكتملة - انتظار الدفع`,
+            `جميع الطلبات جاهزة، يرجى تحصيل المبلغ: ${(thisTable.total || 0).toFixed(2)} ₪`,
+            'success',
+            ['cashier', 'manager']
+          );
+        } else if (allReady) {
+          addNotification(
+            `✅ كل طلبات الطاولة #${tableId} جاهزة!`,
+            `جميع الأصناف أصبحت جاهزة للتسليم من قسم ${deptName}`,
+            'success',
+            targets
+          );
+        } else {
+          addNotification(
+            `✅ طلب الطاولة #${tableId} جاهز!`,
+            `- من ${deptName}`,
+            'success',
+            targets
+          );
+        }
       }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setUpdatingItems(prev => {
+        const next = new Set(prev);
+        next.delete(itemKey);
+        return next;
+      });
     }
   };
 
@@ -210,47 +233,32 @@ function DeptScreen({ user, deptOrders, onUpdateOrders, soundEnabled, toggleSoun
                            <div style={{ margin: '8px 0' }}>
                              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '3px' }}>
                                <span>الوقت المتوقع: {prepTime} د</span>
-                               <span>مضى: {elapsedMinPart}:{elapsedSecPart.toString().padStart(2, '0')} د ({percent}%)</span>
+                               <span>مضى: {elapsedMinPart}:{elapsedSecPart.toString().padStart(2, '0')} د</span>
                              </div>
                              <div style={{ width: '100%', height: '6px', background: 'rgba(255,255,255,0.05)', borderRadius: '3px', overflow: 'hidden' }}>
-                               <div style={{ width: `${percent}%`, height: '100%', background: item.status === 'preparing' ? '#f39c12' : '#e74c3c', borderRadius: '3px' }}></div>
+                               <div style={{ width: `${percent}%`, height: '100%', background: '#f39c12', borderRadius: '3px' }}></div>
                              </div>
                            </div>
                          )}
 
                         <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '8px' }}>
-                          {item.status === 'new' && (
-                            <button
-                              onClick={() => updateStatus(order.orderId, item.id, 'preparing')}
-                              style={{ padding: '5px 12px', borderRadius: '8px', border: 'none', cursor: 'pointer', background: '#f39c1222', color: '#f39c12', fontWeight: 700, fontSize: '0.78rem' }}
-                            >
-                              ▶ بدء التحضير
-                            </button>
-                          )}
-                          
                           {(item.status === 'new' || item.status === 'preparing') && (
-                            <>
-                              <button
-                                onClick={() => handleDelay(order, item)}
-                                style={{ padding: '5px 10px', borderRadius: '8px', border: 'none', cursor: 'pointer', background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)', fontSize: '0.75rem' }}
-                              >
-                                تأجيل
-                              </button>
-                              <button
-                                onClick={() => handleAlert(order, item)}
-                                style={{ padding: '5px 10px', borderRadius: '8px', border: 'none', cursor: 'pointer', background: 'rgba(231,76,60,0.1)', color: '#e74c3c', fontSize: '0.75rem' }}
-                              >
-                                إرسال إنذار
-                              </button>
-                            </>
-                          )}
-
-                          {item.status === 'preparing' && (
                             <button
                               onClick={() => updateStatus(order.orderId, item.id, 'ready')}
-                              style={{ padding: '5px 12px', borderRadius: '8px', border: 'none', cursor: 'pointer', background: '#27ae6022', color: '#27ae60', fontWeight: 700, fontSize: '0.78rem' }}
+                              disabled={updatingItems.has(`${order.orderId}-${item.id}`)}
+                              style={{ 
+                                padding: '5px 12px', 
+                                borderRadius: '8px', 
+                                border: 'none', 
+                                cursor: updatingItems.has(`${order.orderId}-${item.id}`) ? 'wait' : 'pointer', 
+                                background: '#27ae6022', 
+                                color: '#27ae60', 
+                                fontWeight: 700, 
+                                fontSize: '0.78rem',
+                                opacity: updatingItems.has(`${order.orderId}-${item.id}`) ? 0.6 : 1
+                              }}
                             >
-                              ✅ جاهز
+                              {updatingItems.has(`${order.orderId}-${item.id}`) ? '⏳ جاري التجهيز...' : 'تجهيز'}
                             </button>
                           )}
                         </div>
@@ -634,23 +642,7 @@ export default function App() {
   if (authPage === 'codes') {
     return (
       <div className="app-shell">
-        <header className="header-bar">
-          <div className="brand">
-            <span className="brand-logo"><BrandLogo size={28} style={{ marginLeft: '8px' }} /> تكة | TAKA</span>
-            <span className="brand-tag">لوحة المدير</span>
-          </div>
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <button
-              className="btn-primary-gold"
-              onClick={() => { setUser({ id: 'admin-1', role: 'manager', name: 'مدير تكة', code: 'ADMIN', username: 'admin' }); setAuthPage('system'); }}
-            >
-              📊 لوحة التحكم الكاملة
-            </button>
-            <button className="btn btn-secondary" onClick={handleLogout} style={{ padding: '8px 14px', fontSize: '0.82rem' }}>
-              🚪 خروج
-            </button>
-          </div>
-        </header>
+        <TopBar onMenuClick={() => setSidebarOpen(o => !o)} />
         <main className="app-main" style={{ padding: '20px' }}>
           <ManagerCodes onLogout={handleLogout} />
         </main>
@@ -659,59 +651,10 @@ export default function App() {
   }
 
   const isDept = ['kitchen', 'bar', 'shisha'].includes(user.role);
+  const [activeTab, setActiveTab] = useState('dashboard');
 
   return (
     <div className={`app-shell role-${user.role}`}>
-      {/* Header */}
-      <header className="header-bar">
-        <div className="brand">
-          <span className="brand-logo">
-            <BrandLogo size={28} style={{ marginLeft: '8px' }} />
-            تكة | TAKA
-          </span>
-          <span className="brand-tag">{ROLE_LABELS[user.role] || user.role}</span>
-        </div>
-
-        <div className="user-profile">
-          {user.role === 'manager' && (
-            <button
-              className="header-hamburger md:hidden"
-              onClick={() => setSidebarOpen(o => !o)}
-              style={{
-                background: 'rgba(255,255,255,0.08)',
-                border: '1px solid var(--border-light)',
-                borderRadius: '10px',
-                width: '40px',
-                height: '40px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'var(--text-main)',
-                fontSize: '1.4rem'
-              }}
-            >
-              ☰
-            </button>
-          )}
-          <button
-            onClick={toggleSound}
-            style={{
-              background: 'rgba(255,255,255,0.08)',
-              border: '1px solid var(--border-light)',
-              borderRadius: '10px',
-              width: '40px',
-              height: '40px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'var(--text-main)',
-              fontSize: '1.2rem',
-              transition: 'all 0.2s'
-            }}
-            title={soundEnabled ? 'تعطيل الصوت' : 'تفعيل الصوت'}
-          >
             {soundEnabled ? '🔊' : '🔇'}
           </button>
           <NotificationBell notifications={notifications} onRefresh={refreshNotifs} />
@@ -731,7 +674,7 @@ export default function App() {
 
       <main className="app-main">
         {user.role === 'manager' && (
-          <AdminDashboard user={user} onLogout={handleLogout} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
+          <AdminDashboard user={user} onLogout={handleLogout} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} activeTab={activeTab} setActiveTab={setActiveTab} />
         )}
         {user.role === 'waiter' && (
           <WaiterView tables={tables} onSaveTables={handleSaveTables} employee={user} menuItems={menuItems} />
@@ -743,6 +686,7 @@ export default function App() {
           <DeptScreen user={user} deptOrders={deptOrders} onUpdateOrders={setDeptOrders} soundEnabled={soundEnabled} toggleSound={toggleSound} />
         )}
       </main>
+        <BottomNavigation />
 
       {/* Toast notifications */}
       {toastNotifs.length > 0 && (

@@ -465,78 +465,149 @@ export const initializeDatabase = async () => {
       }
       
       // Subscribe to real-time changes
-      supabase.channel('public:tables').on('postgres_changes', { event: '*', schema: 'public', table: 'tables' }, async () => {
-        const { data } = await supabase.from('tables').select('*');
-        if (data) {
-          const mapped = data.map(t => mapFromDB(t, TABLE_FIELD_MAP));
-          cache[TABLES_KEY] = clone(mapped);
-          await writeRecord(TABLES_KEY, mapped);
-          triggerSync(TABLES_KEY);
+      supabase.channel('public:tables').on('postgres_changes', { event: '*', schema: 'public', table: 'tables' }, async (payload) => {
+        const current = cache[TABLES_KEY] || [];
+        let updated = [...current];
+        
+        if (payload.eventType === 'DELETE') {
+          updated = updated.filter(t => t.id !== payload.old.id);
+        } else {
+          const item = mapFromDB(payload.new, TABLE_FIELD_MAP);
+          const idx = updated.findIndex(t => t.id === item.id);
+          if (idx !== -1) {
+            updated[idx] = item;
+          } else {
+            updated.push(item);
+          }
         }
+        
+        updated.sort((a, b) => a.id - b.id);
+        cache[TABLES_KEY] = clone(updated);
+        await writeRecord(TABLES_KEY, updated);
+        triggerSync(TABLES_KEY);
       }).subscribe();
       
-      supabase.channel('public:dept_orders').on('postgres_changes', { event: '*', schema: 'public', table: 'dept_orders' }, async () => {
-        const { data } = await supabase.from('dept_orders').select('*');
-        if (data) { 
-          const map = {};
-          data.forEach(d => {
-            const jsObj = mapFromDB(d, DEPT_ORDER_FIELD_MAP);
-            map[jsObj.id] = jsObj;
-          });
-          cache[DEPT_ORDERS_KEY] = clone(map);
-          await writeRecord(DEPT_ORDERS_KEY, map);
-          triggerSync(DEPT_ORDERS_KEY);
+      supabase.channel('public:dept_orders').on('postgres_changes', { event: '*', schema: 'public', table: 'dept_orders' }, async (payload) => {
+        const current = cache[DEPT_ORDERS_KEY] || {};
+        const updated = { ...current };
+        
+        if (payload.eventType === 'DELETE') {
+          delete updated[payload.old.id];
+        } else {
+          const item = mapFromDB(payload.new, DEPT_ORDER_FIELD_MAP);
+          updated[item.id] = item;
         }
+        
+        cache[DEPT_ORDERS_KEY] = clone(updated);
+        await writeRecord(DEPT_ORDERS_KEY, updated);
+        triggerSync(DEPT_ORDERS_KEY);
       }).subscribe();
 
-      supabase.channel('public:bills').on('postgres_changes', { event: '*', schema: 'public', table: 'bills' }, async () => {
-        const { data } = await supabase.from('bills').select('*');
-        if (data) {
-          const mapped = data.map(b => mapFromDB(b, BILL_FIELD_MAP));
-          cache[BILLS_KEY] = clone(mapped);
-          await writeRecord(BILLS_KEY, mapped);
-          triggerSync(BILLS_KEY);
+      supabase.channel('public:bills').on('postgres_changes', { event: '*', schema: 'public', table: 'bills' }, async (payload) => {
+        const current = cache[BILLS_KEY] || [];
+        let updated = [...current];
+        
+        if (payload.eventType === 'DELETE') {
+          updated = updated.filter(b => b.id !== payload.old.id);
+        } else {
+          const item = mapFromDB(payload.new, BILL_FIELD_MAP);
+          const idx = updated.findIndex(b => b.id === item.id);
+          if (idx !== -1) {
+            updated[idx] = item;
+          } else {
+            updated.push(item);
+          }
         }
+        
+        cache[BILLS_KEY] = clone(updated);
+        await writeRecord(BILLS_KEY, updated);
+        triggerSync(BILLS_KEY);
       }).subscribe();
 
-      supabase.channel('public:menu').on('postgres_changes', { event: '*', schema: 'public', table: 'menu' }, async () => {
-        const { data } = await supabase.from('menu').select('*');
-        if (data) {
-          const mapped = data.map(m => mapFromDB(m, MENU_FIELD_MAP));
-          cache[MENU_KEY] = clone(mapped);
-          await writeRecord(MENU_KEY, mapped);
-          triggerSync(MENU_KEY);
+      supabase.channel('public:menu').on('postgres_changes', { event: '*', schema: 'public', table: 'menu' }, async (payload) => {
+        const current = cache[MENU_KEY] || [];
+        let updated = [...current];
+        
+        if (payload.eventType === 'DELETE') {
+          updated = updated.filter(m => m.id !== payload.old.id);
+        } else {
+          const item = mapFromDB(payload.new, MENU_FIELD_MAP);
+          const idx = updated.findIndex(m => m.id === item.id);
+          if (idx !== -1) {
+            updated[idx] = item;
+          } else {
+            updated.push(item);
+          }
         }
+        
+        cache[MENU_KEY] = clone(updated);
+        await writeRecord(MENU_KEY, updated);
+        triggerSync(MENU_KEY);
       }).subscribe();
 
-      supabase.channel('public:employees').on('postgres_changes', { event: '*', schema: 'public', table: 'employees' }, async () => {
-        const { data } = await supabase.from('employees').select('*');
-        if (data) {
-          const mapped = data.map(e => mapFromDB(e, EMPLOYEE_FIELD_MAP));
-          cache[EMPLOYEES_KEY] = clone(mapped);
-          await writeRecord(EMPLOYEES_KEY, mapped);
-          triggerSync(EMPLOYEES_KEY);
+      supabase.channel('public:employees').on('postgres_changes', { event: '*', schema: 'public', table: 'employees' }, async (payload) => {
+        const current = cache[EMPLOYEES_KEY] || [];
+        let updated = [...current];
+        
+        if (payload.eventType === 'DELETE') {
+          updated = updated.filter(e => e.id !== payload.old.id);
+        } else {
+          const item = mapFromDB(payload.new, EMPLOYEE_FIELD_MAP);
+          const idx = updated.findIndex(e => e.id === item.id);
+          if (idx !== -1) {
+            updated[idx] = item;
+          } else {
+            updated.push(item);
+          }
         }
+        
+        const normalized = updated.map(normalizeEmployee);
+        cache[EMPLOYEES_KEY] = clone(normalized);
+        await writeRecord(EMPLOYEES_KEY, normalized);
+        triggerSync(EMPLOYEES_KEY);
       }).subscribe();
 
-      supabase.channel('public:departments').on('postgres_changes', { event: '*', schema: 'public', table: 'departments' }, async () => {
-        const { data } = await supabase.from('departments').select('*');
-        if (data) {
-          const mapped = data.map(d => mapFromDB(d, DEPARTMENT_FIELD_MAP));
-          cache[DEPARTMENTS_KEY] = clone(mapped);
-          await writeRecord(DEPARTMENTS_KEY, mapped);
-          triggerSync(DEPARTMENTS_KEY);
+      supabase.channel('public:departments').on('postgres_changes', { event: '*', schema: 'public', table: 'departments' }, async (payload) => {
+        const current = cache[DEPARTMENTS_KEY] || [];
+        let updated = [...current];
+        
+        if (payload.eventType === 'DELETE') {
+          updated = updated.filter(d => d.id !== payload.old.id);
+        } else {
+          const item = mapFromDB(payload.new, DEPARTMENT_FIELD_MAP);
+          const idx = updated.findIndex(d => d.id === item.id);
+          if (idx !== -1) {
+            updated[idx] = item;
+          } else {
+            updated.push(item);
+          }
         }
+        
+        cache[DEPARTMENTS_KEY] = clone(updated);
+        await writeRecord(DEPARTMENTS_KEY, updated);
+        triggerSync(DEPARTMENTS_KEY);
       }).subscribe();
 
-      supabase.channel('public:notifications').on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, async () => {
-        const { data } = await supabase.from('notifications').select('*');
-        if (data) {
-          const mapped = data.map(n => mapFromDB(n, NOTIFICATION_FIELD_MAP));
-          cache[NOTIFICATIONS_KEY] = clone(mapped);
-          await writeRecord(NOTIFICATIONS_KEY, mapped);
-          triggerSync(NOTIFICATIONS_KEY);
+      supabase.channel('public:notifications').on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, async (payload) => {
+        const current = cache[NOTIFICATIONS_KEY] || [];
+        let updated = [...current];
+        
+        if (payload.eventType === 'DELETE') {
+          updated = updated.filter(n => n.id !== payload.old.id);
+        } else {
+          const item = mapFromDB(payload.new, NOTIFICATION_FIELD_MAP);
+          const idx = updated.findIndex(n => n.id === item.id);
+          if (idx !== -1) {
+            updated[idx] = item;
+          } else {
+            updated.push(item);
+          }
         }
+        
+        updated.sort((a, b) => b.timestamp - a.timestamp);
+        cache[NOTIFICATIONS_KEY] = clone(updated);
+        await writeRecord(NOTIFICATIONS_KEY, updated);
+        triggerSync(NOTIFICATIONS_KEY);
       }).subscribe();
     } catch (err) {
       console.error('Supabase sync error:', err);
@@ -546,7 +617,7 @@ export const initializeDatabase = async () => {
   return true;
 };
 
-const persist = async (key, value) => {
+const persist = async (key, value, changedItemOrId = null) => {
   cache[key] = clone(value);
   await writeRecord(key, value);
   triggerSync(key);
@@ -555,26 +626,68 @@ const persist = async (key, value) => {
   if (supabase) {
     try {
       if (key === TABLES_KEY && Array.isArray(value)) {
-        const mapped = value.map(t => mapToDB(t, TABLE_FIELD_MAP));
+        let itemsToUpsert = value;
+        if (changedItemOrId) {
+          const id = typeof changedItemOrId === 'object' ? changedItemOrId.id : changedItemOrId;
+          const found = value.find(t => t.id === id);
+          if (found) itemsToUpsert = [found];
+        }
+        const mapped = itemsToUpsert.map(t => mapToDB(t, TABLE_FIELD_MAP));
         await supabase.from('tables').upsert(mapped);
       } else if (key === MENU_KEY && Array.isArray(value)) {
-        const mapped = value.map(m => mapToDB(m, MENU_FIELD_MAP));
+        let itemsToUpsert = value;
+        if (changedItemOrId) {
+          const id = typeof changedItemOrId === 'object' ? changedItemOrId.id : changedItemOrId;
+          const found = value.find(m => m.id === id);
+          if (found) itemsToUpsert = [found];
+        }
+        const mapped = itemsToUpsert.map(m => mapToDB(m, MENU_FIELD_MAP));
         await supabase.from('menu').upsert(mapped);
       } else if (key === DEPT_ORDERS_KEY) {
-        const arr = Object.values(value).map(o => mapToDB(o, DEPT_ORDER_FIELD_MAP));
+        let itemsToUpsert = Object.values(value);
+        if (changedItemOrId) {
+          const id = typeof changedItemOrId === 'object' ? changedItemOrId.id : changedItemOrId;
+          const found = value[id];
+          itemsToUpsert = found ? [found] : [];
+        }
+        const arr = itemsToUpsert.map(o => mapToDB(o, DEPT_ORDER_FIELD_MAP));
         if (arr.length > 0) await supabase.from('dept_orders').upsert(arr);
       } else if (key === BILLS_KEY && Array.isArray(value)) {
-        const mapped = value.map(b => mapToDB(b, BILL_FIELD_MAP));
-        await supabase.from('bills').upsert(mapped);
+        let itemsToUpsert = value;
+        if (changedItemOrId) {
+          const id = typeof changedItemOrId === 'object' ? changedItemOrId.id : changedItemOrId;
+          const found = value.find(b => b.id === id);
+          if (found) itemsToUpsert = [found];
+        }
+        const mapped = itemsToUpsert.map(b => mapToDB(b, BILL_FIELD_MAP));
+        if (mapped.length > 0) await supabase.from('bills').upsert(mapped);
       } else if (key === EMPLOYEES_KEY && Array.isArray(value)) {
-        const mapped = value.map(e => mapToDB(e, EMPLOYEE_FIELD_MAP));
+        let itemsToUpsert = value;
+        if (changedItemOrId) {
+          const id = typeof changedItemOrId === 'object' ? changedItemOrId.id : changedItemOrId;
+          const found = value.find(e => e.id === id);
+          if (found) itemsToUpsert = [found];
+        }
+        const mapped = itemsToUpsert.map(e => mapToDB(e, EMPLOYEE_FIELD_MAP));
         await supabase.from('employees').upsert(mapped);
       } else if (key === DEPARTMENTS_KEY && Array.isArray(value)) {
-        const mapped = value.map(d => mapToDB(d, DEPARTMENT_FIELD_MAP));
+        let itemsToUpsert = value;
+        if (changedItemOrId) {
+          const id = typeof changedItemOrId === 'object' ? changedItemOrId.id : changedItemOrId;
+          const found = value.find(d => d.id === id);
+          if (found) itemsToUpsert = [found];
+        }
+        const mapped = itemsToUpsert.map(d => mapToDB(d, DEPARTMENT_FIELD_MAP));
         await supabase.from('departments').upsert(mapped);
       } else if (key === NOTIFICATIONS_KEY && Array.isArray(value)) {
-        const mapped = value.map(n => mapToDB(n, NOTIFICATION_FIELD_MAP));
-        await supabase.from('notifications').upsert(mapped);
+        let itemsToUpsert = value;
+        if (changedItemOrId) {
+          const id = typeof changedItemOrId === 'object' ? changedItemOrId.id : changedItemOrId;
+          const found = value.find(n => n.id === id);
+          if (found) itemsToUpsert = [found];
+        }
+        const mapped = itemsToUpsert.map(n => mapToDB(n, NOTIFICATION_FIELD_MAP));
+        if (mapped.length > 0) await supabase.from('notifications').upsert(mapped);
       }
     } catch (err) {
       console.error('Supabase push error:', err);
@@ -641,18 +754,53 @@ export const authenticateByCode = (inputCode) => {
   return session;
 };
 
-// ───────── Session ─────────
-export const getSession = () => clone(cache[SESSION_KEY]);
-export const saveSession = (s) => persist(SESSION_KEY, s);
-export const clearSession = () => persist(SESSION_KEY, null);
-
 // ───────── Bills ─────────
 export const getBills = () => clone(cache[BILLS_KEY]);
-export const saveBills = (b) => { if (!Array.isArray(b)) return false; return persist(BILLS_KEY, b.slice(0, MAX_BILLS_KEPT)); };
+export const saveBills = async (b) => { if (!Array.isArray(b)) return false; return await persist(BILLS_KEY, b.slice(0, MAX_BILLS_KEPT)); };
+
+export const deleteBills = async (ids) => {
+  const current = getBills();
+  const next = current.filter(b => !ids.includes(b.id));
+  cache[BILLS_KEY] = clone(next);
+  await writeRecord(BILLS_KEY, next);
+  triggerSync(BILLS_KEY);
+  if (supabase) {
+    try {
+      await supabase.from('bills').delete().in('id', ids);
+    } catch (err) {
+      console.error('Failed to delete bills from Supabase:', err);
+    }
+  }
+};
+
+export const deleteAllBills = async () => {
+  cache[BILLS_KEY] = [];
+  await writeRecord(BILLS_KEY, []);
+  triggerSync(BILLS_KEY);
+  if (supabase) {
+    try {
+      await supabase.from('bills').delete().neq('id', 'dummy');
+    } catch (err) {
+      console.error('Failed to delete all bills from Supabase:', err);
+    }
+  }
+};
 
 // ───────── Notifications ─────────
+
+// Export bills as JSON string, optionally filtered by ids
+export const exportBills = (ids) => {
+  const all = getBills();
+  const data = ids && Array.isArray(ids) ? all.filter(b => ids.includes(b.id)) : all;
+  try {
+    return JSON.stringify(data, null, 2);
+  } catch (e) {
+    console.error('Failed to export bills:', e);
+    return '';
+  }
+};
 export const getNotifications = () => clone(cache[NOTIFICATIONS_KEY]);
-export const saveNotifications = (n) => { if (!Array.isArray(n)) return false; return persist(NOTIFICATIONS_KEY, n.slice(0, MAX_NOTIFICATIONS)); };
+export const saveNotifications = async (n) => { if (!Array.isArray(n)) return false; return await persist(NOTIFICATIONS_KEY, n.slice(0, MAX_NOTIFICATIONS)); };
 
 export const addNotification = (title, message, type = 'info', targetRoles = []) => {
   if (!title || !message) return null;
@@ -681,19 +829,64 @@ export const markAllNotificationsRead = () => {
   saveNotifications(notifs);
 };
 
-export const deleteNotification = (id) => {
+export const deleteNotification = async (id) => {
   const notifs = getNotifications().filter(n => n.id !== id);
-  saveNotifications(notifs);
+  cache[NOTIFICATIONS_KEY] = clone(notifs);
+  await writeRecord(NOTIFICATIONS_KEY, notifs);
+  triggerSync(NOTIFICATIONS_KEY);
+  if (supabase) {
+    try {
+      await supabase.from('notifications').delete().eq('id', id);
+    } catch (err) {
+      console.error('Failed to delete notification from Supabase:', err);
+    }
+  }
 };
 
 // ───────── Menu ─────────
 export const getMenu = () => clone(cache[MENU_KEY]);
-export const saveMenu = (m) => { if (!Array.isArray(m)) return false; return persist(MENU_KEY, m); };
+export const saveMenu = async (m) => { if (!Array.isArray(m)) return false; return await persist(MENU_KEY, m); };
 
 // ───────── Dept Orders ─────────
 export const getDeptOrders = () => clone(cache[DEPT_ORDERS_KEY]);
-export const saveDeptOrders = (d) => { if (!d || typeof d !== 'object') return false; return persist(DEPT_ORDERS_KEY, d); };
-export const updateDeptOrderItem = (orderId, itemId, updates) => {
+export const saveDeptOrders = async (d) => { if (!d || typeof d !== 'object') return false; return await persist(DEPT_ORDERS_KEY, d); };
+
+export const deleteDeptOrder = async (id) => {
+  const orders = getDeptOrders();
+  if (orders[id]) {
+    delete orders[id];
+    cache[DEPT_ORDERS_KEY] = clone(orders);
+    await writeRecord(DEPT_ORDERS_KEY, orders);
+    triggerSync(DEPT_ORDERS_KEY);
+    if (supabase) {
+      try {
+        await supabase.from('dept_orders').delete().eq('id', id);
+      } catch (err) {
+        console.error('Failed to delete dept order from Supabase:', err);
+      }
+    }
+  }
+};
+
+export const deleteDeptOrdersForTable = async (tableId) => {
+  const orders = getDeptOrders();
+  const toDeleteIds = Object.keys(orders).filter(id => orders[id].tableId === tableId);
+  if (toDeleteIds.length > 0) {
+    const filtered = Object.fromEntries(Object.entries(orders).filter(([, o]) => o.tableId !== tableId));
+    cache[DEPT_ORDERS_KEY] = clone(filtered);
+    await writeRecord(DEPT_ORDERS_KEY, filtered);
+    triggerSync(DEPT_ORDERS_KEY);
+    if (supabase) {
+      try {
+        await supabase.from('dept_orders').delete().in('id', toDeleteIds);
+      } catch (err) {
+        console.error('Failed to delete table dept orders from Supabase:', err);
+      }
+    }
+  }
+};
+
+export const updateDeptOrderItem = async (orderId, itemId, updates) => {
   const orders = getDeptOrders();
   if (!orders[orderId]) return false;
 
@@ -705,7 +898,7 @@ export const updateDeptOrderItem = (orderId, itemId, updates) => {
   orders[orderId].items = (orders[orderId].items || []).map(item =>
     item.id === itemId ? { ...item, ...finalUpdates } : item
   );
-  saveDeptOrders(orders);
+  await persist(DEPT_ORDERS_KEY, orders, orderId);
 
   // Sync item status back to the corresponding table
   const tableId = orders[orderId].tableId;
@@ -729,20 +922,139 @@ export const updateDeptOrderItem = (orderId, itemId, updates) => {
           return item;
         });
       }
-      saveTables(tables);
+      await persist(TABLES_KEY, tables, tableId);
     }
   }
 
   return true;
 };
 
+// ───────── Waiter Ongoing Items Operations ─────────
+export const updateOngoingItemQty = async (tableId, orderId, itemId, newQty) => {
+  if (newQty <= 0) {
+    return await cancelOngoingItem(tableId, orderId, itemId);
+  }
+
+  // 1. Update the table's currentOrder
+  const tables = getTables();
+  const tableIdx = tables.findIndex(t => t.id === tableId);
+  if (tableIdx === -1) return false;
+  
+  const table = tables[tableIdx];
+  let updatedTable = false;
+  table.currentOrder = (table.currentOrder || []).map(item => {
+    const matchOrder = !orderId || item.orderId === orderId;
+    if (matchOrder && item.id === itemId && ['new', 'preparing'].includes(item.status)) {
+      updatedTable = true;
+      return { ...item, qty: newQty };
+    }
+    return item;
+  });
+  
+  if (updatedTable) {
+    const sub = table.currentOrder.reduce((s, i) => s + i.price * i.qty, 0);
+    table.subtotal = sub;
+    table.tax = sub * TAX_RATE;
+    table.serviceCharge = sub * SERVICE_RATE;
+    table.total = sub + table.tax + table.serviceCharge;
+    
+    await persist(TABLES_KEY, tables, tableId);
+  }
+
+  // 2. Update the corresponding dept order
+  if (orderId) {
+    const orders = getDeptOrders();
+    const order = orders[orderId];
+    if (order) {
+      order.items = (order.items || []).map(item => {
+        if (item.id === itemId && ['new', 'preparing'].includes(item.status)) {
+          return { ...item, qty: newQty };
+        }
+        return item;
+      });
+      const sub = order.items.reduce((s, i) => s + i.price * i.qty, 0);
+      order.subtotal = sub;
+      order.tax = sub * TAX_RATE;
+      order.serviceCharge = sub * SERVICE_RATE;
+      order.total = sub + order.tax + order.serviceCharge;
+      
+      await persist(DEPT_ORDERS_KEY, orders, orderId);
+    }
+  }
+  return true;
+};
+
+export const cancelOngoingItem = async (tableId, orderId, itemId) => {
+  // 1. Update table's currentOrder by removing the item
+  const tables = getTables();
+  const tableIdx = tables.findIndex(t => t.id === tableId);
+  if (tableIdx === -1) return false;
+  
+  const table = tables[tableIdx];
+  let updatedTable = false;
+  
+  table.currentOrder = (table.currentOrder || []).filter(item => {
+    const matchOrder = !orderId || item.orderId === orderId;
+    const isMatch = matchOrder && item.id === itemId && ['new', 'preparing'].includes(item.status);
+    if (isMatch) {
+      updatedTable = true;
+      return false;
+    }
+    return true;
+  });
+  
+  if (updatedTable) {
+    if (table.currentOrder.length === 0) {
+      table.status = 'empty';
+      table.notes = '';
+      table.subtotal = 0;
+      table.tax = 0;
+      table.serviceCharge = 0;
+      table.total = 0;
+      table.waiterCode = null;
+      table.seatedAt = null;
+      table.guests = 0;
+    } else {
+      const sub = table.currentOrder.reduce((s, i) => s + i.price * i.qty, 0);
+      table.subtotal = sub;
+      table.tax = sub * TAX_RATE;
+      table.serviceCharge = sub * SERVICE_RATE;
+      table.total = sub + table.tax + table.serviceCharge;
+    }
+    await persist(TABLES_KEY, tables, tableId);
+  }
+
+  // 2. Update/remove item from corresponding dept order
+  if (orderId) {
+    const orders = getDeptOrders();
+    const order = orders[orderId];
+    if (order) {
+      order.items = (order.items || []).filter(item => {
+        return !(item.id === itemId && ['new', 'preparing'].includes(item.status));
+      });
+      
+      if (order.items.length === 0) {
+        await deleteDeptOrder(orderId);
+      } else {
+        const sub = order.items.reduce((s, i) => s + i.price * i.qty, 0);
+        order.subtotal = sub;
+        order.tax = sub * TAX_RATE;
+        order.serviceCharge = sub * SERVICE_RATE;
+        order.total = sub + order.tax + order.serviceCharge;
+        await persist(DEPT_ORDERS_KEY, orders, orderId);
+      }
+    }
+  }
+  return true;
+};
+
 // ───────── Departments ─────────
 export const getDepartments = () => clone(cache[DEPARTMENTS_KEY]);
-export const saveDepartments = (d) => { if (!Array.isArray(d)) return false; return persist(DEPARTMENTS_KEY, d); };
+export const saveDepartments = async (d) => { if (!Array.isArray(d)) return false; return await persist(DEPARTMENTS_KEY, d); };
 
 // ───────── Manager Credentials ─────────
 export const getManagerCredentials = () => getEmployees().find(e => e.role === 'manager') || null;
-export const saveManagerCredentials = (creds) => {
+export const saveManagerCredentials = async (creds) => {
   const emps = getEmployees();
   const manager = {
     id: creds.id || 'admin-1',
@@ -757,7 +1069,7 @@ export const saveManagerCredentials = (creds) => {
     salary: 0, active: true, lastLogin: null
   };
   const next = [manager, ...emps.filter(e => e.role !== 'manager')];
-  return saveEmployees(next);
+  return await saveEmployees(next);
 };
 
 // ───────── Sync (for refreshing from DB) ─────────
@@ -773,11 +1085,33 @@ export const refreshCache = async () => {
 };
 
 // ───────── Daily Reset ─────────
-export const resetDailyData = () => {
-  persist(TABLES_KEY, DEFAULT_TABLES);
-  persist(BILLS_KEY, []);
-  persist(NOTIFICATIONS_KEY, []);
-  persist(DEPT_ORDERS_KEY, {});
+export const resetDailyData = async () => {
+  cache[TABLES_KEY] = clone(DEFAULT_TABLES);
+  cache[BILLS_KEY] = [];
+  cache[NOTIFICATIONS_KEY] = [];
+  cache[DEPT_ORDERS_KEY] = {};
+  
+  await writeRecord(TABLES_KEY, DEFAULT_TABLES);
+  await writeRecord(BILLS_KEY, []);
+  await writeRecord(NOTIFICATIONS_KEY, []);
+  await writeRecord(DEPT_ORDERS_KEY, {});
+  
+  triggerSync(TABLES_KEY);
+  triggerSync(BILLS_KEY);
+  triggerSync(NOTIFICATIONS_KEY);
+  triggerSync(DEPT_ORDERS_KEY);
   triggerSync('reset');
+  
+  if (supabase) {
+    try {
+      const mappedTables = DEFAULT_TABLES.map(t => mapToDB(t, TABLE_FIELD_MAP));
+      await supabase.from('tables').upsert(mappedTables);
+      await supabase.from('bills').delete().neq('id', 'dummy');
+      await supabase.from('notifications').delete().neq('id', 'dummy');
+      await supabase.from('dept_orders').delete().neq('id', 'dummy');
+    } catch (err) {
+      console.error('Supabase reset error:', err);
+    }
+  }
   return true;
 };

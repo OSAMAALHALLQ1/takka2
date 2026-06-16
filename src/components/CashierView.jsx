@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getBills, saveBills, addNotification, getDeptOrders, saveDeptOrders, getRestaurantName } from '../utils/storage';
+import { getBills, saveBills, addNotification, getDeptOrders, saveDeptOrders, getRestaurantName, deleteDeptOrdersForTable } from '../utils/storage';
 
 const PAYMENT_METHODS = [
   { id: 'cash', label: 'نقد', icon: '💵' },
@@ -27,6 +27,7 @@ export default function CashierView({ tables, onSaveTables, employee }) {
   const [bills, setBills] = useState(getBills());
   const [deptOrders, setDeptOrders] = useState(getDeptOrders());
   const [selectedBill, setSelectedBill] = useState(null);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
   useEffect(() => {
     const sync = () => {
@@ -55,73 +56,81 @@ export default function CashierView({ tables, onSaveTables, employee }) {
     return { total, ready, pending: total - ready };
   }, [deptOrders]);
 
-  const handleConfirmPayment = () => {
-    if (!selectedTable) return;
-    const billId = `INV-${Date.now().toString().slice(-6)}`;
-    const newBill = {
-      id: billId, tableId: selectedTable.id, tableName: selectedTable.name,
-      items: selectedTable.currentOrder || [],
-      subtotal: selectedTable.subtotal || 0,
-      tax: selectedTable.tax || 0,
-      serviceCharge: selectedTable.serviceCharge || 0,
-      total: selectedTable.total || 0,
-      paymentMethod,
-      cashierCode: employee.code, cashierName: employee.name,
-      waiterCode: selectedTable.waiterCode,
-      notes: cashierNote || selectedTable.notes || '',
-      timestamp: Date.now(),
-      timeFormatted: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
-      dateFormatted: new Date().toLocaleDateString('ar-EG'),
-      seatedAt: selectedTable.seatedAt,
-      seatedDuration: selectedTable.seatedAt ? Math.floor((Date.now() - selectedTable.seatedAt) / 60000) : 0
-    };
+  const handleConfirmPayment = async () => {
+    if (!selectedTable || isProcessingPayment) return;
+    setIsProcessingPayment(true);
+    try {
+      const billId = `INV-${Date.now()}`;
+      const newBill = {
+        id: billId, tableId: selectedTable.id, tableName: selectedTable.name,
+        items: selectedTable.currentOrder || [],
+        subtotal: selectedTable.subtotal || 0,
+        tax: selectedTable.tax || 0,
+        serviceCharge: selectedTable.serviceCharge || 0,
+        total: selectedTable.total || 0,
+        paymentMethod,
+        cashierCode: employee.code, cashierName: employee.name,
+        waiterCode: selectedTable.waiterCode,
+        notes: cashierNote || selectedTable.notes || '',
+        timestamp: Date.now(),
+        timeFormatted: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
+        dateFormatted: new Date().toLocaleDateString('ar-EG'),
+        seatedAt: selectedTable.seatedAt,
+        seatedDuration: selectedTable.seatedAt ? Math.floor((Date.now() - selectedTable.seatedAt) / 60000) : 0
+      };
 
-    // Save bill
-    const allBills = getBills();
-    allBills.push(newBill);
-    saveBills(allBills);
-    setBills(allBills);
+      // Save bill
+      const allBills = getBills();
+      allBills.push(newBill);
+      await saveBills(allBills);
+      setBills(allBills);
 
-    // Reset table
-    const updatedTables = tables.map(t => {
-      if (t.id !== selectedTable.id) return t;
-      return { ...t, status: 'empty', currentOrder: [], notes: '', subtotal: 0, tax: 0, serviceCharge: 0, total: 0, waiterCode: null, seatedAt: null, guests: 0 };
-    });
-    onSaveTables(updatedTables);
+      // Reset table
+      const updatedTables = tables.map(t => {
+        if (t.id !== selectedTable.id) return t;
+        return { ...t, status: 'empty', currentOrder: [], notes: '', subtotal: 0, tax: 0, serviceCharge: 0, total: 0, waiterCode: null, seatedAt: null, guests: 0 };
+      });
+      await onSaveTables(updatedTables);
 
-    // Remove dept orders for this table
-    const orders = getDeptOrders();
-    const filtered = Object.fromEntries(Object.entries(orders).filter(([, o]) => o.tableId !== selectedTable.id));
-    saveDeptOrders(filtered);
-    setDeptOrders(filtered);
+      // Remove dept orders for this table
+      await deleteDeptOrdersForTable(selectedTable.id);
+      
+      // Update local state for deptOrders
+      setDeptOrders(getDeptOrders());
 
-    // Calculate total daily revenue including this new invoice
-    const newTotalRevenue = allBills.reduce((s, b) => s + (b.total || 0), 0);
+      // Calculate total daily revenue including this new invoice
+      const newTotalRevenue = allBills.reduce((s, b) => s + (b.total || 0), 0);
 
-    // Notify waiter & cashier & manager
-    addNotification(
-      `🟢 الطاولة #${selectedTable.id} أصبحت فاضية (دفع مكتمل)`,
-      `الطاولة جاهزة للتنظيف والتعقيم`,
-      'success',
-      ['waiter', 'manager']
-    );
-    addNotification(
-      `💸 الطاولة #${selectedTable.id} تم الدفع - المبلغ: ${(selectedTable.total || 0).toFixed(0)}₪`,
-      `طريقة الدفع: ${PAYMENT_LABELS[paymentMethod] || paymentMethod}`,
-      'info',
-      ['cashier', 'manager', 'waiter']
-    );
-    addNotification(
-      `📊 إجمالي الإيرادات اليوم: ${newTotalRevenue.toFixed(0)}₪`,
-      `تم تحديث إجمالي الإيرادات بعد تحصيل فاتورة الطاولة #${selectedTable.id}`,
-      'info',
-      ['manager']
-    );
+      // Notify waiter & cashier & manager
+      addNotification(
+        `🟢 الطاولة #${selectedTable.id} أصبحت فاضية (دفع مكتمل)`,
+        `الطاولة جاهزة للتنظيف والتعقيم`,
+        'success',
+        ['waiter', 'manager']
+      );
+      addNotification(
+        `💸 الطاولة #${selectedTable.id} تم الدفع - المبلغ: ${(selectedTable.total || 0).toFixed(0)}₪`,
+        `طريقة الدفع: ${PAYMENT_LABELS[paymentMethod] || paymentMethod}`,
+        'info',
+        ['cashier', 'manager', 'waiter']
+      );
+      addNotification(
+        `📊 إجمالي الإيرادات اليوم: ${newTotalRevenue.toFixed(0)}₪`,
+        `تم تحديث إجمالي الإيرادات بعد تحصيل فاتورة الطاولة #${selectedTable.id}`,
+        'info',
+        ['manager']
+      );
 
-    setShowConfirmModal(false);
-    setShowSuccessModal(newBill);
-    setSelectedTable(null);
-    setCashierNote('');
+      setShowConfirmModal(false);
+      setShowSuccessModal(newBill);
+      setSelectedTable(null);
+      setCashierNote('');
+    } catch (err) {
+      console.error(err);
+      alert('حدث خطأ أثناء معالجة الدفع، يرجى المحاولة مرة أخرى.');
+    } finally {
+      setIsProcessingPayment(false);
+    }
   };
 
   const elapsedTime = (table) => {
@@ -585,9 +594,14 @@ export default function CashierView({ tables, onSaveTables, employee }) {
               </div>
             </div>
             <div className="modal-footer">
-              <button className="btn-secondary" onClick={() => setShowConfirmModal(false)}>إلغاء</button>
-              <button className="send-order-btn" style={{ flex: 1 }} onClick={handleConfirmPayment}>
-                ✅ تأكيد الدفع وإغلاق الفاتورة
+              <button className="btn-secondary" onClick={() => setShowConfirmModal(false)} disabled={isProcessingPayment}>إلغاء</button>
+              <button 
+                className="send-order-btn" 
+                style={{ flex: 1, opacity: isProcessingPayment ? 0.7 : 1, cursor: isProcessingPayment ? 'wait' : 'pointer' }} 
+                onClick={handleConfirmPayment}
+                disabled={isProcessingPayment}
+              >
+                {isProcessingPayment ? '⏳ جاري إغلاق الفاتورة...' : '✅ تأكيد الدفع وإغلاق الفاتورة'}
               </button>
             </div>
           </div>

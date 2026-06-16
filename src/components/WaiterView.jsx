@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   saveDeptOrders, getDeptOrders, addNotification, updateDeptOrderItem,
+  updateOngoingItemQty, cancelOngoingItem,
   TAX_RATE, SERVICE_RATE
 } from '../utils/storage';
 
@@ -147,11 +148,7 @@ export default function WaiterView({ tables, onSaveTables, employee, menuItems =
   });
 
   const addToCart = (item) => {
-    setCart(prev => {
-      const ex = prev.find(i => i.id === item.id);
-      if (ex) return prev.map(i => i.id === item.id ? { ...i, qty: i.qty + 1 } : i);
-      return [...prev, { ...item, qty: 1, note: '' }];
-    });
+    addNotification('⚠️ عدم الإضافة', 'الجرسون غير مسموح له بإضافة أصناف مباشرة', 'warning', [employee.role]);
   };
 
   const removeFromCart = (itemId) => {
@@ -189,7 +186,7 @@ export default function WaiterView({ tables, onSaveTables, employee, menuItems =
     if (cart.length === 0) return;
     const { subtotal, tax, serviceCharge, total } = calcTotals();
     const orderId = `order-${Date.now()}`;
-    const itemsWithStatus = cart.map(item => ({ ...item, status: 'new', orderedAt: Date.now() }));
+    const itemsWithStatus = cart.map(item => ({ ...item, orderId, status: 'new', orderedAt: Date.now() }));
 
     const newOrder = {
       id: orderId, tableId: selectedTable.id, tableName: selectedTable.name,
@@ -502,24 +499,18 @@ export default function WaiterView({ tables, onSaveTables, employee, menuItems =
                           const statusBg = item.status === 'preparing' ? '#fffbeb' : '#fef2f2';
 
                           return (
-                            <div key={i} style={{ padding: '12px', background: statusBg, borderRadius: '8px', borderRight: `3px solid ${statusColor}` }}>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                <div>
-                                  <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#1a1a1a' }}>{item.name} × {item.qty}</span>
-                                  {item.note && <div style={{ fontSize: '0.75rem', color: '#ca8a04', marginTop: '2px' }}>📝 {item.note}</div>}
-                                </div>
-                                <span style={{ fontSize: '0.78rem', color: statusColor, fontWeight: 700 }}>{statusText}</span>
-                              </div>
-                              
-                              <div style={{ marginTop: '8px' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '3px' }}>
-                                  <span>الوقت المتوقع: {expectedPrep} د</span>
-                                  <span>مضى: {elapsedMinPart}:{elapsedSecPart.toString().padStart(2, '0')} (متبقي {remainingMinPart}:{remainingSecPart.toString().padStart(2, '0')})</span>
-                                </div>
-                                <div style={{ width: '100%', height: '5px', background: 'rgba(255,255,255,0.05)', borderRadius: '3px', overflow: 'hidden' }}>
-                                  <div style={{ width: `${percent}%`, height: '100%', background: statusColor, borderRadius: '3px', transition: 'width 0.5s ease' }}></div>
+                            <div key={i} style={{ padding: '12px', background: statusBg, borderRadius: '8px', borderRight: `3px solid ${statusColor}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <div>
+                                <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#1a1a1a' }}>{item.name} × {item.qty}</span>
+                                {item.note && <div style={{ fontSize: '0.75rem', color: '#ca8a04', marginTop: '2px' }}>📝 {item.note}</div>}
+                                <div style={{ display: 'flex', gap: '4px', alignItems: 'center', marginTop: '4px' }}>
+                                  <button className="qty-btn" onClick={() => updateOngoingItemQty(selectedTable.id, item.orderId, item.id, Math.max(1, item.qty - 1))} disabled={item.qty <= 1}>−</button>
+                                  <span>{item.qty}</span>
+                                  <button className="qty-btn" onClick={() => updateOngoingItemQty(selectedTable.id, item.orderId, item.id, item.qty + 1)}>+</button>
+                                  <button className="qty-btn" onClick={() => cancelOngoingItem(selectedTable.id, item.orderId, item.id)} title="إلغاء الصنف">🗑️</button>
                                 </div>
                               </div>
+                              <span style={{ fontSize: '0.78rem', color: statusColor, fontWeight: 700 }}>{statusText}</span>
                             </div>
                           );
                         })}
@@ -607,14 +598,6 @@ export default function WaiterView({ tables, onSaveTables, employee, menuItems =
   // MAIN TABLES VIEW
   return (
     <div className="view-container">
-      {/* Ready items global bar */}
-      {readyItems.length > 0 && (
-        <div className="ready-alert-banner">
-          🔔 طلبات جاهزة للتسليم! ({readyItems.length})
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '8px' }}>
-            {readyItems.map((ri, i) => (
-              <div key={i} style={{ display: 'flex', gap: '8px', alignItems: 'center', background: 'rgba(255,255,255,0.1)', padding: '4px 10px', borderRadius: '20px' }}>
-                <span style={{ fontSize: '0.82rem' }}>{ri.tableName} – {ri.name} ×{ri.qty}</span>
                 <button className="deliver-btn" onClick={() => handleDeliverItem(ri.orderId, ri.id)}>✓</button>
               </div>
             ))}

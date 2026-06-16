@@ -1,10 +1,14 @@
 import { useState, useEffect, useRef } from 'react';
+import ResponsiveCard from './Layout/ResponsiveCard';
+import ResponsiveModal from './Layout/ResponsiveModal';
+import ResponsiveGrid from './Layout/ResponsiveGrid';
 import {
   getTables, saveTables, getEmployees, saveEmployees,
-  getMenu, saveMenu, getBills, getDepartments, saveDepartments,
+  getMenu, saveMenu, getBills, deleteBills, deleteAllBills, exportBills, getDepartments, saveDepartments,
   addNotification, getDeptOrders
 } from '../utils/storage';
-import { getCodes, createCode, revokeCode, deleteCode } from '../utils/auth-store';
+import Sidebar from '../Layout/Sidebar';
+
 
 const ROLE_COLORS = {
   manager: '#e74c3c', waiter: '#3498db', cashier: '#9b59b6',
@@ -82,49 +86,6 @@ export default function AdminDashboard({ user, onLogout, sidebarOpen, setSidebar
       )}
 
       {/* Sidebar */}
-      <aside className={`admin-sidebar ${sidebarOpen ? 'open' : ''}`}>
-        {/* Close Button on Mobile Drawer */}
-        <button 
-          className="admin-sidebar-close md:hidden"
-          onClick={() => setSidebarOpen(false)}
-          style={{
-            position: 'absolute',
-            top: '16px',
-            left: '16px',
-            background: 'none',
-            border: 'none',
-            fontSize: '1.6rem',
-            cursor: 'pointer',
-            color: '#1a1a1a',
-            fontWeight: 'bold',
-            zIndex: 2100
-          }}
-        >
-          ✕
-        </button>
-
-        <div className="admin-sidebar-user">
-          <div className="admin-avatar">{user.name?.charAt(0) || 'م'}</div>
-          <div>
-            <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>{user.name}</div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>مدير النظام</div>
-          </div>
-        </div>
-        <nav className="admin-nav">
-          {TABS.map(tab => (
-            <button
-              key={tab.id}
-              className={`admin-nav-btn ${activeTab === tab.id ? 'active' : ''}`}
-              onClick={() => { setActiveTab(tab.id); setSidebarOpen(false); }}
-              title={tab.label}
-            >
-              <span>{tab.icon}</span>
-              <span>{tab.label}</span>
-            </button>
-          ))}
-        </nav>
-        <button 
-          className="admin-logout-btn" 
           onClick={() => { setSidebarOpen(false); onLogout(); }}
           title="تسجيل خروج"
         >
@@ -1318,23 +1279,60 @@ function ReportsTab({ bills, menuItems, tables }) {
 // ──────────────────────────────────────────────────────
 function BillsTab({ bills }) {
   const [selected, setSelected] = useState(null);
+  const [filterMode, setFilterMode] = useState('all');
 
   const printBill = (bill) => {
     const w = window.open('', '', 'width=400,height=600');
-    w.document.write(`<html><head><title>فاتورة - ${bill.tableName}</title>
-    <style>body{font-family:Arial;direction:rtl;padding:20px;text-align:right}
+    w.document.write(`\u003chtml\u003e\u003chead\u003e\u003ctitle\u003eفاتورة - ${bill.tableName}\u003c/title\u003e
+    \u003cstyle\u003ebody{font-family:Arial;direction:rtl;padding:20px;text-align:right}
     h2{text-align:center}.row{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px dashed #ccc}
     .total{font-weight:bold;font-size:1.2em;border-top:2px solid #000;margin-top:8px;padding-top:8px}
-    </style></head><body>
-    <h2>🍽️ تكة | TAKA</h2>
-    <p style="text-align:center">${bill.tableName} | ${bill.timeFormatted} | ${bill.dateFormatted}</p>
-    <hr>
-    ${(bill.items || []).map(item => `<div class="row"><span>${item.name} × ${item.qty}</span><span>${(item.price * item.qty).toFixed(2)} ₪</span></div>`).join('')}
-    <div class="row total"><span>الإجمالي النهائي:</span><span>${(bill.total || 0).toFixed(2)} ₪</span></div>
-    <p style="text-align:center;margin-top:20px">شكراً لزيارتكم 🙏</p>
-    </body></html>`);
+    \u003c/style\u003e\u003c/head\u003e\u003cbody\u003e
+    \u003ch2\u003e🍽️ تكة | TAKA\u003c/h2\u003e
+    \u003cp style=\"text-align:center\"\u003e${bill.tableName} | ${bill.timeFormatted} | ${bill.dateFormatted}\u003c/p\u003e
+    \u003chr\u003e
+    ${(bill.items || []).map(item => `\u003cdiv class=\"row\"\u003e\u003cspan\u003e${item.name} × ${item.qty}\u003c/span\u003e\u003cspan\u003e${(item.price * item.qty).toFixed(2)} ₪\u003c/span\u003e\u003c/div\u003e`).join('')}
+    \u003cdiv class=\"row total\"\u003e\u003cspan\u003eالإجمالي النهائي:\u003c/span\u003e\u003cspan\u003e${(bill.total || 0).toFixed(2)} ₪\u003c/span\u003e\u003c/div\u003e
+    \u003cp style=\"text-align:center;margin-top:20px\"\u003eشكراً لزيارتكم 🙏\u003c/p\u003e
+    \u003c/body\u003e\u003c/html\u003e`);
     w.document.close();
     setTimeout(() => w.print(), 300);
+  };
+
+  const exportJSON = () => {
+    const ids = filterMode === 'all' ? null : filteredBills.map(b => b.id);
+    const json = exportBills(ids);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `bills-${filterMode}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const filteredBills = bills.filter(b => {
+    if (filterMode === 'week') {
+      if (!b.timestamp) return false;
+      const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+      return new Date(b.timestamp).getTime() >= weekAgo;
+    }
+    if (filterMode === 'all') return true;
+    if (filterMode === 'today') return b.dateFormatted === new Date().toLocaleDateString('ar-EG');
+    return true;
+  });
+
+  const handleDeleteFiltered = async () => {
+    if (!window.confirm('هل أنت متأكد من حذف الفواتير المعروضة؟')) return;
+    if (!window.confirm('هذه العملية لا يمكن التراجع عنها.')) return;
+    const ids = filteredBills.map(b => b.id);
+    await deleteBills(ids);
+  };
+
+  const handleDeleteAll = async () => {
+    if (!window.confirm('هل تريد حذف جميع الفواتير؟')) return;
+    if (!window.confirm('تحذف جميع الفواتير نهائيًا ولا يمكن استرجاعها. المتابعة؟')) return;
+    await deleteAllBills();
   };
 
   const PAYMENT_LABELS = { cash: 'نقد', card: 'بطاقة', bank: 'تحويل بنكي', other: 'أخرى' };
@@ -1342,13 +1340,104 @@ function BillsTab({ bills }) {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h2 className="tab-title" style={{ margin: 0 }}>🧾 الفواتير المكتملة ({bills.length})</h2>
-        <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, color: '#27ae60', fontSize: '1.1rem' }}>
-          الإجمالي: {bills.reduce((s, b) => s + (b.total || 0), 0).toFixed(2)} ₪
+        <h2 className="tab-title" style={{ margin: 0 }}>🧾 الفواتير ({filteredBills.length})</h2>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <select value={filterMode} onChange={e => setFilterMode(e.target.value)} style={{ padding: '4px 8px', borderRadius: '4px' }}>
+            <option value="all">الكل</option>
+            <option value="week">الأسبوع الحالي</option>
+          </select>
+          <button className="btn-secondary" onClick={exportJSON}>📥 تصدير JSON</button>
+          <button className="btn-danger" onClick={handleDeleteFiltered}>🗑️ حذف المعروض</button>
+          <button className="btn-danger" onClick={handleDeleteAll}>🔥 حذف الجميع</button>
+          <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, color: '#27ae60', fontSize: '1.1rem' }}>
+            الإجمالي: {filteredBills.reduce((s, b) => s + (b.total || 0), 0).toFixed(2)} ₪
+          </div>
         </div>
       </div>
 
       <div className="admin-card">
+        <div style={{ overflowX: 'auto' }}>
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>رقم الفاتورة</th>
+                <th>الطاولة</th>
+                <th>الإجمالي</th>
+                <th>طريقة الدفع</th>
+                <th>الوقت</th>
+                <th>الإجراءات</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[...filteredBills].reverse().map(bill => (
+                <tr key={bill.id}>
+                  <td><code style={{ fontFamily: 'Outfit, sans-serif', color: 'var(--color-primary)' }}>{bill.id}</code></td>
+                  <td>{bill.tableName}</td>
+                  <td><strong style={{ color: '#27ae60', fontFamily: 'Outfit, sans-serif' }}>{(bill.total || 0).toFixed(2)} ₪</strong></td>
+                  <td>{PAYMENT_LABELS[bill.paymentMethod] || bill.paymentMethod || 'نقد'}</td>
+                  <td style={{ fontFamily: 'Outfit, sans-serif', fontSize: '0.85rem' }}>{bill.timeFormatted}</td>
+                  <td>
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      <button className="icon-btn" onClick={() => setSelected(bill)} title="تفاصيل">👁️</button>
+                      <button className="icon-btn" onClick={() => printBill(bill)} title="طباعة">🖨️</button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {filteredBills.length === 0 && <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>لا توجد فواتير مكتملة بعد</div>}
+        </div>
+      </div>
+
+      {/* Bill detail modal */}
+      {selected && (
+        <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) setSelected(null); }}>
+          <div className="modal-content glass-card">
+            <div className="modal-header">
+              <h3 className="modal-title">فاتورة {selected.tableName}</h3>
+              <button className="modal-close" onClick={() => setSelected(null)}>×</button>
+            </div>
+            <div className="modal-body">
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '0.85rem', marginBottom: '16px' }}>
+                <div>رقم: <strong style={{ fontFamily: 'Outfit, sans-serif', color: 'var(--color-primary)' }}>{selected.id}</strong></div>
+                <div>الوقت: <strong>{selected.timeFormatted}</strong></div>
+                <div>الجرسون: <strong>{selected.waiterCode}</strong></div>
+                <div>الكاشير: <strong>{selected.cashierCode}</strong></div>
+              </div>
+              {(selected.items || []).map(item => (
+                <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--border-light)' }}>
+                  <span>{item.name} × {item.qty}</span>
+                  <span style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 600 }}>{(item.price * item.qty).toFixed(2)} ₪</span>
+                </div>
+              ))}
+              <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.9rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>المجموع الفرعي</span><span>{(selected.subtotal || 0).toFixed(2)} ₪</span></div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>الضريبة (15%)</span><span>{(selected.tax || 0).toFixed(2)} ₪</span></div>
+                {selected.serviceCharge > 0 && <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>خدمة (10%)</span><span>{(selected.serviceCharge || 0).toFixed(2)} ₪</span></div>}
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, fontSize: '1.1rem', color: '#27ae60', borderTop: '1px solid var(--border-light)', paddingTop: '8px', marginTop: '4px' }}>
+                  <span>الإجمالي النهائي</span>
+                  <span style={{ fontFamily: 'Outfit, sans-serif' }}>{(selected.total || 0).toFixed(2)} ₪</span>
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn-primary-gold" onClick={() => printBill(selected)}>🖨️ طباعة</button>
+              <button className="btn-secondary" onClick={() => setSelected(null)}>إغلاق</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+
+
+
+
+
         <div style={{ overflowX: 'auto' }}>
           <table className="data-table">
             <thead>
