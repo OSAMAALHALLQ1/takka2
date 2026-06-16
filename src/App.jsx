@@ -9,7 +9,7 @@ import {
 import { getAuth, logout as authLogout } from './utils/auth-store';
 import ManagerLogin from './components/ManagerLogin';
 import EmployeeLogin from './components/EmployeeLogin';
-import ManagerCodes from './components/ManagerCodes';
+
 import WaiterView from './components/WaiterView';
 import CashierView from './components/CashierView';
 import AdminDashboard from './components/AdminDashboard';
@@ -480,7 +480,9 @@ export default function App() {
       loadStorage();
       const auth = getAuth();
       if (auth?.kind === 'manager') {
-        setAuthPage('codes');
+        const session = { id: auth.codeId, role: 'manager', name: auth.label, code: auth.codeId?.slice(0,6) || 'ADM', username: auth.label };
+        setUser(session);
+        setAuthPage('system');
       } else if (auth?.kind === 'employee') {
         const session = getSession();
         if (session) { setUser(session); setAuthPage('system'); }
@@ -592,7 +594,14 @@ export default function App() {
 
   const handleSaveTables = (newTables) => { setTables(newTables); saveTables(newTables); };
   const handleLogout = () => { clearSession(); authLogout(); setUser(null); setAuthPage('login'); };
-  const handleManagerLogin = () => setAuthPage('codes');
+  const handleManagerLogin = () => {
+    const auth = getAuth();
+    if (auth?.kind === 'manager') {
+        const session = { id: auth.codeId, role: 'manager', name: auth.label, code: auth.codeId?.slice(0,6) || 'ADM', username: auth.label };
+        setUser(session);
+    }
+    setAuthPage('system');
+};
   const handleEmployeeLogin = (session) => {
     setUser(session);
     setAuthPage('system');
@@ -639,16 +648,7 @@ export default function App() {
     );
   }
 
-  if (authPage === 'codes') {
-    return (
-      <div className="app-shell">
-        <TopBar onMenuClick={() => setSidebarOpen(o => !o)} />
-        <main className="app-main" style={{ padding: '20px' }}>
-          <ManagerCodes onLogout={handleLogout} />
-        </main>
-      </div>
-    );
-  }
+  
 
   const isDept = ['kitchen', 'bar', 'shisha'].includes(user.role);
   const [activeTab, setActiveTab] = useState('dashboard');

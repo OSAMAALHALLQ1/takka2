@@ -5,7 +5,7 @@ import ResponsiveGrid from './Layout/ResponsiveGrid';
 import {
   getTables, saveTables, getEmployees, saveEmployees,
   getMenu, saveMenu, getBills, deleteBills, deleteAllBills, exportBills, getDepartments, saveDepartments,
-  addNotification, getDeptOrders
+  addNotification, getDeptOrders, filterBills, exportBillsToCSV
 } from '../utils/storage';
 import Sidebar from '../Layout/Sidebar';
 
@@ -86,6 +86,18 @@ export default function AdminDashboard({ user, onLogout, sidebarOpen, setSidebar
       )}
 
       {/* Sidebar */}
+      <aside className={`admin-sidebar ${sidebarOpen ? 'open' : ''}`}>
+        <div style={{ padding: '20px', fontSize: '1.2rem', fontWeight: 800 }}>تـكـة • الإدارة</div>
+        <nav>
+          {TABS.map(tab => (
+            <button key={tab.id} className={`sidebar-item ${activeTab === tab.id ? 'active' : ''}`} onClick={() => { setActiveTab(tab.id); setSidebarOpen(false); }}>
+              <span>{tab.icon}</span> <span>{tab.label}</span>
+            </button>
+          ))}
+        </nav>
+        <button
+          className="sidebar-item"
+          style={{ marginTop: 'auto', color: '#e74c3c' }}
           onClick={() => { setSidebarOpen(false); onLogout(); }}
           title="تسجيل خروج"
         >
@@ -1280,6 +1292,9 @@ function ReportsTab({ bills, menuItems, tables }) {
 function BillsTab({ bills }) {
   const [selected, setSelected] = useState(null);
   const [filterMode, setFilterMode] = useState('all');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [minTotal, setMinTotal] = useState('');
 
   const printBill = (bill) => {
     const w = window.open('', '', 'width=400,height=600');
@@ -1311,16 +1326,37 @@ function BillsTab({ bills }) {
     URL.revokeObjectURL(url);
   };
 
-  const filteredBills = bills.filter(b => {
+  const exportCSV = () => {
+    const data = exportBillsToCSV(filteredBills);
+    const blob = new Blob(['\ufeff' + data], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `bills-${new Date().toLocaleDateString()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const filteredBills = (() => {
+    let base = bills;
     if (filterMode === 'week') {
-      if (!b.timestamp) return false;
       const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-      return new Date(b.timestamp).getTime() >= weekAgo;
+      base = base.filter(b => b.timestamp && new Date(b.timestamp).getTime() >= weekAgo);
+    } else if (filterMode === 'today') {
+      const today = new Date().toLocaleDateString('ar-EG');
+      base = base.filter(b => b.dateFormatted === today);
     }
-    if (filterMode === 'all') return true;
-    if (filterMode === 'today') return b.dateFormatted === new Date().toLocaleDateString('ar-EG');
-    return true;
-  });
+    
+    const criteria = {};
+    if (startDate) criteria.startDate = new Date(startDate).getTime();
+    if (endDate) criteria.endDate = new Date(endDate).getTime();
+    if (minTotal) criteria.minTotal = parseFloat(minTotal);
+    
+    if (Object.keys(criteria).length) {
+      return filterBills(base, criteria);
+    }
+    return base;
+  })();
 
   const handleDeleteFiltered = async () => {
     if (!window.confirm('هل أنت متأكد من حذف الفواتير المعروضة؟')) return;
@@ -1341,12 +1377,17 @@ function BillsTab({ bills }) {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
         <h2 className="tab-title" style={{ margin: 0 }}>🧾 الفواتير ({filteredBills.length})</h2>
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-          <select value={filterMode} onChange={e => setFilterMode(e.target.value)} style={{ padding: '4px 8px', borderRadius: '4px' }}>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <select value={filterMode} onChange={e => setFilterMode(e.target.value)} style={{ padding: '6px', borderRadius: '4px' }}>
             <option value="all">الكل</option>
+            <option value="today">اليوم</option>
             <option value="week">الأسبوع الحالي</option>
           </select>
-          <button className="btn-secondary" onClick={exportJSON}>📥 تصدير JSON</button>
+          <input type="date" className="form-input" style={{ width: '130px', padding: '6px' }} onChange={e => setStartDate(e.target.value)} />
+          <input type="date" className="form-input" style={{ width: '130px', padding: '6px' }} onChange={e => setEndDate(e.target.value)} />
+          <input type="number" className="form-input" placeholder="الحد الأدنى" style={{ width: '100px', padding: '6px' }} onChange={e => setMinTotal(e.target.value)} />
+          <button className="btn-secondary" onClick={exportJSON}>📥 JSON</button>
+          <button className="btn-secondary" onClick={exportCSV}>📥 CSV</button>
           <button className="btn-danger" onClick={handleDeleteFiltered}>🗑️ حذف المعروض</button>
           <button className="btn-danger" onClick={handleDeleteAll}>🔥 حذف الجميع</button>
           <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, color: '#27ae60', fontSize: '1.1rem' }}>

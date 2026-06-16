@@ -1,0 +1,93 @@
+[
+  {
+    "id": "3103",
+    "nameAr": "حلا",
+    "nameEn": "Soul Mate",
+    "name": "حلا Soul Mate",
+    "category": "desserts",
+    "price": 30.00,
+    "description": "حلا Soul Mate",
+    "image": "https://meedmenu.com/uploads/products/69dfb4e029625.jpg",
+    "department": "kitchen",
+    "available": true,
+    "prepTime": 5
+  },
+  {
+    "id": "3105",
+    "nameAr": "تشيز",
+    "nameEn": "Soul Mate",
+    "name": "تشيز Soul Mate",
+    "category": "desserts",
+    "price": 25.00,
+    "description": "تشيز Soul Mate",
+    "image": "https://meedmenu.com/uploads/products/69e234f0d3aa8.jpg",
+    "department": "kitchen",
+    "available": true,
+    "prepTime": 5
+  },
+  {
+    "id": "2372",
+    "nameAr": "ساندويتش",
+    "nameEn": "Soul Mate",
+    "name": "ساندويتش Soul Mate",
+    "category": "sandwiches",
+    "price": 45.00,
+    "description": "ساندويتش Soul Mate",
+    "image": "https://meedmenu.com/uploads/products/69e49611e97b7.jpg",
+    "department": "kitchen",
+    "available": true,
+    "prepTime": 7
+  },
+  {
+    "id": "3084",
+    "nameAr": "سلطة",
+    "nameEn": "Soul Mate",
+    "name": "سلطة Soul Mate",
+    "category": "salads",
+    "price": 25.00,
+    "description": "سلطة Soul Mate",
+    "image": "https://meedmenu.com/uploads/products/69e0b9bac4815.jpg",
+    "department": "kitchen",
+    "available": true,
+    "prepTime": 4
+  },
+  {
+    "id": "3089",
+    "nameAr": "خبز بالثوم",
+    "nameEn": "Garlic Bread",
+    "name": "خبز بالثوم",
+    "category": "appetizers",
+    "price": 12.00,
+    "description": "خبز بالثوم",
+    "image": "https://meedmenu.com/uploads/products/69dfb4e029625.jpg",
+    "department": "kitchen",
+    "available": true,
+    "prepTime": 5
+  },
+  {
+    "id": "3090",
+    "nameAr": "زيتون مقلي",
+    "nameEn": "Fried Olives",
+    "name": "زيتون مقلي",
+    "category": "appetizers",
+    "price": 12.00,
+    "description": "زيتون مقلي",
+    "image": "https://meedmenu.com/uploads/products/69dfb4e029625.jpg",
+    "department": "kitchen",
+    "available": true,
+    "prepTime": 5
+  },
+  {
+    "id": "3091",
+    "nameAr": "أصابع دجاج",
+    "nameEn": "Chicken Fingers",
+    "name": "أصابع دجاج",
+    "category": "appetizers",
+    "price": 15.00,
+    "description": "أصابع دجاج",
+    "image": "https://meedmenu.com/uploads/products/69dfb4e029625.jpg",
+    "department": "kitchen",
+    "available": true,
+    "prepTime": 6
+  }
+]
