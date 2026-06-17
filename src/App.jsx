@@ -147,6 +147,8 @@ function MainApp() {
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [toastNotifs, setToastNotifs] = useState([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('dashboard');
+
 
   const isMountedRef = useRef(false);
   const prevDeptOrdersRef = useRef(null);
@@ -391,9 +393,7 @@ function MainApp() {
   }
 
   
-
   const isDept = ['kitchen', 'bar', 'shisha'].includes(user.role);
-  const [activeTab, setActiveTab] = useState('dashboard');
 
     return (
     <div className={`app-shell role-${user.role}`}>
