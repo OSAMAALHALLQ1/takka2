@@ -1,5 +1,5 @@
 -- 1. Tables Table
-CREATE TABLE public.tables (
+CREATE TABLE IF NOT EXISTS public.tables (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
     seats INTEGER DEFAULT 4,
@@ -13,11 +13,12 @@ CREATE TABLE public.tables (
     total NUMERIC DEFAULT 0,
     waiter_code TEXT,
     seated_at BIGINT,
-    guests INTEGER DEFAULT 0
+    guests INTEGER DEFAULT 0,
+    restaurant_id TEXT DEFAULT 'taka-main'
 );
 
 -- 2. Employees Table
-CREATE TABLE public.employees (
+CREATE TABLE IF NOT EXISTS public.employees (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
     name_en TEXT,
@@ -29,11 +30,12 @@ CREATE TABLE public.employees (
     email TEXT,
     salary NUMERIC DEFAULT 0,
     active BOOLEAN DEFAULT true,
-    last_login BIGINT
+    last_login BIGINT,
+    restaurant_id TEXT DEFAULT 'taka-main'
 );
 
 -- 3. Menu Table
-CREATE TABLE public.menu (
+CREATE TABLE IF NOT EXISTS public.menu (
     id TEXT PRIMARY KEY,
     name_ar TEXT NOT NULL,
     name_en TEXT,
@@ -44,11 +46,12 @@ CREATE TABLE public.menu (
     image TEXT,
     department TEXT,
     available BOOLEAN DEFAULT true,
-    prep_time INTEGER DEFAULT 15
+    prep_time INTEGER DEFAULT 15,
+    restaurant_id TEXT DEFAULT 'taka-main'
 );
 
 -- 4. Departments Table
-CREATE TABLE public.departments (
+CREATE TABLE IF NOT EXISTS public.departments (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
     name_en TEXT,
@@ -57,11 +60,12 @@ CREATE TABLE public.departments (
     description TEXT,
     work_hours TEXT,
     active_orders INTEGER DEFAULT 0,
-    last_order_at BIGINT
+    last_order_at BIGINT,
+    restaurant_id TEXT DEFAULT 'taka-main'
 );
 
 -- 5. Bills Table
-CREATE TABLE public.bills (
+CREATE TABLE IF NOT EXISTS public.bills (
     id TEXT PRIMARY KEY,
     table_id TEXT,
     table_name TEXT,
@@ -76,22 +80,24 @@ CREATE TABLE public.bills (
     service_charge NUMERIC,
     total NUMERIC,
     payment_method TEXT,
-    notes TEXT
+    notes TEXT,
+    restaurant_id TEXT DEFAULT 'taka-main'
 );
 
 -- 6. Notifications Table
-CREATE TABLE public.notifications (
+CREATE TABLE IF NOT EXISTS public.notifications (
     id TEXT PRIMARY KEY,
     title TEXT NOT NULL,
     message TEXT,
     type TEXT,
     target_roles JSONB DEFAULT '[]'::jsonb,
     timestamp BIGINT,
-    read BOOLEAN DEFAULT false
+    read BOOLEAN DEFAULT false,
+    restaurant_id TEXT DEFAULT 'taka-main'
 );
 
 -- 7. Department Orders (Active Orders)
-CREATE TABLE public.dept_orders (
+CREATE TABLE IF NOT EXISTS public.dept_orders (
     id TEXT PRIMARY KEY,
     table_id TEXT,
     table_name TEXT,
@@ -103,14 +109,16 @@ CREATE TABLE public.dept_orders (
     tax NUMERIC,
     service_charge NUMERIC,
     total NUMERIC,
-    status TEXT
+    status TEXT,
+    restaurant_id TEXT DEFAULT 'taka-main'
 );
 
 -- Realtime Configuration
-ALTER PUBLICATION supabase_realtime ADD TABLE tables;
-ALTER PUBLICATION supabase_realtime ADD TABLE employees;
-ALTER PUBLICATION supabase_realtime ADD TABLE menu;
-ALTER PUBLICATION supabase_realtime ADD TABLE departments;
-ALTER PUBLICATION supabase_realtime ADD TABLE bills;
-ALTER PUBLICATION supabase_realtime ADD TABLE notifications;
-ALTER PUBLICATION supabase_realtime ADD TABLE dept_orders;
+DO $$
+BEGIN
+  BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE tables, employees, menu, departments, bills, notifications, dept_orders;
+  EXCEPTION WHEN duplicate_object THEN
+    NULL;
+  END;
+END $$;
