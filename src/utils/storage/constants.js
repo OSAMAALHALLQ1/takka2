@@ -11,8 +11,8 @@ export const DEPT_ORDERS_KEY = 'department_orders';
 export const SESSION_KEY = 'session';
 export const DEPARTMENTS_KEY = 'departments';
 
-export const TAX_RATE = 0;
-export const SERVICE_RATE = 0;
+export const TAX_RATE = 0.15;
+export const SERVICE_RATE = 0.10;
 export const MAX_NOTIFICATIONS = 30;
 export const MAX_BILLS_KEPT = 1000;
 

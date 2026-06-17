@@ -29,4 +29,5 @@ export const getRestaurantName = () => {
   return 'تكة';
 };
 
-export const RESTAURANT_NAME = getRestaurantName();
+export { getRestaurantName };
+export const RESTAURANT_NAME = getRestaurantName(); // Legacy - use getRestaurantName() instead

@@ -148,7 +148,11 @@ export default function WaiterView({ tables, onSaveTables, employee, menuItems =
   });
 
   const addToCart = (item) => {
-    addNotification('⚠️ عدم الإضافة', 'الجرسون غير مسموح له بإضافة أصناف مباشرة', 'warning', [employee.role]);
+    setCart(prev => {
+      const ex = prev.find(i => i.id === item.id);
+      if (ex) return prev.map(i => i.id === item.id ? { ...i, qty: i.qty + 1 } : i);
+      return [...prev, { ...item, qty: 1, note: '' }];
+    });
   };
 
   const removeFromCart = (itemId) => {

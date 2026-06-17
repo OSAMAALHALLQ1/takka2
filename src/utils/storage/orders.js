@@ -31,7 +31,6 @@ export const deleteDeptOrder = async (id) => {
 export const deleteDeptOrdersForTable = async (tableId) => {
   const orders = getDeptOrders();
   const toDeleteIds = Object.keys(orders).filter(id => orders[id].tableId === tableId);
-  console.log('deleteDeptOrdersForTable - before deletion, tableId:', tableId, 'ids:', toDeleteIds);
   if (toDeleteIds.length > 0) {
     const filtered = Object.fromEntries(Object.entries(orders).filter(([, o]) => o.tableId !== tableId));
     cache[DEPT_ORDERS_KEY] = clone(filtered);
@@ -44,10 +43,8 @@ export const deleteDeptOrdersForTable = async (tableId) => {
         console.error('Failed to delete table dept orders from Supabase:', err);
       }
     }
-    console.log('deleteDeptOrdersForTable - after deletion, remaining count:', Object.keys(filtered).length);
     return toDeleteIds.length;
   }
-  console.log('deleteDeptOrdersForTable - no orders to delete for table', tableId);
   return 0;
 };
 

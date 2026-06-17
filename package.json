@@ -1,5 +1,5 @@
 {
-  "name": "takka",
+  "name": "takka2",
   "description": "☕ نظام إدارة مطاعم ومقاهي ذكي - Restaurant Management System",
   "private": true,
   "version": "1.0.0",
@@ -7,7 +7,7 @@
   "homepage": "https://takka-restaurant.vercel.app/",
   "repository": {
     "type": "git",
-    "url": "https://github.com/OSAMAALHALLQ1/takka.git"
+    "url": "https://github.com/OSAMAALHALLQ1/takka2.git"
   },
   "author": {
     "name": "Osama AlHallaq",

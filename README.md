@@ -43,8 +43,8 @@
 
 1️⃣ **استنساخ المشروع:**
 ```bash
-git clone https://github.com/OSAMAALHALLQ1/takka.git
-cd takka
+git clone https://github.com/OSAMAALHALLQ1/takka2.git
+cd takka2
 ```
 
 2️⃣ **تثبيت المكتبات:**
