@@ -100,6 +100,17 @@ export function OrderProvider({ children }) {
         }
       }
 
+      // Add notification when order/item is marked ready
+      if (newStatus === 'ready') {
+        const roleTargets = department ? [department, 'manager'] : ['manager'];
+        addNotification(
+          '✅ العنصر جاهز',
+          `تم تحديث حالة ${department ? department : 'الطلب'} إلى جاهز`,
+          'success',
+          roleTargets
+        );
+      }
+
       // Trigger sync
       window.dispatchEvent(new CustomEvent('taka_sync'));
       return true;
