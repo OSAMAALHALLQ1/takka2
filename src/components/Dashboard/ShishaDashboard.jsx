@@ -2,35 +2,35 @@ import { useMemo } from 'react';
 import { DepartmentOrderCard } from '../Orders/DepartmentOrderCard';
 import { useOrders } from '../../hooks/useOrders';
 
-export function KitchenDashboard() {
+export function ShishaDashboard() {
   const { orders } = useOrders();
   
   // فلترة الطلبات: فقط التي لم تكتمل بعد
-  const kitchenOrders = useMemo(() => {
+  const shishaOrders = useMemo(() => {
     return orders.filter(order => {
-      const hasKitchenItems = (order.items || []).some(
-        item => item.department === 'kitchen' && item.status !== 'completed' && item.status !== 'delivered' && item.status !== 'ready'
+      const hasShishaItems = (order.items || []).some(
+        item => item.department === 'shisha' && item.status !== 'completed' && item.status !== 'delivered' && item.status !== 'ready'
       );
-      return hasKitchenItems && order.status !== 'completed';
+      return hasShishaItems && order.status !== 'completed';
     });
   }, [orders]);
   
   // ترتيب: الأحدث أولاً
   const sortedOrders = useMemo(() => {
-    return [...kitchenOrders].sort(
+    return [...shishaOrders].sort(
       (a, b) => (b.timestamp || b.createdAt || 0) - (a.timestamp || a.createdAt || 0)
     );
-  }, [kitchenOrders]);
+  }, [shishaOrders]);
   
   return (
     <div className="space-y-4 pb-6">
       {/* رأس الصفحة */}
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold text-primary" style={{ margin: 0 }}>
-          🍳 المطبخ
+          💨 الشيشة
         </h2>
         <div className="bg-red-100 text-red-700 px-3 py-1 rounded-full font-semibold">
-          {kitchenOrders.length} طلب
+          {shishaOrders.length} طلب
         </div>
       </div>
       
@@ -45,7 +45,7 @@ export function KitchenDashboard() {
           <DepartmentOrderCard
             key={order.id}
             order={order}
-            department="kitchen"
+            department="shisha"
           />
         ))
       )}
@@ -53,4 +53,4 @@ export function KitchenDashboard() {
   );
 }
 
-export default KitchenDashboard;
+export default ShishaDashboard;

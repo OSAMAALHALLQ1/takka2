@@ -598,6 +598,14 @@ export default function WaiterView({ tables, onSaveTables, employee, menuItems =
   // MAIN TABLES VIEW
   return (
     <div className="view-container">
+      {/* Ready items global bar */}
+      {readyItems.length > 0 && (
+        <div className="ready-alert-banner">
+          🔔 طلبات جاهزة للتسليم! ({readyItems.length})
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '8px' }}>
+            {readyItems.map((ri, i) => (
+              <div key={i} style={{ display: 'flex', gap: '8px', alignItems: 'center', background: 'rgba(255,255,255,0.1)', padding: '4px 10px', borderRadius: '20px' }}>
+                <span style={{ fontSize: '0.82rem' }}>{ri.tableName} – {ri.name} ×{ri.qty}</span>
                 <button className="deliver-btn" onClick={() => handleDeliverItem(ri.orderId, ri.id)}>✓</button>
               </div>
             ))}

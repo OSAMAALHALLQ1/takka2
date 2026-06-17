@@ -1,13 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import ResponsiveCard from './Layout/ResponsiveCard';
 import ResponsiveModal from './Layout/ResponsiveModal';
-import ResponsiveGrid from './Layout/ResponsiveGrid';
 import {
   getTables, saveTables, getEmployees, saveEmployees,
   getMenu, saveMenu, getBills, deleteBills, deleteAllBills, exportBills, getDepartments, saveDepartments,
   addNotification, getDeptOrders, filterBills, exportBillsToCSV
 } from '../utils/storage';
-import Sidebar from '../Layout/Sidebar';
+import { getCodes, createCode, revokeCode, deleteCode } from '../utils/auth-store';
 
 
 const ROLE_COLORS = {
@@ -1428,88 +1427,6 @@ function BillsTab({ bills }) {
             </tbody>
           </table>
           {filteredBills.length === 0 && <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>لا توجد فواتير مكتملة بعد</div>}
-        </div>
-      </div>
-
-      {/* Bill detail modal */}
-      {selected && (
-        <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) setSelected(null); }}>
-          <div className="modal-content glass-card">
-            <div className="modal-header">
-              <h3 className="modal-title">فاتورة {selected.tableName}</h3>
-              <button className="modal-close" onClick={() => setSelected(null)}>×</button>
-            </div>
-            <div className="modal-body">
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '0.85rem', marginBottom: '16px' }}>
-                <div>رقم: <strong style={{ fontFamily: 'Outfit, sans-serif', color: 'var(--color-primary)' }}>{selected.id}</strong></div>
-                <div>الوقت: <strong>{selected.timeFormatted}</strong></div>
-                <div>الجرسون: <strong>{selected.waiterCode}</strong></div>
-                <div>الكاشير: <strong>{selected.cashierCode}</strong></div>
-              </div>
-              {(selected.items || []).map(item => (
-                <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--border-light)' }}>
-                  <span>{item.name} × {item.qty}</span>
-                  <span style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 600 }}>{(item.price * item.qty).toFixed(2)} ₪</span>
-                </div>
-              ))}
-              <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.9rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>المجموع الفرعي</span><span>{(selected.subtotal || 0).toFixed(2)} ₪</span></div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>الضريبة (15%)</span><span>{(selected.tax || 0).toFixed(2)} ₪</span></div>
-                {selected.serviceCharge > 0 && <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>خدمة (10%)</span><span>{(selected.serviceCharge || 0).toFixed(2)} ₪</span></div>}
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, fontSize: '1.1rem', color: '#27ae60', borderTop: '1px solid var(--border-light)', paddingTop: '8px', marginTop: '4px' }}>
-                  <span>الإجمالي النهائي</span>
-                  <span style={{ fontFamily: 'Outfit, sans-serif' }}>{(selected.total || 0).toFixed(2)} ₪</span>
-                </div>
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button className="btn-primary-gold" onClick={() => printBill(selected)}>🖨️ طباعة</button>
-              <button className="btn-secondary" onClick={() => setSelected(null)}>إغلاق</button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-
-
-
-
-
-
-        <div style={{ overflowX: 'auto' }}>
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>رقم الفاتورة</th>
-                <th>الطاولة</th>
-                <th>الإجمالي</th>
-                <th>طريقة الدفع</th>
-                <th>الوقت</th>
-                <th>الإجراءات</th>
-              </tr>
-            </thead>
-            <tbody>
-              {[...bills].reverse().map(bill => (
-                <tr key={bill.id}>
-                  <td><code style={{ fontFamily: 'Outfit, sans-serif', color: 'var(--color-primary)' }}>{bill.id}</code></td>
-                  <td>{bill.tableName}</td>
-                  <td><strong style={{ color: '#27ae60', fontFamily: 'Outfit, sans-serif' }}>{(bill.total || 0).toFixed(2)} ₪</strong></td>
-                  <td>{PAYMENT_LABELS[bill.paymentMethod] || bill.paymentMethod || 'نقد'}</td>
-                  <td style={{ fontFamily: 'Outfit, sans-serif', fontSize: '0.85rem' }}>{bill.timeFormatted}</td>
-                  <td>
-                    <div style={{ display: 'flex', gap: '6px' }}>
-                      <button className="icon-btn" onClick={() => setSelected(bill)} title="تفاصيل">👁️</button>
-                      <button className="icon-btn" onClick={() => printBill(bill)} title="طباعة">🖨️</button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {bills.length === 0 && <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>لا توجد فواتير مكتملة بعد</div>}
         </div>
       </div>
 
