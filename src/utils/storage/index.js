@@ -28,6 +28,4 @@ export const getRestaurantName = () => {
   }
   return 'تكة';
 };
-
-export { getRestaurantName };
 export const RESTAURANT_NAME = getRestaurantName(); // Legacy - use getRestaurantName() instead

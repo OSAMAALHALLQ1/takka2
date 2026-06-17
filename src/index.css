@@ -1246,8 +1246,8 @@ select.form-input option { background: #ffffff; color: var(--text-main); }
   .order-layout { grid-template-columns: 1fr 300px; }
   .admin-sidebar { width: 190px; min-width: 190px; }
 }
-
-/* Admin Mobile Toggle Button */
+@media (max-width: 900px) {
+  /* Admin Mobile Toggle Button */
   .admin-mobile-toggle {
     display: flex !important;
     align-items: center;
