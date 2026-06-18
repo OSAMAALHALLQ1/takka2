@@ -47,7 +47,7 @@ export const authenticateByCode = (inputCode) => {
   if (isFirstLogin) {
     const roleAr = { manager: 'مدير', waiter: 'جرسون', cashier: 'محاسب', kitchen: 'مطبخ', bar: 'بار', shisha: 'شيشة' }[emp.role] || emp.role;
     addNotification(
-      `👤 موظف جديد فعّل حسابه: ${emp.name} ${roleAr}`,
+      `موظف جديد فعّل حسابه: ${emp.name} ${roleAr}`,
       `الموظف قام بتسجيل الدخول لأول مرة وتفعيل الحساب`,
       'success',
       ['manager']

@@ -104,7 +104,7 @@ export function OrderProvider({ children }) {
       if (newStatus === 'ready') {
         const roleTargets = department ? [department, 'manager'] : ['manager'];
         addNotification(
-          '✅ العنصر جاهز',
+          'العنصر جاهز',
           `تم تحديث حالة ${department ? department : 'الطلب'} إلى جاهز`,
           'success',
           roleTargets
@@ -203,7 +203,7 @@ export function OrderProvider({ children }) {
       window.dispatchEvent(new CustomEvent('taka_sync'));
       
       addNotification(
-        '💳 تم إغلاق الفاتورة بنجاح',
+        'تم إغلاق الفاتورة بنجاح',
         `تم تحصيل الفاتورة ${invoiceId} للطاولة ${bill.tableName}`,
         'success',
         ['cashier', 'manager']

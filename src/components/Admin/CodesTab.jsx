@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { getCodes, createCode, revokeCode, deleteCode } from '../../utils/auth-store';
 import { addNotification } from '../../utils/storage';
 import { ROLE_LABELS, ROLE_COLORS } from './constants';
+import { KeyRound, CheckCircle, Copy, Ban, Trash2, Check } from 'lucide-react';
 
 export default function CodesTab({ codes, setCodes }) {
   const [now, setNow] = useState(() => Date.now());
@@ -55,7 +56,10 @@ export default function CodesTab({ codes, setCodes }) {
 
   return (
     <div>
-      <h2 className="tab-title">🔑 أكواد الدعوة للموظفين</h2>
+      <h2 className="tab-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <KeyRound size={24} style={{ color: 'var(--color-primary)' }} />
+        أكواد الدعوة للموظفين
+      </h2>
 
       {/* Generate form */}
       <div className="admin-card" style={{ marginBottom: '24px' }}>
@@ -90,10 +94,19 @@ export default function CodesTab({ codes, setCodes }) {
 
         {generatedCode && (
           <div style={{ marginTop: '20px', padding: '20px', background: 'rgba(39,174,96,0.08)', border: '1px solid rgba(39,174,96,0.3)', borderRadius: '12px' }}>
-            <div style={{ color: '#27ae60', fontWeight: 700, marginBottom: '12px' }}>✅ تم إنشاء الكود بنجاح!</div>
+            <div style={{ color: '#27ae60', fontWeight: 700, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <CheckCircle size={18} />
+              <span>تم إنشاء الكود بنجاح!</span>
+            </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
               <code style={{ fontSize: '1.4rem', fontFamily: 'Outfit, sans-serif', letterSpacing: '3px', color: 'var(--color-primary)', background: 'rgba(0,0,0,0.2)', padding: '8px 16px', borderRadius: '8px', direction: 'ltr' }}>{generatedCode.code}</code>
-              <button className="btn-primary-gold" onClick={() => copyCode(generatedCode.code)}>{copySuccess === generatedCode.code ? '✅ تم النسخ' : '📋 نسخ'}</button>
+              <button className="btn-primary-gold" style={{ display: 'flex', alignItems: 'center', gap: '4px' }} onClick={() => copyCode(generatedCode.code)}>
+                {copySuccess === generatedCode.code ? (
+                  <><Check size={14} /> تم النسخ</>
+                ) : (
+                  <><Copy size={14} /> نسخ</>
+                )}
+              </button>
             </div>
             <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
               للموظف: <strong>{generatedCode.label}</strong> | الدور: <strong>{ROLE_LABELS[generatedCode.allowedRoles?.[0]]}</strong> | الصلاحية: <strong>{daysLeft(generatedCode)}</strong>
@@ -123,12 +136,18 @@ export default function CodesTab({ codes, setCodes }) {
                   </div>
                   <div style={{ display: 'flex', gap: '6px' }}>
                     {!code.revoked && !isExpired(code) && (
-                      <button className="icon-btn" onClick={() => copyCode(code.code)} title="نسخ الكود">{copySuccess === code.code ? '✅' : '📋'}</button>
+                      <button className="icon-btn" onClick={() => copyCode(code.code)} title="نسخ الكود">
+                        {copySuccess === code.code ? <Check size={14} /> : <Copy size={14} />}
+                      </button>
                     )}
                     {!code.revoked && !isExpired(code) && (
-                      <button className="icon-btn" onClick={() => handleRevoke(code.id)} title="إلغاء الكود">🚫</button>
+                      <button className="icon-btn" onClick={() => handleRevoke(code.id)} title="إلغاء الكود">
+                        <Ban size={14} />
+                      </button>
                     )}
-                    <button className="icon-btn danger" onClick={() => handleDelete(code.id)} title="حذف">🗑️</button>
+                    <button className="icon-btn danger" onClick={() => handleDelete(code.id)} title="حذف">
+                      <Trash2 size={14} />
+                    </button>
                   </div>
                 </div>
               </div>

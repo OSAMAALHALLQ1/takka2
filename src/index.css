@@ -8,83 +8,69 @@
   --font-arabic: 'Cairo', sans-serif;
   --font-english: 'Outfit', sans-serif;
 
-  /* Comfortable Light Theme Palette */
-  --bg-main:           #f8f9fa;      /* Main background (رمادي فاتح جداً) */
-  --bg-surface:        #ffffff;      /* Secondary background (أبيض نقي) */
-  --bg-surface-2:      #e8ecf1;      /* Bar background (رمادي فاتح) */
-  --bg-surface-glass:  #ffffff;      /* Card background (أبيض) */
-  --border-light:      #e2e8f0;      /* Light border (حد خفيف) */
-  --border-hover:      #cbd5e0;      /* Medium border (حد متوسط) */
+  /* Premium Light Theme Palette (Vercel & X Light Inspired) */
+  --bg-main:           #f9fafb;      /* Soft light off-white background */
+  --bg-surface:        #ffffff;      /* Pure white card surface */
+  --bg-surface-2:      #f4f4f5;      /* Light gray borders/elements */
+  --bg-surface-glass:  rgba(255, 255, 255, 0.85); /* Card background with blur */
+  --border-light:      #e4e4e7;      /* Clean thin gray border */
+  --border-hover:      #d4d4d8;      /* Hover border state */
 
-  /* Default Primary Color (Emerald Green) */
-  --color-primary:       #10b981;
-  --color-primary-dark:  #059669;
-  --color-primary-light: #34d399;
-  --color-primary-glow:  rgba(16, 185, 129, 0.08);
+  /* Default Primary Color (Ruby Red / Crimson) */
+  --color-primary:       #dc2626;
+  --color-primary-dark:  #991b1b;
+  --color-primary-light: #ef4444;
+  --color-primary-glow:  rgba(220, 38, 38, 0.08);
 
-  /* Text Colors */
-  --text-main:  #1a1a1a;  /* Main text (نص رئيسي أسود داكن مريح) */
-  --text-muted: #4a5568;  /* Secondary text (نص ثانوي رمادي غامق) */
-  --text-light: #8a92a2;  /* Light text (نص خفيف رمادي متوسط) */
-  --text-dark:  #ffffff;  /* Text color for dark buttons */
+  /* Role Accent Color - defaults to primary red */
+  --color-role-accent:   #dc2626;
 
-  /* Status Colors */
-  --status-empty:           #27ae60;
-  --status-eating:          #e74c3c;
-  --status-bill-requested:  #f39c12;
-  --status-ordering:        #3b82f6;
-  --status-unavailable:     #8a92a2;
+  /* Text Colors (High Contrast Dark Slate) */
+  --text-main:  #09090b;  /* Deep dark charcoal/black text */
+  --text-muted: #71717a;  /* Muted grey text */
+  --text-light: #a1a1aa;  /* Lighter grey text */
+  --text-dark:  #ffffff;  /* Text color for elements with red/black background */
 
-  /* Shadows (Soft & Elegant) */
-  --shadow-sm:    0 1px 3px rgba(0,0,0,0.03);
-  --shadow-md:    0 4px 16px rgba(0,0,0,0.04);
-  --shadow-lg:    0 10px 30px rgba(0,0,0,0.05);
-  --shadow-gold:  0 0 12px rgba(16, 185, 129, 0.1);
+  /* Status Colors (Green and Red for tables) */
+  --status-empty:           #10b981;  /* Emerald Green */
+  --status-eating:          #dc2626;  /* Ruby Red */
+  --status-bill-requested:  #d97706;  /* Darker Amber for contrast */
+  --status-ordering:        #2563eb;  /* Blue */
+  --status-unavailable:     #71717a;  /* Gray */
+
+  /* Shadows (Soft & Subtle) */
+  --shadow-sm:    0 1px 2px rgba(0,0,0,0.05);
+  --shadow-md:    0 4px 16px rgba(0,0,0,0.06);
+  --shadow-lg:    0 12px 32px rgba(0,0,0,0.08);
+  --shadow-gold:  0 0 16px rgba(220, 38, 38, 0.15);
 
   /* Transitions */
-  --tr-fast:   0.15s ease;
-  --tr-normal: 0.25s cubic-bezier(0.4,0,0.2,1);
+  --tr-fast:   0.12s ease;
+  --tr-normal: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* ────────────────────────────────────────────────────────────────
-   ROLE THEMES (Comfortable & Softer Role Palette)
+   ROLE THEMES (Subtle Role Accent Palette)
    ─────────────────────────────────────────────────────────────────*/
 .app-shell.role-manager {
-  --color-primary:       #e74c3c; /* المدير: أحمر أخف */
-  --color-primary-dark:  #c0392b;
-  --color-primary-light: #ff7675;
-  --color-primary-glow:  rgba(231, 76, 60, 0.08);
+  --color-role-accent:   #ef4444; /* Manager: Vibrant Red */
 }
 .app-shell.role-waiter {
-  --color-primary:       #3498db; /* جرسون: أزرق أخف */
-  --color-primary-dark:  #2980b9;
-  --color-primary-light: #74b9ff;
-  --color-primary-glow:  rgba(52, 152, 219, 0.08);
+  --color-role-accent:   #3b82f6; /* Waiter: Electric Blue */
 }
 .app-shell.role-cashier {
-  --color-primary:       #9b59b6; /* محاسب: بنفسجي أخف */
-  --color-primary-dark:  #8e44ad;
-  --color-primary-light: #a29bfe;
-  --color-primary-glow:  rgba(155, 89, 182, 0.08);
+  --color-role-accent:   #a855f7; /* Cashier: Premium Purple */
 }
 .app-shell.role-kitchen {
-  --color-primary:       #e67e22; /* مطبخ: برتقالي أخف */
-  --color-primary-dark:  #d35400;
-  --color-primary-light: #f39c12;
-  --color-primary-glow:  rgba(230, 126, 34, 0.08);
+  --color-role-accent:   #f97316; /* Kitchen: Flame Orange */
 }
 .app-shell.role-bar {
-  --color-primary:       #1abc9c; /* بار: تركواز أخف */
-  --color-primary-dark:  #16a085;
-  --color-primary-light: #55efc4;
-  --color-primary-glow:  rgba(26, 188, 156, 0.08);
+  --color-role-accent:   #06b6d4; /* Bar: Cyan/Turquoise */
 }
 .app-shell.role-shisha {
-  --color-primary:       #27ae60; /* شيشة: أخضر أخف */
-  --color-primary-dark:  #219653;
-  --color-primary-light: #2ecc71;
-  --color-primary-glow:  rgba(39, 174, 96, 0.08);
+  --color-role-accent:   #10b981; /* Shisha: Emerald Green */
 }
+
 
 
 
@@ -107,7 +93,7 @@ body {
 /* Scrollbars */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: var(--bg-main); }
-::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 4px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--color-primary); }
 
 .num-font { font-family: var(--font-english); font-feature-settings: "tnum"; }
@@ -132,6 +118,36 @@ body {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  position: relative;
+}
+
+/* Subtle glowing side border representing the role/view's identity */
+.app-shell::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 3px;
+  height: 100vh;
+  background: var(--color-role-accent);
+  z-index: 9999;
+  pointer-events: none;
+  box-shadow: 0 0 12px var(--color-role-accent), 0 0 4px var(--color-role-accent);
+  transition: background var(--tr-normal), box-shadow var(--tr-normal);
+}
+
+/* Elegant ambient role-specific side glow in the background */
+.app-shell::after {
+  content: '';
+  position: fixed;
+  top: 10vh;
+  right: 0;
+  width: 280px;
+  height: 80vh;
+  background: radial-gradient(circle at right, color-mix(in srgb, var(--color-role-accent) 6%, transparent) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: -1;
+  transition: background var(--tr-normal);
 }
 
 /* ────────────────────────────────────────────────────────────────
@@ -146,10 +162,12 @@ body {
   justify-content: space-between;
   padding: 0 24px;
   height: 65px;
-  background: rgba(11,14,23,0.95);
-  backdrop-filter: blur(20px);
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--border-light);
-  box-shadow: 0 2px 20px rgba(0,0,0,0.4);
+  border-top: 2px solid var(--color-role-accent);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+  transition: border-color var(--tr-normal);
 }
 
 .brand {
@@ -171,13 +189,15 @@ body {
 
 .brand-tag {
   font-size: 0.72rem;
-  background: var(--color-primary-glow);
-  color: var(--color-primary);
-  border: 1px solid var(--color-primary);
+  background: rgba(0, 0, 0, 0.03);
+  color: var(--color-role-accent);
+  border: 1px solid var(--color-role-accent);
   padding: 3px 10px;
-  border-radius: 20px;
-  font-weight: 600;
+  border-radius: 6px;
+  font-weight: 700;
   letter-spacing: 0.5px;
+  box-shadow: 0 0 10px color-mix(in srgb, var(--color-role-accent) 10%, transparent);
+  transition: all var(--tr-normal);
 }
 
 .user-profile {
@@ -188,7 +208,8 @@ body {
 
 .user-info { text-align: right; }
 .user-name  { font-weight: 700; font-size: 0.9rem; line-height: 1.2; }
-.user-role  { font-size: 0.72rem; color: var(--color-primary); font-family: var(--font-english); }
+.user-role  { font-size: 0.72rem; color: var(--color-role-accent); font-family: var(--font-english); font-weight: 600; transition: color var(--tr-normal); }
+
 
 /* ────────────────────────────────────────────────────────────────
    MAIN CONTENT
@@ -248,11 +269,11 @@ body {
 .btn-primary:active { transform: none; }
 
 .btn-secondary {
-  background: rgba(255,255,255,0.06);
+  background: var(--bg-surface-2);
   color: var(--text-main);
   border-color: var(--border-light);
 }
-.btn-secondary:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.18); }
+.btn-secondary:hover { background: rgba(0,0,0,0.05); border-color: var(--border-hover); }
 
 .btn-danger { background: rgba(231,76,60,0.15); color: #e74c3c; border-color: rgba(231,76,60,0.25); }
 .btn-danger:hover { background: rgba(231,76,60,0.25); }
@@ -537,7 +558,7 @@ select.form-input option { background: #ffffff; color: var(--text-main); }
 .dept-tab:hover { background: rgba(255,255,255,0.08); color: var(--text-main); }
 .dept-tab.active {
   background: var(--color-primary-glow);
-  border-color: rgba(212,175,55,0.4);
+  border-color: color-mix(in srgb, var(--color-primary) 40%, transparent);
   color: var(--color-primary);
 }
 
@@ -567,7 +588,7 @@ select.form-input option { background: #ffffff; color: var(--text-main); }
   transform: translateY(-2px);
 }
 .menu-item-card:active { transform: translateY(0); }
-.menu-item-card.in-cart { border-color: var(--color-primary); background: rgba(212,175,55,0.08); }
+.menu-item-card.in-cart { border-color: var(--color-primary); background: color-mix(in srgb, var(--color-primary) 8%, transparent); }
 
 .cart-badge {
   position: absolute;
@@ -609,7 +630,7 @@ select.form-input option { background: #ffffff; color: var(--text-main); }
 .cart-count {
   background: var(--color-primary-glow);
   color: var(--color-primary);
-  border: 1px solid rgba(212,175,55,0.25);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 25%, transparent);
   padding: 2px 10px;
   border-radius: 20px;
   font-size: 0.8rem;
@@ -641,7 +662,7 @@ select.form-input option { background: #ffffff; color: var(--text-main); }
   display: flex; align-items: center; justify-content: center;
   transition: all var(--tr-fast);
 }
-.qty-btn:hover { background: var(--color-primary-glow); border-color: rgba(212,175,55,0.3); }
+.qty-btn:hover { background: var(--color-primary-glow); border-color: color-mix(in srgb, var(--color-primary) 30%, transparent); }
 .qty-num {
   font-family: var(--font-english);
   font-weight: 800;
@@ -685,8 +706,8 @@ select.form-input option { background: #ffffff; color: var(--text-main); }
 
 /* Ready alert banner */
 .ready-alert-banner {
-  background: rgba(212,175,55,0.08);
-  border: 1px solid rgba(212,175,55,0.35);
+  background: color-mix(in srgb, var(--color-primary) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 35%, transparent);
   border-radius: 12px;
   padding: 14px 18px;
   margin-bottom: 16px;
@@ -754,25 +775,34 @@ select.form-input option { background: #ffffff; color: var(--text-main); }
   flex-shrink: 0;
 }
 .admin-nav { display: flex; flex-direction: column; gap: 3px; padding: 0 10px; flex: 1; }
-.admin-nav-btn {
+.admin-nav-btn, .sidebar-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 14px;
-  border-radius: 10px;
+  gap: 12px;
+  padding: 10px 16px;
+  border-radius: 8px;
   border: none;
   background: transparent;
   color: var(--text-muted);
   cursor: pointer;
   font-family: var(--font-arabic);
-  font-size: 0.85rem;
+  font-size: 0.88rem;
   font-weight: 600;
   text-align: right;
   transition: all var(--tr-fast);
   width: 100%;
+  margin-bottom: 4px;
 }
-.admin-nav-btn:hover { background: rgba(0, 0, 0, 0.03); color: var(--text-main); }
-.admin-nav-btn.active { background: var(--color-primary-glow); color: var(--color-primary); border: 1px solid var(--border-light); }
+.admin-nav-btn:hover, .sidebar-item:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-main);
+}
+.admin-nav-btn.active, .sidebar-item.active {
+  background: var(--color-primary-glow);
+  color: var(--color-role-accent);
+  border-right: 3px solid var(--color-role-accent);
+  border-radius: 0 8px 8px 0;
+}
 .admin-logout-btn {
   margin: 12px 10px 0;
   padding: 10px 14px;
@@ -973,12 +1003,12 @@ select.form-input option { background: #ffffff; color: var(--text-main); }
     width: 100% !important;
     height: 100vh !important;
     z-index: 2000 !important;
-    background: #ffffff !important;
-    color: #1a1a1a !important;
+    background: var(--bg-surface) !important;
+    color: var(--text-main) !important;
     border-left: none !important;
     padding: 60px 24px 24px 24px !important;
     transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-    box-shadow: -10px 0 30px rgba(0, 0, 0, 0.08) !important;
+    box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5) !important;
     display: flex !important;
   }
   
@@ -990,33 +1020,33 @@ select.form-input option { background: #ffffff; color: var(--text-main); }
     display: block !important;
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.4);
+    background: rgba(0, 0, 0, 0.6);
     backdrop-filter: blur(4px);
     z-index: 1999;
   }
 
   .admin-sidebar-user {
-    border-bottom: 1px solid #e2e8f0 !important;
+    border-bottom: 1px solid var(--border-light) !important;
     margin-bottom: 20px !important;
-    color: #1a1a1a !important;
+    color: var(--text-main) !important;
     padding-bottom: 16px !important;
   }
 
   .admin-sidebar-user .admin-avatar {
-    border-color: var(--color-primary) !important;
+    border-color: var(--color-role-accent) !important;
   }
   
   .admin-nav-btn {
     width: 100% !important;
-    color: #4a5568 !important;
+    color: var(--text-muted) !important;
     padding: 14px 18px !important;
     font-size: 1rem !important;
-    border-radius: 12px !important;
+    border-radius: 8px !important;
   }
   
   .admin-nav-btn:hover {
-    background: #eef2f7 !important;
-    color: #1a1a1a !important;
+    background: rgba(255, 255, 255, 0.04) !important;
+    color: var(--text-main) !important;
   }
 
   .admin-logout-btn {
@@ -1024,14 +1054,14 @@ select.form-input option { background: #ffffff; color: var(--text-main); }
     margin: 20px 10px 0 !important;
     padding: 14px !important;
     font-size: 1rem !important;
-    border-radius: 12px !important;
-    background: #fff5f5 !important;
-    border: 1px solid #feb2b2 !important;
-    color: #c53030 !important;
+    border-radius: 8px !important;
+    background: rgba(239, 68, 68, 0.05) !important;
+    border: 1px solid rgba(239, 68, 68, 0.2) !important;
+    color: #ef4444 !important;
   }
   
   .admin-logout-btn:hover {
-    background: #fed7d7 !important;
+    background: rgba(239, 68, 68, 0.1) !important;
   }
 }
 
@@ -1160,7 +1190,7 @@ select.form-input option { background: #ffffff; color: var(--text-main); }
   justify-content: center;
   min-height: 100vh;
   padding: 20px;
-  background: radial-gradient(ellipse at top, rgba(212,175,55,0.08) 0%, transparent 60%);
+  background: radial-gradient(ellipse at top, color-mix(in srgb, var(--color-primary) 8%, transparent) 0%, transparent 60%);
 }
 
 .login-card {
@@ -1174,7 +1204,7 @@ select.form-input option { background: #ffffff; color: var(--text-main); }
   width: 64px; height: 64px;
   border-radius: 50%;
   background: var(--color-primary-glow);
-  border: 2px solid rgba(212,175,55,0.35);
+  border: 2px solid color-mix(in srgb, var(--color-primary) 35%, transparent);
   margin: 0 auto 16px;
   display: flex; align-items: center; justify-content: center;
   color: var(--color-primary);
@@ -1567,3 +1597,337 @@ select.form-input option { background: #ffffff; color: var(--text-main); }
     grid-template-columns: 1fr !important;
   }
 }
+
+/* ────────────────────────────────────────────────────────────────
+   DEPARTMENT DASHBOARDS & TICKETS STYLE
+   ─────────────────────────────────────────────────────────────────*/
+.dept-header-badge {
+  background: var(--color-primary-glow);
+  color: var(--color-role-accent);
+  border: 1px solid var(--color-role-accent);
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  font-family: var(--font-english);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--color-role-accent) 20%, transparent);
+}
+
+.dept-empty-banner {
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-radius: 12px;
+  padding: 24px;
+  text-align: center;
+}
+.dept-empty-banner .main-text {
+  color: #10b981;
+  font-weight: 700;
+  font-size: 1rem;
+}
+.dept-empty-banner .sub-text {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  margin-top: 4px;
+}
+
+.department-order-card {
+  background: var(--bg-surface-glass);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+  box-shadow: var(--shadow-sm);
+  transition: all var(--tr-normal);
+  text-align: right;
+}
+.department-order-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255,255,255,0.15);
+  box-shadow: var(--shadow-md);
+}
+
+.department-order-card.dept-kitchen {
+  border-right: 5px solid #f97316; /* Orange for Kitchen */
+}
+.department-order-card.dept-bar {
+  border-right: 5px solid #06b6d4; /* Cyan for Bar */
+}
+.department-order-card.dept-shisha {
+  border-right: 5px solid #10b981; /* Green for Shisha */
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+.card-table-title {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--text-main);
+  margin: 0;
+}
+.card-subtitle {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin: 4px 0 0 0;
+}
+
+.card-status-badge {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+.card-status-badge.status-ready {
+  background: rgba(16, 185, 129, 0.12);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+.card-status-badge.status-pending {
+  background: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
+.card-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-light);
+}
+.card-item-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.88rem;
+  padding: 4px 0;
+}
+.card-item-name {
+  color: var(--text-main);
+  font-weight: 600;
+}
+.card-item-qty {
+  font-family: var(--font-english);
+  color: var(--color-role-accent);
+  font-weight: 800;
+}
+
+.card-wait-time {
+  text-align: center;
+  margin-bottom: 14px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+}
+.wait-time-label {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+.wait-time-value {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin: 4px 0 0 0;
+  font-family: var(--font-english);
+}
+
+.status-complete-banner {
+  width: 100%;
+  padding: 12px;
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+  font-weight: 700;
+  border-radius: 8px;
+  text-align: center;
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  font-size: 0.88rem;
+}
+
+.card-notes-banner {
+  margin-top: 12px;
+  padding: 8px 12px;
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  border-radius: 8px;
+  font-size: 0.78rem;
+  color: #f59e0b;
+}
+
+/* ────────────────────────────────────────────────────────────────
+   MOBILE OPTIMIZATIONS & BOTTOM DRAWER SHEETS
+─────────────────────────────────────────────────────────────────*/
+
+/* Spin Animation Utility */
+.animate-spin {
+  animation: spin 1.2s linear infinite;
+}
+
+/* Slide Up Drawer Animations */
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.animate-slide-up {
+  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.2s ease-out forwards;
+}
+
+/* Bottom Sheet Overlay Backdrop */
+.bottom-sheet-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(9, 9, 11, 0.6);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 1050;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+/* Bottom Sheet Drawer Container */
+.bottom-sheet-drawer {
+  width: 100%;
+  max-width: 500px;
+  background: var(--bg-surface);
+  border-top: 1px solid var(--border-light);
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  max-height: 85vh;
+  position: relative;
+  padding-bottom: max(16px, env(safe-area-inset-bottom));
+  outline: none;
+}
+
+/* Drag Handle */
+.bottom-sheet-handle {
+  width: 40px;
+  height: 4px;
+  background: var(--border-light);
+  border-radius: 2px;
+  margin: 10px auto 14px;
+  flex-shrink: 0;
+}
+
+/* Header Section */
+.bottom-sheet-header {
+  padding: 0 20px 14px;
+  border-bottom: 1px solid var(--border-light);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+  direction: rtl;
+}
+
+.bottom-sheet-title {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bottom-sheet-close {
+  background: var(--bg-surface-2);
+  border: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 1rem;
+  transition: all var(--tr-fast);
+}
+
+.bottom-sheet-close:hover {
+  background: var(--border-light);
+  color: var(--text-main);
+}
+
+/* Content Area */
+.bottom-sheet-content {
+  padding: 20px;
+  overflow-y: auto;
+  flex: 1;
+  direction: rtl;
+}
+
+/* Mobile specific styling to prevent content cut-off or weird overlays */
+@media (max-width: 768px) {
+  /* Extra spacing at the bottom of main view container to prevent bottom nav overlay */
+  .view-container {
+    padding-bottom: 90px !important;
+  }
+  
+  /* Compact Header adjustments */
+  .header-bar {
+    padding: 0 16px;
+  }
+  
+  .user-profile .user-info {
+    display: none !important; /* Hide user name and details in header row */
+  }
+
+  /* Make sure the main content has space for bottom navigation */
+  .app-shell {
+    padding-bottom: 70px;
+  }
+
+  /* More grid style */
+  .more-options-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+
+  .more-option-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 16px 8px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-light);
+    border-radius: 12px;
+    color: var(--text-main);
+    cursor: pointer;
+    transition: all var(--tr-fast);
+    text-align: center;
+    gap: 8px;
+  }
+
+  .more-option-btn:active, .more-option-btn.active {
+    background: var(--bg-surface-2);
+    border-color: var(--color-role-accent);
+    transform: scale(0.95);
+  }
+
+  .more-option-label {
+    font-size: 0.78rem;
+    font-weight: 600;
+  }
+}
+

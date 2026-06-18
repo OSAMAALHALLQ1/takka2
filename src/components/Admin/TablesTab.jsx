@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { saveTables, addNotification } from '../../utils/storage';
 import { STATUS_LABELS, STATUS_COLORS, AREA_LABELS } from './constants';
+import { Armchair, Pencil, Trash2 } from 'lucide-react';
 
 export default function TablesTab({ tables, setTables }) {
   const [showForm, setShowForm] = useState(false);
@@ -43,7 +44,7 @@ export default function TablesTab({ tables, setTables }) {
     setTables(updated);
     if (newStatus === 'unavailable') {
       addNotification(
-        `⚠️ الطاولة #${tableId} معطوبة - لا تقبل طلبات`,
+        `الطاولة #${tableId} معطوبة - لا تقبل طلبات`,
         `تم تحويل حالة الطاولة إلى غير متوفرة`,
         'danger',
         ['manager', 'waiter']
@@ -54,7 +55,10 @@ export default function TablesTab({ tables, setTables }) {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h2 className="tab-title" style={{ margin: 0 }}>🪑 إدارة الطاولات</h2>
+        <h2 className="tab-title" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Armchair size={24} style={{ color: 'var(--color-primary)' }} />
+          إدارة الطاولات
+        </h2>
         <button className="btn-primary-gold" onClick={() => { setForm(emptyForm); setEditId(null); setShowForm(true); }}>+ إضافة طاولة</button>
       </div>
 
@@ -107,7 +111,10 @@ export default function TablesTab({ tables, setTables }) {
             <div style={{ fontSize: '1.6rem', fontWeight: 800, fontFamily: 'Outfit, sans-serif' }}>{t.id}</div>
             <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>{t.name}</div>
             <div style={{ fontSize: '0.75rem', color: STATUS_COLORS[t.status], fontWeight: 600, marginTop: '4px' }}>{STATUS_LABELS[t.status]}</div>
-            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px' }}>🪑 {t.seats} | {AREA_LABELS[t.area]}</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+              <Armchair size={12} />
+              <span>{t.seats} | {AREA_LABELS[t.area]}</span>
+            </div>
             {t.total > 0 && <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, color: 'var(--color-primary)', fontSize: '0.85rem', marginTop: '4px' }}>{t.total.toFixed(2)} ₪</div>}
           </div>
         ))}
@@ -124,10 +131,16 @@ export default function TablesTab({ tables, setTables }) {
             {selected.waiterCode && <div><span style={{ color: 'var(--text-muted)' }}>الجرسون: </span><strong>{selected.waiterCode}</strong></div>}
             {selected.total > 0 && <div><span style={{ color: 'var(--text-muted)' }}>الإجمالي: </span><strong style={{ color: 'var(--color-primary)' }}>{selected.total.toFixed(2)} ₪</strong></div>}
           </div>
-          <div style={{ display: 'flex', gap: '8px', marginTop: '16px', flexWrap: 'wrap' }}>
-            <button className="icon-btn" onClick={() => { setForm({ number: selected.id, seats: selected.seats, area: selected.area, description: selected.description || '' }); setEditId(selected.id); setShowForm(true); setSelected(null); }}>✏️ تعديل</button>
-            {selected.status === 'empty' && <button className="icon-btn danger" onClick={() => handleDelete(selected)}>🗑️ حذف</button>}
-            <select className="form-input" style={{ flex: '0 0 auto' }} value={selected.status} onChange={e => { handleStatusChange(selected.id, e.target.value); setSelected(p => ({ ...p, status: e.target.value })); }}>
+          <div style={{ display: 'flex', gap: '8px', marginTop: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
+            <button className="icon-btn" style={{ display: 'flex', alignItems: 'center', gap: '4px' }} onClick={() => { setForm({ number: selected.id, seats: selected.seats, area: selected.area, description: selected.description || '' }); setEditId(selected.id); setShowForm(true); setSelected(null); }}>
+              <Pencil size={14} /> تعديل
+            </button>
+            {selected.status === 'empty' && (
+              <button className="icon-btn danger" style={{ display: 'flex', alignItems: 'center', gap: '4px' }} onClick={() => handleDelete(selected)}>
+                <Trash2 size={14} /> حذف
+              </button>
+            )}
+            <select className="form-input" style={{ flex: '0 0 auto', width: 'auto' }} value={selected.status} onChange={e => { handleStatusChange(selected.id, e.target.value); setSelected(p => ({ ...p, status: e.target.value })); }}>
               {Object.entries(STATUS_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
             </select>
           </div>

@@ -3,6 +3,18 @@ import {
   getTables, getEmployees, getMenu, getBills, getDepartments, getDeptOrders
 } from '../utils/storage';
 import { getCodes } from '../utils/auth-store';
+import { 
+  LayoutDashboard, 
+  Building2, 
+  UtensilsCrossed, 
+  Armchair, 
+  Users, 
+  KeyRound, 
+  ShieldCheck, 
+  TrendingUp, 
+  Receipt,
+  LogOut
+} from 'lucide-react';
 
 // Import Tabs
 import DashboardTab from './Admin/DashboardTab';
@@ -42,15 +54,15 @@ export default function AdminDashboard({ user, onLogout, sidebarOpen, setSidebar
   }, []);
 
   const TABS = [
-    { id: 'dashboard', label: 'لوحة التحكم', icon: '📊' },
-    { id: 'departments', label: 'الأقسام', icon: '🏢' },
-    { id: 'menu', label: 'المنيو', icon: '🍽️' },
-    { id: 'tables', label: 'الطاولات', icon: '🪑' },
-    { id: 'staff', label: 'الموظفون', icon: '👥' },
-    { id: 'codes', label: 'أكواد الدعوة', icon: '🔑' },
-    { id: 'permissions', label: 'الصلاحيات', icon: '🔐' },
-    { id: 'reports', label: 'التقارير', icon: '📈' },
-    { id: 'bills', label: 'الفواتير', icon: '🧾' },
+    { id: 'dashboard', label: 'لوحة التحكم', icon: LayoutDashboard },
+    { id: 'departments', label: 'الأقسام', icon: Building2 },
+    { id: 'menu', label: 'المنيو', icon: UtensilsCrossed },
+    { id: 'tables', label: 'الطاولة', icon: Armchair },
+    { id: 'staff', label: 'الموظفون', icon: Users },
+    { id: 'codes', label: 'أكواد الدعوة', icon: KeyRound },
+    { id: 'permissions', label: 'الصلاحيات', icon: ShieldCheck },
+    { id: 'reports', label: 'التقارير', icon: TrendingUp },
+    { id: 'bills', label: 'الفواتير', icon: Receipt },
   ];
 
   const occupied = tables.filter(t => t.status !== 'empty').length;
@@ -67,21 +79,24 @@ export default function AdminDashboard({ user, onLogout, sidebarOpen, setSidebar
 
       {/* Sidebar */}
       <aside className={`admin-sidebar ${sidebarOpen ? 'open' : ''}`}>
-        <div style={{ padding: '20px', fontSize: '1.2rem', fontWeight: 800 }}>تـكـة • الإدارة</div>
+        <div style={{ padding: '20px', fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)' }}>تـكـة • الإدارة</div>
         <nav>
-          {TABS.map(tab => (
-            <button key={tab.id} className={`sidebar-item ${activeTab === tab.id ? 'active' : ''}`} onClick={() => { setActiveTab(tab.id); setSidebarOpen(false); }}>
-              <span>{tab.icon}</span> <span>{tab.label}</span>
-            </button>
-          ))}
+          {TABS.map(tab => {
+            const IconComponent = tab.icon;
+            return (
+              <button key={tab.id} className={`sidebar-item ${activeTab === tab.id ? 'active' : ''}`} onClick={() => { setActiveTab(tab.id); setSidebarOpen(false); }}>
+                <IconComponent size={18} /> <span>{tab.label}</span>
+              </button>
+            );
+          })}
         </nav>
         <button
           className="sidebar-item"
-          style={{ marginTop: 'auto', color: '#e74c3c' }}
+          style={{ marginTop: 'auto', color: '#dc2626' }}
           onClick={() => { setSidebarOpen(false); onLogout(); }}
           title="تسجيل خروج"
         >
-          <span>🚪</span>
+          <LogOut size={18} />
           <span> تسجيل خروج</span>
         </button>
       </aside>

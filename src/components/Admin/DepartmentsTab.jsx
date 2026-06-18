@@ -1,11 +1,12 @@
 import React, { useState, useRef } from 'react';
 import { saveDepartments, addNotification } from '../../utils/storage';
-import { renderItemImage } from './utils';
+import { renderItemImage, DEPARTMENT_ICONS } from './utils';
+import { Building2, FolderOpen, Pencil, Trash2, Clock } from 'lucide-react';
 
 export default function DepartmentsTab({ departments, setDepartments, employees, deptOrders }) {
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState(null);
-  const [form, setForm] = useState({ name: '', nameEn: '', image: '', color: '#e67e22', description: '', workHours: '' });
+  const [form, setForm] = useState({ name: '', nameEn: '', image: 'chef-hat', color: '#e67e22', description: '', workHours: '' });
   const fileInputRef = useRef(null);
 
   const getDeptEmployeeCount = (deptId) => employees.filter(e => e.role === deptId).length;
@@ -13,7 +14,7 @@ export default function DepartmentsTab({ departments, setDepartments, employees,
     (o.items || []).some(i => i.department === deptId && i.status !== 'delivered')
   ).length;
 
-  const resetForm = () => { setForm({ name: '', nameEn: '', image: '', color: '#e67e22', description: '', workHours: '' }); setEditId(null); };
+  const resetForm = () => { setForm({ name: '', nameEn: '', image: 'chef-hat', color: '#e67e22', description: '', workHours: '' }); setEditId(null); };
 
   const handleSave = () => {
     if (!form.name.trim()) return;
@@ -32,7 +33,7 @@ export default function DepartmentsTab({ departments, setDepartments, employees,
   };
 
   const handleEdit = (dept) => {
-    setForm({ name: dept.name, nameEn: dept.nameEn || '', image: dept.image || dept.icon || '', color: dept.color, description: dept.description || '', workHours: dept.workHours || '' });
+    setForm({ name: dept.name, nameEn: dept.nameEn || '', image: dept.image || dept.icon || 'chef-hat', color: dept.color, description: dept.description || '', workHours: dept.workHours || '' });
     setEditId(dept.id);
     setShowForm(true);
   };
@@ -48,7 +49,10 @@ export default function DepartmentsTab({ departments, setDepartments, employees,
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-        <h2 className="tab-title" style={{ margin: 0 }}>🏢 إدارة الأقسام</h2>
+        <h2 className="tab-title" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Building2 size={24} style={{ color: 'var(--color-primary)' }} />
+          إدارة الأقسام
+        </h2>
         <button className="btn-primary-gold" onClick={() => { resetForm(); setShowForm(true); }}>+ إضافة قسم</button>
       </div>
 
@@ -64,10 +68,51 @@ export default function DepartmentsTab({ departments, setDepartments, employees,
               <label className="form-label">اسم القسم (إنجليزي)</label>
               <input className="form-input" value={form.nameEn} onChange={e => setForm(p => ({ ...p, nameEn: e.target.value }))} placeholder="Kitchen" />
             </div>
-            <div className="form-group">
-              <label className="form-label">صورة القسم (رابط أو ملف حتى 20 ميجا)</label>
+
+            {/* Icon picker grid */}
+            <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+              <label className="form-label">أيقونة القسم (اختر أيقونة احترافية أو ارفع صورة بالأسفل)</label>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: '8px', marginTop: '8px' }}>
+                {DEPARTMENT_ICONS.map(item => {
+                  const IconComp = item.icon;
+                  const isSelected = form.image === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => setForm(p => ({ ...p, image: item.id }))}
+                      style={{
+                        padding: '10px',
+                        borderRadius: '8px',
+                        border: isSelected ? '2px solid var(--color-primary)' : '1px solid var(--border-light)',
+                        background: isSelected ? 'rgba(220,38,38,0.06)' : 'transparent',
+                        color: isSelected ? 'var(--color-primary)' : 'var(--text-main)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: '6px',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      <IconComp size={20} />
+                      <span style={{ fontSize: '0.72rem' }}>{item.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+              <label className="form-label">أو أدخل رابط صورة مخصص / ارفع ملفاً</label>
               <div style={{ display: 'flex', gap: '8px' }}>
-                <input className="form-input" value={form.image} onChange={e => setForm(p => ({ ...p, image: e.target.value }))} placeholder="رابط صورة القسم (URL)" style={{ flex: 1 }} />
+                <input 
+                  className="form-input" 
+                  value={form.image} 
+                  onChange={e => setForm(p => ({ ...p, image: e.target.value }))} 
+                  placeholder="رابط صورة القسم (URL) أو اسم الأيقونة..." 
+                  style={{ flex: 1 }} 
+                />
                 <button
                   type="button"
                   className="btn btn-secondary"
@@ -83,7 +128,7 @@ export default function DepartmentsTab({ departments, setDepartments, employees,
                     whiteSpace: 'nowrap'
                   }}
                 >
-                  📁 إرفاق صورة
+                  <FolderOpen size={16} /> إرفاق صورة
                 </button>
                 <input
                   ref={fileInputRef}
@@ -106,6 +151,7 @@ export default function DepartmentsTab({ departments, setDepartments, employees,
                 />
               </div>
             </div>
+
             <div className="form-group">
               <label className="form-label">اللون</label>
               <input type="color" value={form.color} onChange={e => setForm(p => ({ ...p, color: e.target.value }))} style={{ width: '100%', height: '44px', borderRadius: '10px', border: '1px solid var(--border-light)', cursor: 'pointer' }} />
@@ -114,7 +160,7 @@ export default function DepartmentsTab({ departments, setDepartments, employees,
               <label className="form-label">وصف القسم</label>
               <input className="form-input" value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} placeholder="وصف اختياري" />
             </div>
-            <div className="form-group">
+            <div className="form-group" style={{ gridColumn: '1 / -1' }}>
               <label className="form-label">ساعات العمل</label>
               <input className="form-input" value={form.workHours} onChange={e => setForm(p => ({ ...p, workHours: e.target.value }))} placeholder="08:00 - 23:00" />
             </div>
@@ -131,15 +177,19 @@ export default function DepartmentsTab({ departments, setDepartments, employees,
           <div key={dept.id} className="admin-card dept-card" style={{ borderTop: `4px solid ${dept.color}` }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                {renderItemImage(dept.image, dept.name, false, 'dept')}
+                {renderItemImage(dept.image || dept.icon, dept.name, false, 'dept')}
                 <div>
                   <div style={{ fontWeight: 700, fontSize: '1.1rem' }}>{dept.name}</div>
                   <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{dept.nameEn}</div>
                 </div>
               </div>
               <div style={{ display: 'flex', gap: '6px' }}>
-                <button className="icon-btn" onClick={() => handleEdit(dept)} title="تعديل">✏️</button>
-                <button className="icon-btn danger" onClick={() => handleDelete(dept)} title="حذف">🗑️</button>
+                <button className="icon-btn" onClick={() => handleEdit(dept)} title="تعديل">
+                  <Pencil size={14} />
+                </button>
+                <button className="icon-btn danger" onClick={() => handleDelete(dept)} title="حذف">
+                  <Trash2 size={14} />
+                </button>
               </div>
             </div>
             {dept.description && <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: '12px' }}>{dept.description}</p>}
@@ -153,7 +203,12 @@ export default function DepartmentsTab({ departments, setDepartments, employees,
                 <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>طلبات نشطة</div>
               </div>
             </div>
-            {dept.workHours && <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '8px' }}>⏰ {dept.workHours}</div>}
+            {dept.workHours && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '8px' }}>
+                <Clock size={12} />
+                <span>{dept.workHours}</span>
+              </div>
+            )}
           </div>
         ))}
       </div>

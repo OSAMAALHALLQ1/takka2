@@ -1,5 +1,7 @@
 import React from 'react';
 import StatCard from './StatCard';
+import { renderItemImage } from './utils';
+import { TrendingUp, Receipt, Coins, BarChart3, Armchair, ArrowUpRight, CreditCard, Building } from 'lucide-react';
 
 export default function ReportsTab({ bills, menuItems, tables }) {
   const totalRevenue = bills.reduce((s, b) => s + (b.total || 0), 0);
@@ -32,26 +34,32 @@ export default function ReportsTab({ bills, menuItems, tables }) {
 
   return (
     <div>
-      <h2 className="tab-title">📈 التقارير اليومية</h2>
+      <h2 className="tab-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <TrendingUp size={24} style={{ color: 'var(--color-primary)' }} />
+        التقارير اليومية
+      </h2>
 
       {/* Summary */}
       <div className="stats-grid-4" style={{ marginBottom: '24px' }}>
-        <StatCard icon="🧾" label="إجمالي الفواتير" value={bills.length} color="#3498db" />
-        <StatCard icon="💰" label="إجمالي الإيرادات" value={`${totalRevenue.toFixed(1)} ₪`} color="#27ae60" />
-        <StatCard icon="📊" label="متوسط الفاتورة" value={`${avgBill.toFixed(1)} ₪`} color="#f39c12" />
-        <StatCard icon="🪑" label="الطاولات الكلية" value={tables.length} color="#9b59b6" />
+        <StatCard icon={<Receipt size={32} />} label="إجمالي الفواتير" value={bills.length} color="#3498db" />
+        <StatCard icon={<Coins size={32} />} label="إجمالي الإيرادات" value={`${totalRevenue.toFixed(1)} ₪`} color="#27ae60" />
+        <StatCard icon={<BarChart3 size={32} />} label="متوسط الفاتورة" value={`${avgBill.toFixed(1)} ₪`} color="#f39c12" />
+        <StatCard icon={<Armchair size={32} />} label="الطاولات الكلية" value={tables.length} color="#9b59b6" />
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
         {/* Top Items */}
         <div className="admin-card">
-          <h3 className="card-title">🔝 أكثر الأصناف طلباً</h3>
+          <h3 className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <ArrowUpRight size={18} style={{ color: 'var(--color-primary)' }} />
+            أكثر الأصناف طلباً
+          </h3>
           {topItems.length === 0 ? <p style={{ color: 'var(--text-muted)', marginTop: '12px' }}>لا بيانات بعد</p> : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '12px' }}>
               {topItems.map((item, i) => (
                 <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <span style={{ width: '20px', fontWeight: 700, color: i === 0 ? 'var(--color-primary)' : 'var(--text-muted)', textAlign: 'center' }}>{i + 1}</span>
-                  <span style={{ fontSize: '1.2rem' }}>{item.image}</span>
+                  {renderItemImage(item.image, item.name, false)}
                   <span style={{ flex: 1, fontSize: '0.85rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</span>
                   <div style={{ flex: 0, minWidth: '80px' }}>
                     <div style={{ height: '6px', borderRadius: '3px', background: 'rgba(255,255,255,0.06)' }}>
@@ -67,7 +75,10 @@ export default function ReportsTab({ bills, menuItems, tables }) {
 
         {/* Sales by Dept */}
         <div className="admin-card">
-          <h3 className="card-title">📊 المبيعات حسب القسم</h3>
+          <h3 className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <BarChart3 size={18} style={{ color: 'var(--color-primary)' }} />
+            المبيعات حسب القسم
+          </h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '12px' }}>
             {Object.entries(salesByDept).length === 0 ? <p style={{ color: 'var(--text-muted)' }}>لا بيانات بعد</p> :
               Object.entries(salesByDept).map(([dept, amount]) => (
@@ -87,13 +98,21 @@ export default function ReportsTab({ bills, menuItems, tables }) {
 
         {/* Payment Methods */}
         <div className="admin-card">
-          <h3 className="card-title">💳 طرق الدفع</h3>
+          <h3 className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <CreditCard size={18} style={{ color: 'var(--color-primary)' }} />
+            طرق الدفع
+          </h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '12px' }}>
             {Object.entries(paymentStats).length === 0 ? <p style={{ color: 'var(--text-muted)' }}>لا بيانات بعد</p> :
               Object.entries(paymentStats).map(([method, amount]) => {
-                const labels = { cash: 'نقد 💵', card: 'بطاقة 💳', bank: 'تحويل بنكي 🏦', other: 'أخرى' };
+                const labels = { 
+                  cash: <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><Coins size={14} /> نقد</span>, 
+                  card: <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><CreditCard size={14} /> بطاقة</span>, 
+                  bank: <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><Building size={14} /> تحويل بنكي</span>, 
+                  other: 'أخرى' 
+                };
                 return (
-                  <div key={method} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px' }}>
+                  <div key={method} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', alignItems: 'center' }}>
                     <span>{labels[method] || method}</span>
                     <span style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, color: '#27ae60' }}>{amount.toFixed(2)} ₪</span>
                   </div>

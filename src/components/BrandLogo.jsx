@@ -10,31 +10,32 @@ export default function BrandLogo({ size = 28, style = {} }) {
       xmlns="http://www.w3.org/2000/svg"
       style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0, ...style }}
     >
-      {/* Leaf background in gradient emerald green */}
-      <path 
-        d="M20 180 C 20 90, 90 20, 180 20 C 180 110, 110 180, 20 180 Z" 
-        fill="url(#leafGrad)" 
-      />
-      {/* Vein lines crossing to create the cross look */}
-      <path 
-        d="M20 180 C 75 125, 125 75, 180 20" 
-        stroke="white" 
-        strokeWidth="11" 
-        strokeLinecap="round" 
-      />
-      <path 
-        d="M40 70 C 85 105, 120 120, 160 160" 
-        stroke="white" 
-        strokeWidth="11" 
-        strokeLinecap="round" 
-      />
+      {/* Background glowing circle */}
+      <circle cx="100" cy="100" r="90" fill="url(#brandGlow)" opacity="0.15" />
+      
+      {/* Stylized geometric double T and Flame */}
+      {/* Left wing */}
+      <path d="M40 70 L90 20 V150 L40 180 Z" fill="url(#brandGrad)" />
+      {/* Right wing */}
+      <path d="M160 70 L110 20 V150 L160 180 Z" fill="url(#brandGrad2)" />
+      {/* Center flame/negative space core */}
+      <path d="M100 50 C115 80, 115 110, 100 130 C85 110, 85 80, 100 50 Z" fill="#ffffff" />
+      
       <defs>
-        <linearGradient id="leafGrad" x1="20" y1="180" x2="180" y2="20" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#059669" />
-          <stop offset="60%" stopColor="#10b981" />
-          <stop offset="100%" stopColor="#34d399" />
+        <radialGradient id="brandGlow" cx="100" cy="100" r="90" fx="100" fy="100" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#ef4444" stopOpacity="1" />
+          <stop offset="100%" stopColor="#ef4444" stopOpacity="0" />
+        </radialGradient>
+        <linearGradient id="brandGrad" x1="40" y1="20" x2="90" y2="180" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#f43f5e" />
+          <stop offset="100%" stopColor="#be123c" />
+        </linearGradient>
+        <linearGradient id="brandGrad2" x1="160" y1="20" x2="110" y2="180" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#e11d48" />
+          <stop offset="100%" stopColor="#991b1b" />
         </linearGradient>
       </defs>
     </svg>
   );
 }
+

@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { Loader2 } from 'lucide-react';
 
 export function OptimizedButton({
   onClick,
@@ -36,7 +37,7 @@ export function OptimizedButton({
     >
       {loading || isProcessing ? (
         <>
-          <span className="inline-block animate-spin mr-2">⏳</span>
+          <Loader2 size={16} className="animate-spin" style={{ marginLeft: '6px', display: 'inline-block' }} />
           جاري...
         </>
       ) : (

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { saveEmployees, getBills, resetDailyData, addNotification } from '../utils/storage';
-import { Users, BarChart3, Receipt, Plus, Trash2, Link as LinkIcon, RefreshCw, FileSpreadsheet, DollarSign } from 'lucide-react';
+import { Users, BarChart3, Receipt, Plus, Trash2, Link as LinkIcon, RefreshCw, FileSpreadsheet, DollarSign, UtensilsCrossed, Coins, Check } from 'lucide-react';
 
 export default function ManagerView({ tables, employeeList, onUpdateEmployees }) {
   const [activeSubTab, setActiveSubTab] = useState('dashboard'); // 'dashboard' | 'employees' | 'bills'
@@ -57,7 +57,7 @@ export default function ManagerView({ tables, employeeList, onUpdateEmployees })
     saveEmployees(updatedEmployees);
 
     addNotification(
-      'موظف جديد 👥',
+      'موظف جديد',
       `تمت إضافة الموظف ${newEmpName} بنجاح بكود: ${code}`,
       'info'
     );
@@ -75,7 +75,7 @@ export default function ManagerView({ tables, employeeList, onUpdateEmployees })
       const updatedEmployees = employeeList.filter((emp) => emp.id !== id);
       onUpdateEmployees(updatedEmployees);
       saveEmployees(updatedEmployees);
-      addNotification('حذف موظف 👤', `تم حذف الموظف ${name} من النظام`, 'warning');
+      addNotification('حذف موظف', `تم حذف الموظف ${name} من النظام`, 'warning');
     }
   };
 
@@ -302,8 +302,8 @@ export default function ManagerView({ tables, employeeList, onUpdateEmployees })
               {employeeList.map((emp) => (
                 <div key={emp.id} className="glass-card employee-card">
                   <div className="employee-info-box">
-                    <div className="employee-avatar">
-                      {emp.role === 'waiter' ? '🍽️' : '💵'}
+                    <div className="employee-avatar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary)' }}>
+                      {emp.role === 'waiter' ? <UtensilsCrossed size={16} /> : <Coins size={16} />}
                     </div>
                     <div>
                       <h4 style={{ fontWeight: '700', fontSize: '0.95rem' }}>{emp.name}</h4>
@@ -337,7 +337,7 @@ export default function ManagerView({ tables, employeeList, onUpdateEmployees })
                       style={{ padding: '6px 10px', fontSize: '0.75rem' }}
                       title="نسخ رابط الدخول المباشر لإرساله للموظف"
                     >
-                      {copySuccess === emp.code ? 'تم النسخ! ✅' : <><LinkIcon size={14} /> نسخ الرابط</>}
+                      {copySuccess === emp.code ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Check size={14} /> تم النسخ!</span> : <><LinkIcon size={14} /> نسخ الرابط</>}
                     </button>
 
                     {/* Delete button */}

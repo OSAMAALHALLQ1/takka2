@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { DepartmentOrderCard } from '../Orders/DepartmentOrderCard';
 import { useOrders } from '../../hooks/useOrders';
+import { ChefHat } from 'lucide-react';
 
 export function KitchenDashboard() {
   const { orders } = useOrders();
@@ -26,19 +27,20 @@ export function KitchenDashboard() {
     <div className="space-y-4 pb-6">
       {/* رأس الصفحة */}
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-primary" style={{ margin: 0 }}>
-          🍳 المطبخ
+        <h2 className="text-2xl font-bold text-primary" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <ChefHat size={24} style={{ color: 'var(--color-primary)' }} />
+          المطبخ
         </h2>
-        <div className="bg-red-100 text-red-700 px-3 py-1 rounded-full font-semibold">
+        <div className="dept-header-badge">
           {kitchenOrders.length} طلب
         </div>
       </div>
       
       {/* قائمة الطلبات */}
       {sortedOrders.length === 0 ? (
-        <div className="bg-green-100 border border-green-300 rounded-lg p-6 text-center">
-          <p className="text-green-700 font-semibold" style={{ margin: 0 }}>✓ لا توجد طلبات معلقة</p>
-          <p className="text-green-600 text-sm" style={{ margin: '4px 0 0 0' }}>انتظر الطلبات الجديدة...</p>
+        <div className="dept-empty-banner">
+          <p className="main-text">لا توجد طلبات معلقة</p>
+          <p className="sub-text">انتظر الطلبات الجديدة...</p>
         </div>
       ) : (
         sortedOrders.map(order => (

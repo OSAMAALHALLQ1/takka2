@@ -1,18 +1,33 @@
 // src/components/Layout/Sidebar.jsx
 import React from 'react';
+import { 
+  LayoutDashboard, 
+  Building2, 
+  UtensilsCrossed, 
+  Armchair, 
+  Users, 
+  KeyRound, 
+  ShieldCheck, 
+  TrendingUp, 
+  Receipt,
+  LogOut
+} from 'lucide-react';
 
-/**
- * Sidebar – responsive navigation drawer.
- * Used by AdminDashboard on desktop (always visible) and on mobile as a drawer.
- * Props:
- *   sidebarOpen   – boolean, whether the drawer is open (mobile)
- *   setSidebarOpen – function to toggle drawer state
- *   activeTab      – current active tab id
- *   setActiveTab   – function to change active tab
- */
 export default function Sidebar({ sidebarOpen, setSidebarOpen, activeTab, setActiveTab, user, onLogout }) {
   // Close drawer when clicking outside on mobile
   const handleOverlayClick = () => setSidebarOpen(false);
+
+  const TABS = [
+    { id: 'dashboard', label: 'لوحة التحكم', icon: LayoutDashboard },
+    { id: 'departments', label: 'الأقسام', icon: Building2 },
+    { id: 'menu', label: 'المنيو', icon: UtensilsCrossed },
+    { id: 'tables', label: 'الطاولات', icon: Armchair },
+    { id: 'staff', label: 'الموظفون', icon: Users },
+    { id: 'codes', label: 'أكواد الدعوة', icon: KeyRound },
+    { id: 'permissions', label: 'الصلاحيات', icon: ShieldCheck },
+    { id: 'reports', label: 'التقارير', icon: TrendingUp },
+    { id: 'bills', label: 'الفواتير', icon: Receipt },
+  ];
 
   return (
     <>
@@ -43,34 +58,31 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, activeTab, setAct
             <div className="text-sm text-gray-500">{user.role === 'manager' ? 'ADMIN' : user.role}</div>
           </div>
         </div>
-        {/* Navigation items – reuse same array as AdminDashboard tabs */}
+        {/* Navigation items */}
         <nav className="p-4 space-y-2">
-          {[
-            { id: 'dashboard', label: 'لوحة التحكم', icon: '📊' },
-            { id: 'departments', label: 'الأقسام', icon: '🏢' },
-            { id: 'menu', label: 'المنيو', icon: '🍽️' },
-            { id: 'tables', label: 'الطاولات', icon: '🪑' },
-            { id: 'staff', label: 'الموظفون', icon: '👥' },
-            { id: 'codes', label: 'أكواد الدعوة', icon: '🔑' },
-            { id: 'permissions', label: 'الصلاحيات', icon: '🔐' },
-            { id: 'reports', label: 'التقارير', icon: '📈' },
-            { id: 'bills', label: 'الفواتير', icon: '🧾' },
-          ].map(tab => (
-            <button
-              key={tab.id}
-              className={`flex items-center w-full px-3 py-2 rounded ${activeTab === tab.id ? 'bg-primary text-white' : 'hover:bg-gray-100'}`}
-              onClick={() => { setActiveTab(tab.id); setSidebarOpen(false); }}
-            >
-              <span className="mr-2 text-lg">{tab.icon}</span>
-              <span>{tab.label}</span>
-            </button>
-          ))}
+          {TABS.map(tab => {
+            const IconComponent = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                className={`flex items-center w-full px-3 py-2 rounded gap-2 ${isActive ? 'bg-primary text-white' : 'hover:bg-gray-100'}`}
+                onClick={() => { setActiveTab(tab.id); setSidebarOpen(false); }}
+                style={{ border: 'none', cursor: 'pointer', textAlign: 'right' }}
+              >
+                <IconComponent size={18} />
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
         </nav>
         <button
-          className="w-full flex items-center justify-center py-2 mt-4 bg-red-500 text-white rounded"
+          className="w-full flex items-center justify-center py-2 mt-4 bg-red-500 text-white rounded gap-2"
           onClick={() => { setSidebarOpen(false); onLogout && onLogout(); }}
+          style={{ border: 'none', cursor: 'pointer' }}
         >
-          🚪 خروج
+          <LogOut size={16} />
+          <span>خروج</span>
         </button>
       </aside>
     </>

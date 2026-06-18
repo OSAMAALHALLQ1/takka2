@@ -152,7 +152,9 @@ export function loginManager() {
   const acc = getManagerAccount();
   writeAuth({
     kind: 'manager',
-    name: acc?.name || 'مدير تكة',
+    codeId: 'admin-1',
+    label: acc?.name || 'خالد',
+    name: acc?.name || 'خالد',
     restaurantName: acc?.restaurantName || 'تكة',
     loggedInAt: Date.now()
   });

@@ -105,7 +105,7 @@ export default function ManagerCodes({ onLogout }) {
       setNewPw('');
       setConfirmPw('');
       setShowPassword(false);
-      alert('✅ Password changed successfully');
+      alert('Password changed successfully');
     } finally {
       setPwBusy(false);
     }

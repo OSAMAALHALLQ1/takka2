@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Coffee, LogIn, ShieldCheck, UserRound, KeyRound } from 'lucide-react';
+import { Coffee, LogIn, ShieldCheck, UserRound, KeyRound, AlertTriangle } from 'lucide-react';
 import { authenticateByCode } from '../utils/storage';
 import BrandLogo from './BrandLogo';
 
@@ -41,7 +41,7 @@ export default function EmployeeLogin({ onSwitch, onLoginSuccess }) {
             </span>
             <span className="brand-tag">تسجيل دخول الموظفين</span>
           </div>
-          <div className="login-icon-box" style={{ background: 'rgba(16,185,129,0.15)', color: '#10b981' }}>
+          <div className="login-icon-box" style={{ background: 'var(--color-primary-glow)', color: 'var(--color-primary)', border: '2px solid color-mix(in srgb, var(--color-primary) 35%, transparent)' }}>
             <UserRound size={32} />
           </div>
           <h2 className="login-title">دخول الموظفين بالكود</h2>
@@ -50,7 +50,12 @@ export default function EmployeeLogin({ onSwitch, onLoginSuccess }) {
           </p>
         </div>
 
-        {error && <div className="login-error" style={{ marginBottom: '16px' }}>⚠️ {error}</div>}
+        {error && (
+          <div className="login-error" style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <AlertTriangle size={16} />
+            <span>{error}</span>
+          </div>
+        )}
 
         <form onSubmit={handleLoginSubmit}>
           <div className="form-group" style={{ marginBottom: '20px' }}>
@@ -71,7 +76,7 @@ export default function EmployeeLogin({ onSwitch, onLoginSuccess }) {
             </div>
           </div>
 
-          <button type="submit" disabled={busy} className="btn btn-primary" style={{ width: '100%', padding: '14px', background: '#3b82f6', borderColor: '#3b82f6', fontSize: '1.1rem' }}>
+          <button type="submit" disabled={busy} className="btn btn-primary" style={{ width: '100%', padding: '14px', background: 'var(--color-primary)', borderColor: 'var(--color-primary)', color: 'var(--text-dark)', fontSize: '1.1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
             <LogIn size={20} /> {busy ? 'جاري التحقق...' : 'تسجيل الدخول'}
           </button>
         </form>

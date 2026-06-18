@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { saveMenu, addNotification } from '../../utils/storage';
 import { CATEGORY_LABELS } from './constants';
 import { renderItemImage } from './utils';
+import { UtensilsCrossed, Search, FolderOpen, Check, X, Pencil, Trash2 } from 'lucide-react';
 
 export default function MenuTab({ menuItems, setMenuItems, departments }) {
   const [search, setSearch] = useState('');
@@ -9,7 +10,7 @@ export default function MenuTab({ menuItems, setMenuItems, departments }) {
   const [filterCat, setFilterCat] = useState('all');
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState(null);
-  const emptyForm = { nameAr: '', nameEn: '', description: '', price: '', category: 'mains', department: 'kitchen', image: '', available: true, prepTime: 15 };
+  const emptyForm = { nameAr: '', nameEn: '', description: '', price: '', category: 'mains', department: 'kitchen', image: 'utensils', available: true, prepTime: 15 };
   const [form, setForm] = useState(emptyForm);
 
   const filtered = menuItems.filter(item => {
@@ -42,7 +43,7 @@ export default function MenuTab({ menuItems, setMenuItems, departments }) {
   };
 
   const handleEdit = (item) => {
-    setForm({ nameAr: item.nameAr || item.name, nameEn: item.nameEn || '', description: item.description || '', price: item.price.toString(), category: item.category, department: item.department, image: item.image || '🍽️', available: item.available !== false, prepTime: item.prepTime || 15 });
+    setForm({ nameAr: item.nameAr || item.name, nameEn: item.nameEn || '', description: item.description || '', price: item.price.toString(), category: item.category, department: item.department, image: item.image || 'utensils', available: item.available !== false, prepTime: item.prepTime || 15 });
     setEditId(item.id);
     setShowForm(true);
   };
@@ -64,18 +65,24 @@ export default function MenuTab({ menuItems, setMenuItems, departments }) {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h2 className="tab-title" style={{ margin: 0 }}>🍽️ إدارة المنيو</h2>
+        <h2 className="tab-title" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <UtensilsCrossed size={24} style={{ color: 'var(--color-primary)' }} />
+          إدارة المنيو
+        </h2>
         <button className="btn-primary-gold" onClick={() => { setForm(emptyForm); setEditId(null); setShowForm(true); }}>+ إضافة صنف</button>
       </div>
 
       {/* Filters */}
-      <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
-        <input className="form-input" placeholder="🔍 بحث..." value={search} onChange={e => setSearch(e.target.value)} style={{ flex: 1, minWidth: '200px' }} />
-        <select className="form-input" value={filterDept} onChange={e => setFilterDept(e.target.value)} style={{ flex: '0 0 auto' }}>
+      <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap', alignItems: 'center' }}>
+        <div className="input-with-icon" style={{ flex: 1, minWidth: '200px', display: 'flex', alignItems: 'center', background: 'var(--bg-surface)', border: '1px solid var(--border-light)', borderRadius: '8px', padding: '0 10px' }}>
+          <Search size={16} style={{ color: 'var(--text-muted)' }} />
+          <input className="form-input" placeholder="بحث عن صنف..." value={search} onChange={e => setSearch(e.target.value)} style={{ border: 'none', background: 'transparent', flex: 1, outline: 'none' }} />
+        </div>
+        <select className="form-input" value={filterDept} onChange={e => setFilterDept(e.target.value)} style={{ flex: '0 0 auto', width: 'auto' }}>
           <option value="all">كل الأقسام</option>
           {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
         </select>
-        <select className="form-input" value={filterCat} onChange={e => setFilterCat(e.target.value)} style={{ flex: '0 0 auto' }}>
+        <select className="form-input" value={filterCat} onChange={e => setFilterCat(e.target.value)} style={{ flex: '0 0 auto', width: 'auto' }}>
           <option value="all">كل الفئات</option>
           {Object.entries(CATEGORY_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
         </select>
@@ -112,9 +119,10 @@ export default function MenuTab({ menuItems, setMenuItems, departments }) {
             <div className="form-group">
               <label className="form-label">صورة الصنف (رابط أو ملف حتى 20 ميجا)</label>
               <div style={{ display: 'flex', gap: '8px' }}>
-                <input className="form-input" value={form.image} onChange={e => setForm(p => ({ ...p, image: e.target.value }))} placeholder="رابط صورة الصنف (URL)" style={{ flex: 1 }} />
-                <label className="btn-secondary" style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', padding: '0 12px', borderRadius: '8px', fontSize: '0.85rem' }}>
-                  <span>📁 رفع</span>
+                <input className="form-input" value={form.image} onChange={e => setForm(p => ({ ...p, image: e.target.value }))} placeholder="رابط صورة الصنف (URL) أو رمز الأيقونة..." style={{ flex: 1 }} />
+                <label className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', padding: '0 12px', borderRadius: '8px', fontSize: '0.85rem' }}>
+                  <FolderOpen size={14} />
+                  <span>رفع</span>
                   <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => {
                     const file = e.target.files[0];
                     if (!file) return;
@@ -183,14 +191,19 @@ export default function MenuTab({ menuItems, setMenuItems, departments }) {
                   <td><span className="role-badge" style={{ background: '#1a1a2e', border: '1px solid rgba(255,255,255,0.1)' }}>{departments.find(d => d.id === item.department)?.name || item.department}</span></td>
                   <td>{CATEGORY_LABELS[item.category] || item.category}</td>
                   <td>
-                    <button onClick={() => toggleAvailable(item.id)} style={{ padding: '4px 10px', borderRadius: '20px', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '0.8rem', background: item.available ? '#27ae6022' : '#e74c3c22', color: item.available ? '#27ae60' : '#e74c3c' }}>
-                      {item.available ? '✅ متوفر' : '❌ غير متوفر'}
+                    <button onClick={() => toggleAvailable(item.id)} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '4px 10px', borderRadius: '20px', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '0.8rem', background: item.available ? '#27ae6022' : '#e74c3c22', color: item.available ? '#27ae60' : '#e74c3c' }}>
+                      {item.available ? <Check size={12} /> : <X size={12} />}
+                      {item.available ? 'متوفر' : 'غير متوفر'}
                     </button>
                   </td>
                   <td>
                     <div style={{ display: 'flex', gap: '6px' }}>
-                      <button className="icon-btn" onClick={() => handleEdit(item)}>✏️</button>
-                      <button className="icon-btn danger" onClick={() => handleDelete(item)}>🗑️</button>
+                      <button className="icon-btn" onClick={() => handleEdit(item)}>
+                        <Pencil size={14} />
+                      </button>
+                      <button className="icon-btn danger" onClick={() => handleDelete(item)}>
+                        <Trash2 size={14} />
+                      </button>
                     </div>
                   </td>
                 </tr>

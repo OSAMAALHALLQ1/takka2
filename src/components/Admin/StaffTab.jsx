@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { saveEmployees, addNotification } from '../../utils/storage';
 import { ROLE_COLORS, ROLE_LABELS } from './constants';
+import { Users, Check, X, Pencil, Trash2 } from 'lucide-react';
 
 export default function StaffTab({ employees, setEmployees }) {
   const [showForm, setShowForm] = useState(false);
@@ -76,7 +77,10 @@ export default function StaffTab({ employees, setEmployees }) {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h2 className="tab-title" style={{ margin: 0 }}>👥 إدارة الموظفين</h2>
+        <h2 className="tab-title" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Users size={24} style={{ color: 'var(--color-primary)' }} />
+          إدارة الموظفين
+        </h2>
         <button className="btn-primary-gold" onClick={() => { setForm(emptyForm); setEditId(null); setShowForm(true); }}>+ موظف جديد</button>
       </div>
 
@@ -143,14 +147,19 @@ export default function StaffTab({ employees, setEmployees }) {
                   <td><span className="role-badge" style={{ background: `${ROLE_COLORS[emp.role]}22`, color: ROLE_COLORS[emp.role], border: `1px solid ${ROLE_COLORS[emp.role]}44` }}>{ROLE_LABELS[emp.role]}</span></td>
                   <td><code style={{ fontFamily: 'Outfit, sans-serif', color: 'var(--color-primary)' }}>{emp.code}</code></td>
                   <td>
-                    <button onClick={() => toggleActive(emp)} style={{ padding: '4px 10px', borderRadius: '20px', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '0.78rem', background: emp.active ? '#27ae6022' : '#e74c3c22', color: emp.active ? '#27ae60' : '#e74c3c' }}>
-                      {emp.active ? '✅ نشط' : '❌ معطل'}
+                    <button onClick={() => toggleActive(emp)} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '4px 10px', borderRadius: '20px', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '0.78rem', background: emp.active ? '#27ae6022' : '#e74c3c22', color: emp.active ? '#27ae60' : '#e74c3c' }}>
+                      {emp.active ? <Check size={12} /> : <X size={12} />}
+                      {emp.active ? 'نشط' : 'معطل'}
                     </button>
                   </td>
                   <td>
                     <div style={{ display: 'flex', gap: '6px' }}>
-                      <button className="icon-btn" onClick={() => handleEdit(emp)}>✏️</button>
-                      <button className="icon-btn danger" onClick={() => handleDelete(emp)}>🗑️</button>
+                      <button className="icon-btn" onClick={() => handleEdit(emp)}>
+                        <Pencil size={14} />
+                      </button>
+                      <button className="icon-btn danger" onClick={() => handleDelete(emp)}>
+                        <Trash2 size={14} />
+                      </button>
                     </div>
                   </td>
                 </tr>

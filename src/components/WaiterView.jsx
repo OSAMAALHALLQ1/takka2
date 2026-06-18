@@ -4,15 +4,36 @@ import {
   updateOngoingItemQty, cancelOngoingItem,
   TAX_RATE, SERVICE_RATE
 } from '../utils/storage';
+import { 
+  LayoutGrid, 
+  ChefHat, 
+  CupSoda, 
+  Wind, 
+  Search, 
+  ShoppingCart, 
+  Clock, 
+  Notebook, 
+  Trash2, 
+  CheckCircle2, 
+  Timer, 
+  Package, 
+  Receipt, 
+  Bell, 
+  Sparkles, 
+  Users,
+  Check,
+  ArrowRight,
+  ClipboardList
+} from 'lucide-react';
 
 const DEPT_TABS = [
-  { id: 'all', label: 'الكل', icon: '📍' },
-  { id: 'kitchen', label: 'مطبخ', icon: '🍳' },
-  { id: 'bar', label: 'بار', icon: '🍺' },
-  { id: 'shisha', label: 'شيشة', icon: '💨' }
+  { id: 'all', label: 'الكل', icon: LayoutGrid },
+  { id: 'kitchen', label: 'مطبخ', icon: ChefHat },
+  { id: 'bar', label: 'بار', icon: CupSoda },
+  { id: 'shisha', label: 'شيشة', icon: Wind }
 ];
 
-const STATUS_COLORS = { empty: '#15803d', eating: '#dc2626', bill_requested: '#ca8a04', unavailable: '#8a92a2' };
+const STATUS_COLORS = { empty: '#10b981', eating: '#dc2626', bill_requested: '#d97706', unavailable: '#71717a' };
 const STATUS_LABELS_AR = { empty: 'فاضية', eating: 'مشغولة', bill_requested: 'تنتظر دفع', unavailable: 'غير متوفرة' };
 const STATUS_BADGE = { empty: 'badge-empty', eating: 'badge-eating', bill_requested: 'badge-bill-requested', unavailable: 'badge-unavailable' };
 
@@ -43,38 +64,6 @@ const renderItemImage = (image, name, isCard = false) => {
     );
   }
 
-  if (image && image.length <= 4) {
-    return (
-      <div 
-        style={isCard ? {
-          width: '100%',
-          height: '90px',
-          borderRadius: '6px',
-          marginBottom: '6px',
-          background: 'linear-gradient(135deg, rgba(212,175,55,0.1) 0%, rgba(212,175,55,0.02) 100%)',
-          border: '1px dashed rgba(212, 175, 55, 0.3)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: '2rem'
-        } : {
-          width: '40px',
-          height: '40px',
-          borderRadius: '6px',
-          background: 'linear-gradient(135deg, rgba(212,175,55,0.1) 0%, rgba(212,175,55,0.02) 100%)',
-          border: '1px dashed rgba(212, 175, 55, 0.3)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: '1.4rem',
-          flexShrink: 0
-        }}
-      >
-        {image}
-      </div>
-    );
-  }
-
   return (
     <div 
       style={isCard ? {
@@ -82,8 +71,8 @@ const renderItemImage = (image, name, isCard = false) => {
         height: '90px',
         borderRadius: '6px',
         marginBottom: '6px',
-        background: 'linear-gradient(135deg, rgba(212,175,55,0.1) 0%, rgba(212,175,55,0.02) 100%)',
-        border: '1px dashed rgba(212, 175, 55, 0.3)',
+        background: 'linear-gradient(135deg, var(--color-primary-glow) 0%, transparent 100%)',
+        border: '1px dashed color-mix(in srgb, var(--color-primary) 20%, transparent)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -92,8 +81,8 @@ const renderItemImage = (image, name, isCard = false) => {
         width: '40px',
         height: '40px',
         borderRadius: '6px',
-        background: 'linear-gradient(135deg, rgba(212,175,55,0.1) 0%, rgba(212,175,55,0.02) 100%)',
-        border: '1px dashed rgba(212, 175, 55, 0.3)',
+        background: 'linear-gradient(135deg, var(--color-primary-glow) 0%, transparent 100%)',
+        border: '1px dashed color-mix(in srgb, var(--color-primary) 20%, transparent)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -101,7 +90,7 @@ const renderItemImage = (image, name, isCard = false) => {
         flexShrink: 0
       }}
     >
-      <svg width={isCard ? 24 : 16} height={isCard ? 24 : 16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <svg width={isCard ? 24 : 16} height={isCard ? 24 : 16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
         <path d="M12 2v20" />
         <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
       </svg>
@@ -221,7 +210,7 @@ export default function WaiterView({ tables, onSaveTables, employee, menuItems =
       const deptItems = itemsWithStatus.filter(i => i.department === dept);
       const itemsStr = deptItems.map(i => `${i.name} × ${i.qty}`).join('، ');
       addNotification(
-        `📩 طلب جديد من الطاولة #${selectedTable.id}`,
+        `طلب جديد من الطاولة #${selectedTable.id}`,
         `${itemsStr}`,
         'success',
         [dept, employee.code, 'manager']
@@ -243,14 +232,14 @@ export default function WaiterView({ tables, onSaveTables, employee, menuItems =
     
     if (allReady) {
       addNotification(
-        `✅ فاتورة الطاولة #${selectedTable.id} مكتملة - انتظار الدفع`,
+        `فاتورة الطاولة #${selectedTable.id} مكتملة - انتظار الدفع`,
         `جميع الطلبات جاهزة، في انتظار تحصيل المبلغ: ${(selectedTable.total || 0).toFixed(2)} ₪`,
         'success',
         ['cashier', 'manager']
       );
     } else {
       addNotification(
-        `💳 فاتورة جديدة من الطاولة #${selectedTable.id}`,
+        `طلب حساب جديد من الطاولة #${selectedTable.id}`,
         `${selectedTable.name} تطلب الحساب`,
         'warning',
         ['cashier', 'manager']
@@ -271,7 +260,7 @@ export default function WaiterView({ tables, onSaveTables, employee, menuItems =
     setDeptOrders(getDeptOrders());
     
     addNotification(
-      `✓ تم تسليم طلب الطاولة #${order?.tableId || selectedTable?.id} إلى الجرسون`,
+      `تم تسليم طلب الطاولة #${order?.tableId || selectedTable?.id} إلى الجرسون`,
       `صنف ${itemName} تم تسليمه`,
       'success',
       [dept, 'manager']
@@ -305,16 +294,18 @@ export default function WaiterView({ tables, onSaveTables, employee, menuItems =
     return (
       <div className="view-container">
         {orderSuccess && (
-          <div className="order-success-banner">✅ تم إرسال الطلب للأقسام بنجاح!</div>
+          <div className="order-success-banner">تم إرسال الطلب للأقسام بنجاح!</div>
         )}
 
         <div className="order-header">
           <div>
-            <button className="back-btn" onClick={() => { setView('tables'); setCart([]); }}>← رجوع</button>
-            <span className="order-table-num">الطاولة #{selectedTable.id}</span>
+            <button className="back-btn" onClick={() => { setView('tables'); setCart([]); }} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+              <ArrowRight size={16} /> عودة
+            </button>
+            <span className="order-table-num" style={{ marginRight: '16px' }}>الطاولة #{selectedTable.id}</span>
           </div>
           <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-            <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>عدد الأشخاص:</label>
+            <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>عدد الأشخاص:</label>
             <select className="form-input" value={guestsCount} onChange={e => setGuestsCount(parseInt(e.target.value))} style={{ width: '80px' }}>
               {[1,2,3,4,5,6,7,8,9,10].map(n => <option key={n} value={n}>{n}</option>)}
             </select>
@@ -326,15 +317,19 @@ export default function WaiterView({ tables, onSaveTables, employee, menuItems =
           <div className="menu-col">
             {/* Dept Tabs */}
             <div className="dept-tabs">
-              {DEPT_TABS.map(tab => (
-                <button key={tab.id} className={`dept-tab ${activeCategory === tab.id ? 'active' : ''}`} onClick={() => setActiveCategory(tab.id)}>
-                  <span>{tab.icon}</span> {tab.label}
-                </button>
-              ))}
+              {DEPT_TABS.map(tab => {
+                const IconComponent = tab.icon;
+                return (
+                  <button key={tab.id} className={`dept-tab ${activeCategory === tab.id ? 'active' : ''}`} onClick={() => setActiveCategory(tab.id)}>
+                    <IconComponent size={16} /> <span>{tab.label}</span>
+                  </button>
+                );
+              })}
             </div>
             {/* Search */}
             <div style={{ position: 'relative', marginBottom: '12px' }}>
-              <input className="form-input" placeholder="🔍 بحث..." value={search} onChange={e => setSearch(e.target.value)} />
+              <input className="form-input" placeholder="بحث..." value={search} onChange={e => setSearch(e.target.value)} style={{ paddingRight: '40px' }} />
+              <Search size={18} style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
             </div>
             {/* Items */}
             <div className="menu-items-grid">
@@ -357,15 +352,17 @@ export default function WaiterView({ tables, onSaveTables, employee, menuItems =
           {/* Right: Cart */}
           <div className="cart-col">
             <div className="cart-header-bar">
-              <span>🛒 الطلب الحالي</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                <ShoppingCart size={18} /> الطلب الحالي
+              </span>
               <span className="cart-count">{cart.reduce((s, i) => s + i.qty, 0)} صنف</span>
             </div>
 
             <div className="cart-items-scroll">
               {cart.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>
-                  <div style={{ fontSize: '2.5rem', marginBottom: '8px' }}>🛒</div>
-                  <p>اختر أصنافاً من القائمة</p>
+                <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <ShoppingCart size={48} style={{ color: 'var(--text-light)', marginBottom: '12px' }} />
+                  <p style={{ fontSize: '0.85rem' }}>اختر أصنافاً من القائمة</p>
                 </div>
               ) : (
                 cart.map(item => (
@@ -412,11 +409,12 @@ export default function WaiterView({ tables, onSaveTables, employee, menuItems =
                 className="send-order-btn"
                 onClick={handleSendOrder}
                 disabled={cart.length === 0}
+                style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
               >
-                ✅ أرسل الطلب للأقسام
+                <Check size={18} /> أرسل الطلب للأقسام
               </button>
-              <button className="back-btn" style={{ width: '100%', marginTop: '8px', textAlign: 'center' }} onClick={() => { setView('tables'); setCart([]); }}>
-                ← عودة للطاولات
+              <button className="back-btn" style={{ width: '100%', marginTop: '8px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }} onClick={() => { setView('tables'); setCart([]); }}>
+                <ArrowRight size={16} /> عودة للطاولات
               </button>
             </div>
           </div>
@@ -434,7 +432,9 @@ export default function WaiterView({ tables, onSaveTables, employee, menuItems =
       <div className="view-container">
         <div className="order-header">
           <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-            <button className="back-btn" onClick={() => setView('tables')}>← رجوع</button>
+            <button className="back-btn" onClick={() => setView('tables')} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+              <ArrowRight size={16} /> عودة
+            </button>
             <div>
               <span className="order-table-num">الطاولة #{selectedTable.id}</span>
               <span style={{ color: 'var(--text-muted)', fontSize: '0.82rem', marginRight: '12px' }}>
@@ -445,7 +445,9 @@ export default function WaiterView({ tables, onSaveTables, employee, menuItems =
           <div style={{ display: 'flex', gap: '10px' }}>
             <button className="btn-add-more" onClick={() => { setCart([]); setView('new-order'); }}>+ إضافة طلب</button>
             {tableData.status !== 'bill_requested' && (
-              <button className="btn-request-bill" onClick={() => setBillConfirmOpen(true)}>🧾 طلب الحساب</button>
+              <button className="btn-request-bill" onClick={() => setBillConfirmOpen(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                <Receipt size={16} /> طلب الحساب
+              </button>
             )}
           </div>
         </div>
@@ -456,7 +458,10 @@ export default function WaiterView({ tables, onSaveTables, employee, menuItems =
           return order && ri.tableName === selectedTable.name;
         }).length > 0 && (
           <div className="ready-alert-banner">
-            🔔 طلبات جاهزة للتسليم!
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}>
+              <Bell size={20} style={{ color: 'var(--color-primary)' }} />
+              طلبات جاهزة للتسليم!
+            </div>
             {readyItems.filter(ri => ri.tableName === selectedTable.name).map((ri, i) => (
               <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px' }}>
                 <span>{ri.name} × {ri.qty}</span>
@@ -469,49 +474,39 @@ export default function WaiterView({ tables, onSaveTables, employee, menuItems =
         {/* Current order items */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
           <div className="admin-card">
-            <h3 className="card-title">📋 حالة الطلبات</h3>
+            <h3 className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <ClipboardList size={18} style={{ color: 'var(--color-primary)' }} />
+              حالة الطلبات
+            </h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: '12px' }}>
               {tableCurrentOrder.length === 0 ? (
                 <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '20px' }}>لا توجد طلبات لهذه الطاولة</p>
               ) : (
                 <>
-                  {/* 📌 الطلبات الجارية */}
+                  {/* الطلبات الجارية */}
                   <div>
-                    <h4 style={{ fontSize: '0.92rem', fontWeight: 700, marginBottom: '8px', color: '#f39c12', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      📌 الطلبات الجارية ({ongoingItems.length})
+                    <h4 style={{ fontSize: '0.92rem', fontWeight: 700, marginBottom: '8px', color: '#d97706', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Clock size={16} /> الطلبات الجارية ({ongoingItems.length})
                     </h4>
                     {ongoingItems.length === 0 ? (
                       <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', padding: '6px 12px' }}>لا توجد طلبات قيد التحضير</p>
                     ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                         {ongoingItems.map((item, i) => {
-                          const orderedTime = item.orderedAt || tableData.seatedAt || now;
-                          const elapsedSec = Math.floor((now - orderedTime) / 1000);
-                          const elapsedMinPart = Math.floor(elapsedSec / 60);
-                          const elapsedSecPart = elapsedSec % 60;
-                          
-                          const expectedPrep = item.prepTime || 15;
-                          const expectedPrepSec = expectedPrep * 60;
-                          
-                          const remainingSec = Math.max(0, expectedPrepSec - elapsedSec);
-                          const remainingMinPart = Math.floor(remainingSec / 60);
-                          const remainingSecPart = remainingSec % 60;
-                          
-                          const percent = Math.min(100, Math.floor((elapsedSec / expectedPrepSec) * 100));
                           const statusText = item.status === 'preparing' ? 'يتحضر' : 'جديد';
-                          const statusColor = item.status === 'preparing' ? '#ca8a04' : '#dc2626';
+                          const statusColor = item.status === 'preparing' ? '#d97706' : '#dc2626';
                           const statusBg = item.status === 'preparing' ? '#fffbeb' : '#fef2f2';
 
                           return (
                             <div key={i} style={{ padding: '12px', background: statusBg, borderRadius: '8px', borderRight: `3px solid ${statusColor}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                               <div>
-                                <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#1a1a1a' }}>{item.name} × {item.qty}</span>
-                                {item.note && <div style={{ fontSize: '0.75rem', color: '#ca8a04', marginTop: '2px' }}>📝 {item.note}</div>}
+                                <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#09090b' }}>{item.name} × {item.qty}</span>
+                                {item.note && <div style={{ fontSize: '0.75rem', color: '#d97706', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}><Notebook size={12} /> {item.note}</div>}
                                 <div style={{ display: 'flex', gap: '4px', alignItems: 'center', marginTop: '4px' }}>
                                   <button className="qty-btn" onClick={() => updateOngoingItemQty(selectedTable.id, item.orderId, item.id, Math.max(1, item.qty - 1))} disabled={item.qty <= 1}>−</button>
                                   <span>{item.qty}</span>
                                   <button className="qty-btn" onClick={() => updateOngoingItemQty(selectedTable.id, item.orderId, item.id, item.qty + 1)}>+</button>
-                                  <button className="qty-btn" onClick={() => cancelOngoingItem(selectedTable.id, item.orderId, item.id)} title="إلغاء الصنف">🗑️</button>
+                                  <button className="qty-btn" onClick={() => cancelOngoingItem(selectedTable.id, item.orderId, item.id)} title="إلغاء الصنف" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><Trash2 size={12} /></button>
                                 </div>
                               </div>
                               <span style={{ fontSize: '0.78rem', color: statusColor, fontWeight: 700 }}>{statusText}</span>
@@ -522,10 +517,10 @@ export default function WaiterView({ tables, onSaveTables, employee, menuItems =
                     )}
                   </div>
 
-                  {/* ✅ الطلبات الجاهزة */}
+                  {/* الطلبات الجاهزة */}
                   <div>
-                    <h4 style={{ fontSize: '0.92rem', fontWeight: 700, marginBottom: '8px', color: '#15803d', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      ✅ الطلبات الجاهزة للتسليم ({readyItemsList.length})
+                    <h4 style={{ fontSize: '0.92rem', fontWeight: 700, marginBottom: '8px', color: '#10b981', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <CheckCircle2 size={16} /> الطلبات الجاهزة للتسليم ({readyItemsList.length})
                     </h4>
                     {readyItemsList.length === 0 ? (
                       <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', padding: '6px 12px' }}>لا توجد طلبات جاهزة</p>
@@ -535,20 +530,20 @@ export default function WaiterView({ tables, onSaveTables, employee, menuItems =
                           const readyDuration = item.readyAt ? Math.floor((now - item.readyAt) / 60000) : 0;
                           const ordId = getOrderIdForItem(item.id);
                           return (
-                            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: '#f0fdf4', borderRight: '3px solid #15803d', borderRadius: '8px' }}>
+                            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: '#f0fdf4', borderRight: '3px solid #10b981', borderRadius: '8px' }}>
                               <div>
-                                <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#1a1a1a' }}>{item.name} × {item.qty}</div>
-                                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                                  ⏱ جاهز منذ: {readyDuration} دقائق
+                                <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#09090b' }}>{item.name} × {item.qty}</div>
+                                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                  <Timer size={12} /> جاهز منذ: {readyDuration} دقائق
                                 </div>
                               </div>
                               <button
                                 className="deliver-btn"
                                 onClick={() => ordId && handleDeliverItem(ordId, item.id)}
                                 disabled={!ordId}
-                                style={{ padding: '6px 12px', fontSize: '0.78rem', background: '#15803d', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 700 }}
+                                style={{ padding: '6px 12px', fontSize: '0.78rem', background: '#10b981', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 700 }}
                               >
-                                [تم تسليم الطلب ✓]
+                                تسليم الجرسون
                               </button>
                             </div>
                           );
@@ -557,15 +552,15 @@ export default function WaiterView({ tables, onSaveTables, employee, menuItems =
                     )}
                   </div>
 
-                  {/* 📦 الطلبات المسلّمة */}
+                  {/* الطلبات المسلّمة */}
                   {deliveredItemsList.length > 0 && (
                     <div>
                       <h4 style={{ fontSize: '0.92rem', fontWeight: 700, marginBottom: '8px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        📦 الطلبات المسلمة ({deliveredItemsList.length})
+                        <Package size={16} /> الطلبات المسلمة ({deliveredItemsList.length})
                       </h4>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                         {deliveredItemsList.map((item, i) => (
-                          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', background: 'rgba(255,255,255,0.01)', borderRadius: '6px', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', background: 'var(--bg-surface-2)', border: '1px solid var(--border-light)', borderRadius: '6px', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
                             <span>{item.name} × {item.qty}</span>
                             <span>مسلم ✓</span>
                           </div>
@@ -579,7 +574,10 @@ export default function WaiterView({ tables, onSaveTables, employee, menuItems =
           </div>
 
           <div className="admin-card">
-            <h3 className="card-title">💳 الفاتورة الحالية</h3>
+            <h3 className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Receipt size={18} style={{ color: 'var(--color-primary)' }} />
+              الفاتورة الحالية
+            </h3>
             <div style={{ marginTop: '12px' }}>
               <div className="total-row"><span>المجموع الفرعي</span><span>{(tableData.subtotal || 0).toFixed(2)} ₪</span></div>
               <div className="total-row"><span>الضريبة (15%)</span><span>{(tableData.tax || 0).toFixed(2)} ₪</span></div>
@@ -588,9 +586,11 @@ export default function WaiterView({ tables, onSaveTables, employee, menuItems =
             </div>
 
             {tableData.status === 'bill_requested' && (
-              <div style={{ marginTop: '16px', padding: '12px', background: 'rgba(243,156,18,0.1)', borderRadius: '8px', border: '1px solid rgba(243,156,18,0.3)', textAlign: 'center' }}>
-                <div style={{ color: '#f39c12', fontWeight: 700 }}>🧾 تم إرسال طلب الحساب للمحاسب</div>
-                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>في انتظار المعالجة</div>
+              <div style={{ marginTop: '16px', padding: '12px', background: 'rgba(243,156,18,0.05)', border: '1px solid rgba(243,156,18,0.2)', borderRadius: '8px', textAlign: 'center' }}>
+                <div style={{ color: '#d97706', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                  <Receipt size={16} /> تم إرسال طلب الحساب للمحاسب
+                </div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>في انتظار المعالجة والتصفير</div>
               </div>
             )}
           </div>
@@ -605,12 +605,14 @@ export default function WaiterView({ tables, onSaveTables, employee, menuItems =
       {/* Ready items global bar */}
       {readyItems.length > 0 && (
         <div className="ready-alert-banner">
-          🔔 طلبات جاهزة للتسليم! ({readyItems.length})
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}>
+            <Bell size={18} /> طلبات جاهزة للتسليم! ({readyItems.length})
+          </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '8px' }}>
             {readyItems.map((ri, i) => (
-              <div key={i} style={{ display: 'flex', gap: '8px', alignItems: 'center', background: 'rgba(255,255,255,0.1)', padding: '4px 10px', borderRadius: '20px' }}>
-                <span style={{ fontSize: '0.82rem' }}>{ri.tableName} – {ri.name} ×{ri.qty}</span>
-                <button className="deliver-btn" onClick={() => handleDeliverItem(ri.orderId, ri.id)}>✓</button>
+              <div key={i} style={{ display: 'inline-flex', gap: '8px', alignItems: 'center', background: 'var(--bg-surface)', border: '1px solid var(--border-light)', padding: '4px 12px', borderRadius: '20px' }}>
+                <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>{ri.tableName} – {ri.name} ×{ri.qty}</span>
+                <button className="deliver-btn" onClick={() => handleDeliverItem(ri.orderId, ri.id)}>تسليم ✓</button>
               </div>
             ))}
           </div>
@@ -620,12 +622,15 @@ export default function WaiterView({ tables, onSaveTables, employee, menuItems =
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
         <div>
-          <h2 style={{ fontSize: '1.6rem', fontWeight: 800, margin: 0 }}>مرحباً، {employee.name} 👋</h2>
+          <h2 style={{ fontSize: '1.6rem', fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+            مرحباً، {employee.name}
+            <Sparkles size={20} style={{ color: 'var(--color-primary)' }} />
+          </h2>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', marginTop: '4px' }}>اختر طاولة للبدء</p>
         </div>
         <div style={{ display: 'flex', gap: '12px', fontSize: '0.82rem' }}>
           {Object.entries(STATUS_LABELS_AR).slice(0, 3).map(([k, v]) => (
-            <div key={k} style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
+            <div key={k} style={{ display: 'flex', gap: '5px', alignItems: 'center', fontWeight: 600 }}>
               <span style={{ width: '10px', height: '10px', borderRadius: '3px', background: STATUS_COLORS[k], display: 'inline-block' }} />
               {v}
             </div>
@@ -644,15 +649,23 @@ export default function WaiterView({ tables, onSaveTables, employee, menuItems =
               onClick={() => openTable(t)}
             >
               <div className="table-number">{t.id}</div>
-              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>🪑 {t.seats} مقعد</div>
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'center' }}>
+                <Users size={12} /> {t.seats} مقاعد
+              </div>
               <span className={`badge ${STATUS_BADGE[t.status] || ''}`}>{STATUS_LABELS_AR[t.status] || t.status}</span>
               {t.status !== 'empty' && t.total > 0 && (
-                <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, color: 'var(--color-primary)', fontSize: '0.88rem' }}>{t.total.toFixed(2)} ₪</div>
+                <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800, color: 'var(--color-primary)', fontSize: '0.88rem' }}>{t.total.toFixed(2)} ₪</div>
               )}
               {t.status !== 'empty' && t.seatedAt && (
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>⏱ {elMin} دقيقة</div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'center' }}>
+                  <Timer size={10} /> {elMin} دقيقة
+                </div>
               )}
-              {t.status === 'bill_requested' && <div style={{ fontSize: '1.2rem' }}>🧾</div>}
+              {t.status === 'bill_requested' && (
+                <div style={{ position: 'absolute', top: '8px', left: '8px', color: '#d97706' }}>
+                  <Receipt size={16} />
+                </div>
+              )}
             </div>
           );
         })}
@@ -663,17 +676,22 @@ export default function WaiterView({ tables, onSaveTables, employee, menuItems =
         <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) setBillConfirmOpen(false); }}>
           <div className="modal-content glass-card" style={{ maxWidth: '400px' }}>
             <div className="modal-header">
-              <h3 className="modal-title">🧾 طلب الحساب</h3>
+              <h3 className="modal-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Receipt size={20} />
+                طلب الحساب
+              </h3>
               <button className="modal-close" onClick={() => setBillConfirmOpen(false)}>×</button>
             </div>
             <div className="modal-body" style={{ textAlign: 'center' }}>
-              <p>هل تريد إرسال طلب الحساب للمحاسب؟</p>
-              <p style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.4rem', fontWeight: 800, color: 'var(--color-primary)', margin: '12px 0' }}>
+              <p style={{ fontWeight: 600, color: 'var(--text-main)' }}>هل تريد إرسال طلب الحساب للمحاسب؟</p>
+              <p style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.8rem', fontWeight: 800, color: 'var(--color-primary)', margin: '12px 0' }}>
                 {tableData ? (tableData.total || 0).toFixed(2) : '0.00'} ₪
               </p>
             </div>
             <div className="modal-footer">
-              <button className="btn-request-bill" onClick={handleRequestBill}>✅ نعم، إرسال طلب</button>
+              <button className="btn-request-bill" onClick={handleRequestBill} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                <Check size={16} /> نعم، إرسال طلب
+              </button>
               <button className="btn-secondary" onClick={() => setBillConfirmOpen(false)}>إلغاء</button>
             </div>
           </div>

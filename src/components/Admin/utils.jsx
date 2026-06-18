@@ -1,4 +1,77 @@
 import React from 'react';
+import { 
+  ChefHat, 
+  CupSoda, 
+  Wind, 
+  Flame, 
+  Coffee, 
+  Pizza, 
+  IceCream, 
+  UtensilsCrossed, 
+  Salad, 
+  Apple, 
+  GlassWater 
+} from 'lucide-react';
+
+export const ICON_MAP = {
+  // Departments / Categories
+  'chef-hat': ChefHat,
+  'kitchen': ChefHat,
+  '🍳': ChefHat,
+  'cup-soda': CupSoda,
+  'bar': CupSoda,
+  '🍺': CupSoda,
+  '🥤': CupSoda,
+  'glass-water': GlassWater,
+  'wind': Wind,
+  'shisha': Wind,
+  '💨': Wind,
+  'flame': Flame,
+  'grill': Flame,
+  '🔥': Flame,
+  'coffee': Coffee,
+  '☕': Coffee,
+  'tea': Coffee,
+  '🍵': Coffee,
+  'pizza': Pizza,
+  '🍕': Pizza,
+  'ice-cream': IceCream,
+  'cake': IceCream,
+  '🍰': IceCream,
+  '🍦': IceCream,
+  'burger': UtensilsCrossed,
+  '🍔': UtensilsCrossed,
+  'wrap': UtensilsCrossed,
+  '🌯': UtensilsCrossed,
+  'chicken': UtensilsCrossed,
+  '🍗': UtensilsCrossed,
+  'salad': Salad,
+  '🥗': Salad,
+  'orange': Apple,
+  'lemon': Apple,
+  'apple': Apple,
+  'strawberry': Apple,
+  '🍊': Apple,
+  '🍋': Apple,
+  '🍎': Apple,
+  '🍓': Apple,
+  'water': GlassWater,
+  '💧': GlassWater,
+  'utensils': UtensilsCrossed,
+  '🍽': UtensilsCrossed,
+  '🍽️': UtensilsCrossed
+};
+
+export const DEPARTMENT_ICONS = [
+  { id: 'chef-hat', label: 'مطبخ / طعام', icon: ChefHat },
+  { id: 'cup-soda', label: 'بار / مشروبات', icon: CupSoda },
+  { id: 'wind', label: 'شيشة / أرجيلة', icon: Wind },
+  { id: 'flame', label: 'مشاوي / نار', icon: Flame },
+  { id: 'pizza', label: 'معجنات / بيتزا', icon: Pizza },
+  { id: 'coffee', label: 'مقهى / قهوة', icon: Coffee },
+  { id: 'ice-cream', label: 'حلويات / مثلجات', icon: IceCream },
+  { id: 'utensils', label: 'عام / صالة', icon: UtensilsCrossed }
+];
 
 export const renderItemImage = (image, name, isCard = false, placeholderType = 'money') => {
   const isUrl = image && (image.startsWith('http') || image.startsWith('data:image/'));
@@ -27,6 +100,40 @@ export const renderItemImage = (image, name, isCard = false, placeholderType = '
     );
   }
 
+  const TargetIcon = ICON_MAP[image];
+  if (TargetIcon) {
+    const iconSize = isCard ? 32 : 20;
+    return (
+      <div 
+        style={isCard ? {
+          width: '100%',
+          height: '90px',
+          borderRadius: '6px',
+          marginBottom: '6px',
+          background: 'linear-gradient(135deg, rgba(220,38,38,0.06) 0%, rgba(220,38,38,0.01) 100%)',
+          border: '1px dashed rgba(220, 38, 38, 0.2)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: 'var(--color-primary)'
+        } : {
+          width: '40px',
+          height: '40px',
+          borderRadius: '6px',
+          background: 'linear-gradient(135deg, rgba(220,38,38,0.06) 0%, rgba(220,38,38,0.01) 100%)',
+          border: '1px dashed rgba(220, 38, 38, 0.2)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: 'var(--color-primary)',
+          flexShrink: 0
+        }}
+      >
+        <TargetIcon size={iconSize} />
+      </div>
+    );
+  }
+
   if (image && image.length <= 4) {
     return (
       <div 
@@ -35,8 +142,8 @@ export const renderItemImage = (image, name, isCard = false, placeholderType = '
           height: '90px',
           borderRadius: '6px',
           marginBottom: '6px',
-          background: 'linear-gradient(135deg, rgba(212,175,55,0.1) 0%, rgba(212,175,55,0.02) 100%)',
-          border: '1px dashed rgba(212, 175, 55, 0.3)',
+          background: 'linear-gradient(135deg, rgba(220,38,38,0.06) 0%, rgba(220,38,38,0.01) 100%)',
+          border: '1px dashed rgba(220, 38, 38, 0.2)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -45,8 +152,8 @@ export const renderItemImage = (image, name, isCard = false, placeholderType = '
           width: '40px',
           height: '40px',
           borderRadius: '6px',
-          background: 'linear-gradient(135deg, rgba(212,175,55,0.1) 0%, rgba(212,175,55,0.02) 100%)',
-          border: '1px dashed rgba(212, 175, 55, 0.3)',
+          background: 'linear-gradient(135deg, rgba(220,38,38,0.06) 0%, rgba(220,38,38,0.01) 100%)',
+          border: '1px dashed rgba(220, 38, 38, 0.2)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -66,8 +173,8 @@ export const renderItemImage = (image, name, isCard = false, placeholderType = '
         height: '90px',
         borderRadius: '6px',
         marginBottom: '6px',
-        background: 'linear-gradient(135deg, rgba(212,175,55,0.1) 0%, rgba(212,175,55,0.02) 100%)',
-        border: '1px dashed rgba(212, 175, 55, 0.3)',
+        background: 'linear-gradient(135deg, rgba(220,38,38,0.06) 0%, rgba(220,38,38,0.01) 100%)',
+        border: '1px dashed rgba(220, 38, 38, 0.2)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -76,8 +183,8 @@ export const renderItemImage = (image, name, isCard = false, placeholderType = '
         width: '40px',
         height: '40px',
         borderRadius: '6px',
-        background: 'linear-gradient(135deg, rgba(212,175,55,0.1) 0%, rgba(212,175,55,0.02) 100%)',
-        border: '1px dashed rgba(212, 175, 55, 0.3)',
+        background: 'linear-gradient(135deg, rgba(220,38,38,0.06) 0%, rgba(220,38,38,0.01) 100%)',
+        border: '1px dashed rgba(220, 38, 38, 0.2)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -86,17 +193,9 @@ export const renderItemImage = (image, name, isCard = false, placeholderType = '
       }}
     >
       {placeholderType === 'dept' ? (
-        <svg width={isCard ? 24 : 16} height={isCard ? 24 : 16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <rect x="4" y="2" width="16" height="20" rx="2" ry="2" />
-          <line x1="9" y1="22" x2="9" y2="16" />
-          <line x1="15" y1="22" x2="15" y2="16" />
-          <line x1="9" y1="16" x2="15" y2="16" />
-        </svg>
+        <ChefHat size={isCard ? 24 : 16} />
       ) : (
-        <svg width={isCard ? 24 : 16} height={isCard ? 24 : 16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M12 2v20" />
-          <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-        </svg>
+        <UtensilsCrossed size={isCard ? 24 : 16} />
       )}
     </div>
   );

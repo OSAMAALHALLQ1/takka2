@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { deleteBills, deleteAllBills, exportBills, filterBills, exportBillsToCSV } from '../../utils/storage';
+import { Receipt, Download, Trash2, Flame, Eye, Printer } from 'lucide-react';
 
 export default function BillsTab({ bills, menuItems }) {
   const [selected, setSelected] = useState(null);
@@ -15,12 +16,12 @@ export default function BillsTab({ bills, menuItems }) {
     h2{text-align:center}.row{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px dashed #ccc}
     .total{font-weight:bold;font-size:1.2em;border-top:2px solid #000;margin-top:8px;padding-top:8px}
     </style></head><body>
-    <h2>🍽️ تكة | TAKA</h2>
+    <h2>تكة | TAKKA</h2>
     <p style="text-align:center">${bill.tableName} | ${bill.timeFormatted} | ${bill.dateFormatted}</p>
     <hr>
     ${(bill.items || []).map(item => `<div class="row"><span>${item.name} × ${item.qty}</span><span>${(item.price * item.qty).toFixed(2)} ₪</span></div>`).join('')}
     <div class="row total"><span>الإجمالي النهائي:</span><span>${(bill.total || 0).toFixed(2)} ₪</span></div>
-    <p style="text-align:center;margin-top:20px">شكراً لزيارتكم 🙏</p>
+    <p style="text-align:center;margin-top:20px">شكراً لزيارتكم</p>
     </body></html>`);
     w.document.close();
     setTimeout(() => w.print(), 300);
@@ -88,7 +89,10 @@ export default function BillsTab({ bills, menuItems }) {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h2 className="tab-title" style={{ margin: 0 }}>🧾 الفواتير ({filteredBills.length})</h2>
+        <h2 className="tab-title" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Receipt size={24} style={{ color: 'var(--color-primary)' }} />
+          الفواتير ({filteredBills.length})
+        </h2>
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
           <select value={filterMode} onChange={e => setFilterMode(e.target.value)} style={{ padding: '6px', borderRadius: '4px' }}>
             <option value="all">الكل</option>
@@ -98,10 +102,18 @@ export default function BillsTab({ bills, menuItems }) {
           <input type="date" className="form-input" style={{ width: '130px', padding: '6px' }} onChange={e => setStartDate(e.target.value)} />
           <input type="date" className="form-input" style={{ width: '130px', padding: '6px' }} onChange={e => setEndDate(e.target.value)} />
           <input type="number" className="form-input" placeholder="الحد الأدنى" style={{ width: '100px', padding: '6px' }} onChange={e => setMinTotal(e.target.value)} />
-          <button className="btn-secondary" onClick={exportJSON}>📥 JSON</button>
-          <button className="btn-secondary" onClick={exportCSV}>📥 CSV</button>
-          <button className="btn-danger" onClick={handleDeleteFiltered}>🗑️ حذف المعروض</button>
-          <button className="btn-danger" onClick={handleDeleteAll}>🔥 حذف الجميع</button>
+          <button className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '4px' }} onClick={exportJSON}>
+            <Download size={14} /> JSON
+          </button>
+          <button className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '4px' }} onClick={exportCSV}>
+            <Download size={14} /> CSV
+          </button>
+          <button className="btn-danger" style={{ display: 'flex', alignItems: 'center', gap: '4px' }} onClick={handleDeleteFiltered}>
+            <Trash2 size={14} /> حذف المعروض
+          </button>
+          <button className="btn-danger" style={{ display: 'flex', alignItems: 'center', gap: '4px' }} onClick={handleDeleteAll}>
+            <Flame size={14} /> حذف الجميع
+          </button>
           <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, color: '#27ae60', fontSize: '1.1rem' }}>
             الإجمالي: {filteredBills.reduce((s, b) => s + (b.total || 0), 0).toFixed(2)} ₪
           </div>
@@ -131,8 +143,12 @@ export default function BillsTab({ bills, menuItems }) {
                   <td style={{ fontFamily: 'Outfit, sans-serif', fontSize: '0.85rem' }}>{bill.timeFormatted}</td>
                   <td>
                     <div style={{ display: 'flex', gap: '6px' }}>
-                      <button className="icon-btn" onClick={() => setSelected(bill)} title="تفاصيل">👁️</button>
-                      <button className="icon-btn" onClick={() => printBill(bill)} title="طباعة">🖨️</button>
+                      <button className="icon-btn" onClick={() => setSelected(bill)} title="تفاصيل">
+                        <Eye size={14} />
+                      </button>
+                      <button className="icon-btn" onClick={() => printBill(bill)} title="طباعة">
+                        <Printer size={14} />
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -175,7 +191,9 @@ export default function BillsTab({ bills, menuItems }) {
               </div>
             </div>
             <div className="modal-footer">
-              <button className="btn-primary-gold" onClick={() => printBill(selected)}>🖨️ طباعة</button>
+              <button className="btn-primary-gold" style={{ display: 'flex', alignItems: 'center', gap: '4px' }} onClick={() => printBill(selected)}>
+                <Printer size={14} /> طباعة
+              </button>
               <button className="btn-secondary" onClick={() => setSelected(null)}>إغلاق</button>
             </div>
           </div>
