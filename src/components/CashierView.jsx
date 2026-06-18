@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getBills, saveBills, addNotification, getDeptOrders, saveDeptOrders, getRestaurantName, deleteDeptOrdersForTable } from '../utils/storage';
+import { getBills, saveBills, addNotification, getDeptOrders, getRestaurantName, deleteDeptOrdersForTable } from '../utils/storage';
 import { 
   Coins, 
   CreditCard, 
@@ -9,13 +9,10 @@ import {
   TrendingUp, 
   Receipt, 
   UserCheck, 
-  Calendar, 
-  UtensilsCrossed, 
   CheckCircle2, 
   AlertTriangle, 
   Printer, 
   Eye, 
-  Flame, 
   Timer, 
   Award,
   Check,
@@ -30,6 +27,8 @@ const PAYMENT_METHODS = [
 ];
 
 const PAYMENT_LABELS = { cash: 'نقد', card: 'بطاقة', bank: 'تحويل بنكي', other: 'أخرى' };
+
+const STATUS_BADGE = { empty: 'badge-empty', eating: 'badge-eating', bill_requested: 'badge-bill-requested', unavailable: 'badge-unavailable' };
 
 export default function CashierView({ tables, onSaveTables, employee }) {
   const [now, setNow] = useState(() => Date.now());
