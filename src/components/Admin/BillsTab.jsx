@@ -88,12 +88,12 @@ export default function BillsTab({ bills, menuItems }) {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+      <div className="responsive-filter-bar">
         <h2 className="tab-title" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Receipt size={24} style={{ color: 'var(--color-primary)' }} />
           الفواتير ({filteredBills.length})
         </h2>
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+        <div className="responsive-filter-inputs">
           <select value={filterMode} onChange={e => setFilterMode(e.target.value)} style={{ padding: '6px', borderRadius: '4px' }}>
             <option value="all">الكل</option>
             <option value="today">اليوم</option>
@@ -168,7 +168,7 @@ export default function BillsTab({ bills, menuItems }) {
               <button className="modal-close" onClick={() => setSelected(null)}>×</button>
             </div>
             <div className="modal-body">
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '0.85rem', marginBottom: '16px' }}>
+              <div className="responsive-grid-2" style={{ gap: '8px', fontSize: '0.85rem', marginBottom: '16px' }}>
                 <div>رقم: <strong style={{ fontFamily: 'Outfit, sans-serif', color: 'var(--color-primary)' }}>{selected.id}</strong></div>
                 <div>الوقت: <strong>{selected.timeFormatted}</strong></div>
                 <div>الجرسون: <strong>{selected.waiterCode}</strong></div>

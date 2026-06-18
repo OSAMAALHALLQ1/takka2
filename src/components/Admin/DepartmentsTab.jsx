@@ -59,7 +59,7 @@ export default function DepartmentsTab({ departments, setDepartments, employees,
       {showForm && (
         <div className="admin-card" style={{ marginBottom: '24px', borderColor: 'var(--color-primary)' }}>
           <h3 className="card-title">{editId ? 'تعديل القسم' : 'قسم جديد'}</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '16px' }}>
+          <div className="responsive-grid-2" style={{ marginTop: '16px' }}>
             <div className="form-group">
               <label className="form-label">اسم القسم (عربي)</label>
               <input className="form-input" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} placeholder="مثال: المطبخ" />
@@ -193,7 +193,7 @@ export default function DepartmentsTab({ departments, setDepartments, employees,
               </div>
             </div>
             {dept.description && <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: '12px' }}>{dept.description}</p>}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '12px' }}>
+            <div className="responsive-grid-2" style={{ gap: '8px', marginTop: '12px' }}>
               <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '8px', padding: '8px', textAlign: 'center' }}>
                 <div style={{ fontWeight: 700, color: dept.color }}>{getDeptEmployeeCount(dept.id)}</div>
                 <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>موظفين</div>

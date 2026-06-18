@@ -30,7 +30,7 @@ const PAYMENT_LABELS = { cash: 'نقد', card: 'بطاقة', bank: 'تحويل �
 
 const STATUS_BADGE = { empty: 'badge-empty', eating: 'badge-eating', bill_requested: 'badge-bill-requested', unavailable: 'badge-unavailable' };
 
-export default function CashierView({ tables, onSaveTables, employee }) {
+export default function CashierView({ tables, onSaveTables, employee, activeTab: propActiveTab, setActiveTab: propSetActiveTab }) {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000);
@@ -39,7 +39,9 @@ export default function CashierView({ tables, onSaveTables, employee }) {
 
   const [lastUpdated, setLastUpdated] = useState(() => new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
 
-  const [activeTab, setActiveTab] = useState('active'); // 'active' | 'bills' | 'reports'
+  const [localActiveTab, setLocalActiveTab] = useState('active');
+  const activeTab = propActiveTab || localActiveTab;
+  const setActiveTab = propSetActiveTab || setLocalActiveTab;
   const [selectedTable, setSelectedTable] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [cashierNote, setCashierNote] = useState('');
@@ -397,7 +399,7 @@ export default function CashierView({ tables, onSaveTables, employee }) {
                 {/* Payment methods */}
                 <div style={{ marginBottom: '16px' }}>
                   <div style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '10px' }}>طريقة الدفع:</div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
+                  <div className="responsive-payment-grid">
                     {PAYMENT_METHODS.map(pm => {
                       const IconComp = pm.icon;
                       return (
@@ -453,7 +455,7 @@ export default function CashierView({ tables, onSaveTables, employee }) {
                           <AlertTriangle size={16} /> لا يمكن إغلاق الفاتورة لوجود طلبات قيد التحضير
                         </div>
                       )}
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.6fr', gap: '10px' }}>
+                      <div className="responsive-grid-1-16">
                         <button className="btn-secondary" onClick={() => printBill({ ...selectedTable, id: 'PREVIEW', tableName: selectedTable.name, items: selectedTable.currentOrder, paymentMethod, cashierCode: employee.code, timeFormatted: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }), dateFormatted: new Date().toLocaleDateString('ar-EG') })} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', justifyContent: 'center' }}>
                           <Printer size={16} /> معاينة الفاتورة
                         </button>
@@ -622,7 +624,7 @@ export default function CashierView({ tables, onSaveTables, employee }) {
 
       {/* CONFIRM PAYMENT MODAL */}
       {showConfirmModal && selectedTable && (
-        <div className="modal-overlay">
+        <div className="modal-overlay modal-mobile-bottom" onClick={e => { if (e.target === e.currentTarget) setShowConfirmModal(false); }}>
           <div className="modal-content glass-card" style={{ maxWidth: '480px' }}>
             <div className="modal-header">
               <h3 className="modal-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -632,7 +634,7 @@ export default function CashierView({ tables, onSaveTables, employee }) {
               <button className="modal-close" onClick={() => setShowConfirmModal(false)}>×</button>
             </div>
             <div className="modal-body">
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px', fontSize: '0.88rem' }}>
+               <div className="responsive-grid-2" style={{ marginBottom: '20px', fontSize: '0.88rem' }}>
                 <div><span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>الطاولة: </span><strong>{selectedTable.name}</strong></div>
                 <div><span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>الأصناف: </span><strong>{(selectedTable.currentOrder || []).reduce((s, i) => s + i.qty, 0)}</strong></div>
                 <div><span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>مدة الجلوس: </span><strong>{elapsedTime(selectedTable)}</strong></div>
@@ -666,7 +668,7 @@ export default function CashierView({ tables, onSaveTables, employee }) {
 
       {/* SUCCESS MODAL */}
       {showSuccessModal && (
-        <div className="modal-overlay">
+        <div className="modal-overlay modal-mobile-bottom" onClick={e => { if (e.target === e.currentTarget) setShowSuccessModal(null); }}>
           <div className="modal-content glass-card" style={{ maxWidth: '400px', textAlign: 'center', padding: '30px' }}>
             <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: '#f0fdf4', color: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', border: '2px solid #dcfce7' }}>
               <CheckCircle2 size={36} />
@@ -687,7 +689,7 @@ export default function CashierView({ tables, onSaveTables, employee }) {
 
       {/* BILL DETAIL MODAL */}
       {selectedBill && (
-        <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) setSelectedBill(null); }}>
+        <div className="modal-overlay modal-mobile-bottom" onClick={e => { if (e.target === e.currentTarget) setSelectedBill(null); }}>
           <div className="modal-content glass-card" style={{ maxWidth: '480px' }}>
             <div className="modal-header">
               <h3 className="modal-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -697,7 +699,7 @@ export default function CashierView({ tables, onSaveTables, employee }) {
               <button className="modal-close" onClick={() => setSelectedBill(null)}>×</button>
             </div>
             <div className="modal-body">
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '0.85rem', marginBottom: '16px' }}>
+               <div className="responsive-grid-2" style={{ marginBottom: '16px', fontSize: '0.85rem' }}>
                 <div>رقم: <strong style={{ color: 'var(--color-primary)', fontFamily: 'Outfit, sans-serif' }}>{selectedBill.id}</strong></div>
                 <div>الوقت: <strong>{selectedBill.timeFormatted}</strong></div>
                 <div>النادل: <strong>{selectedBill.waiterCode}</strong></div>

@@ -91,7 +91,7 @@ export default function MenuTab({ menuItems, setMenuItems, departments }) {
       {showForm && (
         <div className="admin-card" style={{ marginBottom: '24px', borderColor: 'var(--color-primary)' }}>
           <h3 className="card-title">{editId ? 'تعديل الصنف' : 'صنف جديد'}</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '16px' }}>
+          <div className="responsive-grid-2" style={{ marginTop: '16px' }}>
             <div className="form-group">
               <label className="form-label">الاسم (عربي) *</label>
               <input className="form-input" value={form.nameAr} onChange={e => setForm(p => ({ ...p, nameAr: e.target.value }))} placeholder="برغر كلاسيكي" />

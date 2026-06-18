@@ -87,7 +87,7 @@ export default function StaffTab({ employees, setEmployees }) {
       {showForm && (
         <div className="admin-card" style={{ marginBottom: '24px', borderColor: 'var(--color-primary)' }}>
           <h3 className="card-title">{editId ? 'تعديل موظف' : 'موظف جديد'}</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '16px' }}>
+          <div className="responsive-grid-2" style={{ marginTop: '16px' }}>
             <div className="form-group">
               <label className="form-label">الاسم الكامل *</label>
               <input className="form-input" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} placeholder="محمد علي" />

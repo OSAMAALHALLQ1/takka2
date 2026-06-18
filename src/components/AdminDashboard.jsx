@@ -27,8 +27,7 @@ import PermissionsTab from './Admin/PermissionsTab';
 import ReportsTab from './Admin/ReportsTab';
 import BillsTab from './Admin/BillsTab';
 
-export default function AdminDashboard({ user, onLogout, sidebarOpen, setSidebarOpen }) {
-  const [activeTab, setActiveTab] = useState('dashboard');
+export default function AdminDashboard({ user, onLogout, sidebarOpen, setSidebarOpen, activeTab, setActiveTab }) {
   const [tables, setTables] = useState(getTables());
   const [employees, setEmployees] = useState(getEmployees());
   const [menuItems, setMenuItems] = useState(getMenu());

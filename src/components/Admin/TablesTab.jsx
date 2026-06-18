@@ -75,7 +75,7 @@ export default function TablesTab({ tables, setTables }) {
       {showForm && (
         <div className="admin-card" style={{ marginBottom: '24px', borderColor: 'var(--color-primary)' }}>
           <h3 className="card-title">{editId ? `تعديل طاولة ${editId}` : 'طاولة جديدة'}</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginTop: '16px' }}>
+          <div className="responsive-grid-3" style={{ marginTop: '16px' }}>
             {!editId && (
               <div className="form-group">
                 <label className="form-label">رقم الطاولة *</label>
@@ -124,7 +124,7 @@ export default function TablesTab({ tables, setTables }) {
       {selected && (
         <div className="admin-card" style={{ marginTop: '24px', borderColor: 'var(--color-primary)' }}>
           <h3 className="card-title">{selected.name} - تفاصيل</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginTop: '12px', fontSize: '0.85rem' }}>
+          <div className="responsive-grid-3" style={{ marginTop: '12px', fontSize: '0.85rem' }}>
             <div><span style={{ color: 'var(--text-muted)' }}>الحالة: </span><strong>{STATUS_LABELS[selected.status]}</strong></div>
             <div><span style={{ color: 'var(--text-muted)' }}>المقاعد: </span><strong>{selected.seats}</strong></div>
             <div><span style={{ color: 'var(--text-muted)' }}>المنطقة: </span><strong>{AREA_LABELS[selected.area]}</strong></div>

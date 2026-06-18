@@ -64,7 +64,7 @@ export default function CodesTab({ codes, setCodes }) {
       {/* Generate form */}
       <div className="admin-card" style={{ marginBottom: '24px' }}>
         <h3 className="card-title">إنشاء كود دعوة جديد</h3>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr) auto', gap: '12px', alignItems: 'end', marginTop: '16px' }}>
+        <div className="responsive-cols-3-auto" style={{ alignItems: 'end', marginTop: '16px' }}>
           <div className="form-group" style={{ margin: 0 }}>
             <label className="form-label">اسم الموظف</label>
             <input className="form-input" value={newLabel} onChange={e => setNewLabel(e.target.value)} placeholder="محمد جرسون" />

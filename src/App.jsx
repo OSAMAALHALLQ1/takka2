@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Bell, Clock, Trash2, Settings, Menu, Loader2, Armchair, Users, KeyRound, ShieldCheck, Receipt, LogOut } from 'lucide-react';
+import { Bell, Clock, Trash2, Settings, Menu, Loader2, Armchair, Users, KeyRound, ShieldCheck, Receipt, LogOut, User as UserIcon, ClipboardList } from 'lucide-react';
 import {
   getTables, saveTables, getNotifications,
   getMenu, getDeptOrders, updateDeptOrderItem,
@@ -539,19 +539,28 @@ function MainApp() {
   
   const isDept = ['kitchen', 'bar', 'shisha'].includes(user.role);
 
+  const handleBottomNav = (tab) => {
+    if (tab === 'more') {
+      setShowMoreSheet(true);
+    } else {
+      setActiveTab(tab);
+    }
+  };
+
     return (
     <div className={`app-shell role-${user.role}`}>
-      {/* Header */}
+      {/* Header - compact on mobile */}
       <header className="header-bar">
         <div className="brand">
           <span className="brand-logo">
-            <BrandLogo size={28} style={{ marginLeft: '8px' }} />
-            تكة | TAKA
+            <BrandLogo size={24} style={{ marginLeft: '6px' }} />
+            <span className="brand-text-desktop">تكة | TAKA</span>
+            <span className="brand-text-mobile">تكة</span>
           </span>
           <span className="brand-tag">{ROLE_LABELS[user.role] || user.role}</span>
         </div>
 
-        <div className="user-profile" style={{ gap: '8px' }}>
+        <div className="user-profile" style={{ gap: '6px' }}>
           {user.role === 'manager' && (
             <button
               className="header-hamburger md:hidden"
@@ -560,17 +569,17 @@ function MainApp() {
                 background: 'rgba(255,255,255,0.08)',
                 border: '1px solid var(--border-light)',
                 borderRadius: '10px',
-                width: '40px',
-                height: '40px',
+                minWidth: '44px',
+                minHeight: '44px',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 color: 'var(--text-main)',
-                fontSize: '1.4rem'
+                fontSize: '1.3rem'
               }}
             >
-              ☰
+              <Menu size={20} />
             </button>
           )}
           <button
@@ -578,9 +587,9 @@ function MainApp() {
             style={{
               background: 'rgba(255,255,255,0.04)',
               border: '1px solid var(--border-light)',
-              borderRadius: '8px',
-              width: '40px',
-              height: '40px',
+              borderRadius: '10px',
+              minWidth: '44px',
+              minHeight: '44px',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
@@ -602,26 +611,13 @@ function MainApp() {
             <div className="user-role num-font">{user.role === 'manager' ? 'ADMIN' : `#${user.code}`}</div>
           </div>
           
-          {user.role !== 'manager' ? (
-            <button
-              className="btn btn-secondary"
-              onClick={handleLogout}
-              style={{ padding: '8px 12px', fontSize: '0.82rem', display: 'flex', gap: '6px', alignItems: 'center', borderRadius: '8px', height: '40px' }}
-              title="خروج"
-            >
-              <LogOut size={16} />
-              <span className="md:inline hidden">خروج</span>
-            </button>
-          ) : (
-            <button
-              className="btn btn-secondary md:flex hidden"
-              onClick={handleLogout}
-              style={{ padding: '8px 14px', fontSize: '0.82rem', display: 'flex', gap: '6px', alignItems: 'center', borderRadius: '8px', height: '40px' }}
-            >
-              <LogOut size={16} />
-              <span>خروج</span>
-            </button>
-          )}
+          <button
+            className="mobile-logout-btn"
+            onClick={handleLogout}
+            title="خروج"
+          >
+            <LogOut size={18} />
+          </button>
         </div>
       </header>
 
@@ -630,28 +626,21 @@ function MainApp() {
           <AdminDashboard user={user} onLogout={handleLogout} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} activeTab={activeTab} setActiveTab={setActiveTab} />
         )}
         {user.role === 'waiter' && (
-          <WaiterView tables={tables} onSaveTables={handleSaveTables} employee={user} menuItems={menuItems} />
+          <WaiterView tables={tables} onSaveTables={handleSaveTables} employee={user} menuItems={menuItems} activeTab={activeTab} />
         )}
         {user.role === 'cashier' && (
-          <CashierView tables={tables} onSaveTables={handleSaveTables} employee={user} />
+          <CashierView tables={tables} onSaveTables={handleSaveTables} employee={user} activeTab={activeTab} setActiveTab={setActiveTab} />
         )}
         {isDept && (
           <DeptScreen user={user} deptOrders={deptOrders} onUpdateOrders={setDeptOrders} soundEnabled={soundEnabled} toggleSound={toggleSound} />
         )}
       </main>
       
-      {user.role === 'manager' && (
-        <BottomNavigation 
-          activeTab={activeTab} 
-          setActiveTab={(tab) => {
-            if (tab === 'more') {
-              setShowMoreSheet(true);
-            } else {
-              setActiveTab(tab);
-            }
-          }} 
-        />
-      )}
+      <BottomNavigation
+        role={user.role}
+        activeTab={activeTab}
+        setActiveTab={handleBottomNav}
+      />
 
       {/* Manager More Bottom Sheet Drawer */}
       {showMoreSheet && user.role === 'manager' && (
@@ -682,11 +671,11 @@ function MainApp() {
                   <span className="more-option-label">الفواتير</span>
                 </button>
                 <button 
-                  className={`more-option-btn ${activeTab === 'staff' ? 'active' : ''}`}
-                  onClick={() => { setActiveTab('staff'); setShowMoreSheet(false); }}
+                  className={`more-option-btn ${activeTab === 'menu' ? 'active' : ''}`}
+                  onClick={() => { setActiveTab('menu'); setShowMoreSheet(false); }}
                 >
-                  <Users size={22} style={{ color: activeTab === 'staff' ? 'var(--color-role-accent)' : 'var(--text-muted)' }} />
-                  <span className="more-option-label">الموظفون</span>
+                  <ClipboardList size={22} style={{ color: activeTab === 'menu' ? 'var(--color-role-accent)' : 'var(--text-muted)' }} />
+                  <span className="more-option-label">المنيو</span>
                 </button>
                 <button 
                   className={`more-option-btn ${activeTab === 'codes' ? 'active' : ''}`}

@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   saveDeptOrders, getDeptOrders, addNotification, updateDeptOrderItem,
-  updateOngoingItemQty, cancelOngoingItem,
+  updateOngoingItemQty, cancelOngoingItem, getTables,
   TAX_RATE, SERVICE_RATE
 } from '../utils/storage';
 import { 
@@ -98,14 +98,95 @@ const renderItemImage = (image, name, isCard = false) => {
   );
 };
 
-export default function WaiterView({ tables, onSaveTables, employee, menuItems = [] }) {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(t);
-  }, []);
+function WaiterOrders({ employee, deptOrders, onDeliverItem }) {
+  const waiterOrders = Object.entries(deptOrders).filter(([, order]) =>
+    order.waiterCode === employee.code
+  );
 
-  const [view, setView] = useState('tables'); // 'tables' | 'new-order' | 'manage'
+  if (waiterOrders.length === 0) {
+    return (
+      <div className="view-container" style={{ textAlign: 'center', paddingTop: '80px' }}>
+        <ClipboardList size={56} style={{ color: 'var(--text-light)', marginBottom: '16px' }} />
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>لا توجد طلبات نشطة</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="view-container">
+      <h3 style={{ fontWeight: 800, fontSize: '1.1rem', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <ClipboardList size={20} style={{ color: 'var(--color-primary)' }} />
+        طلباتي ({waiterOrders.length})
+      </h3>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        {waiterOrders.map(([orderId, order]) => {
+          const pending = (order.items || []).filter(i => i.status === 'new' || i.status === 'preparing');
+          const ready = (order.items || []).filter(i => i.status === 'ready');
+          return (
+            <div key={orderId} className="glass-card" style={{ padding: '16px', borderRight: `4px solid ${ready.length > 0 ? '#10b981' : '#d97706'}` }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <strong style={{ fontSize: '1rem' }}>الطاولة #{order.tableId}</strong>
+                <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                  {new Date(order.timestamp).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </div>
+              {pending.length > 0 && (
+                <div style={{ fontSize: '0.85rem', color: '#d97706', marginBottom: '4px' }}>
+                  ⏳ {pending.length} قيد التحضير
+                </div>
+              )}
+              {ready.map((item) => (
+                <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0' }}>
+                  <span style={{ fontSize: '0.88rem' }}>{item.name} × {item.qty}</span>
+                  <button
+                    className="deliver-btn"
+                    onClick={() => onDeliverItem(orderId, item.id)}
+                    style={{ padding: '8px 16px', fontSize: '0.82rem' }}
+                  >
+                    تسليم ✓
+                  </button>
+                </div>
+              ))}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function WaiterProfile({ employee }) {
+  return (
+    <div className="view-container" style={{ paddingTop: '40px' }}>
+      <div className="glass-card" style={{ padding: '32px', textAlign: 'center' }}>
+        <div style={{
+          width: '80px', height: '80px', borderRadius: '50%',
+          background: 'var(--color-primary-glow)',
+          border: '3px solid var(--color-primary)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          margin: '0 auto 16px', fontSize: '2rem', fontWeight: 800,
+          color: 'var(--color-primary)'
+        }}>
+          {employee.name?.charAt(0) || '?'}
+        </div>
+        <h2 style={{ fontSize: '1.4rem', fontWeight: 800, marginBottom: '4px' }}>{employee.name}</h2>
+        <p style={{ color: 'var(--color-role-accent)', fontWeight: 700, fontSize: '0.9rem', marginBottom: '16px' }}>
+          #{employee.code} • جرسون
+        </p>
+        <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
+          <div style={{ padding: '12px 20px', background: 'var(--bg-surface-2)', borderRadius: '12px', textAlign: 'center' }}>
+            <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: '1.3rem' }}>{employee.id?.slice(0, 8) || '—'}</div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>المعرف</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function WaiterView({ tables, onSaveTables, employee, menuItems = [], activeTab = 'tables' }) {
+  const [now, setNow] = useState(() => Date.now());
+  const [view, setView] = useState('tables');
   const [selectedTable, setSelectedTable] = useState(null);
   const [activeCategory, setActiveCategory] = useState('all');
   const [search, setSearch] = useState('');
@@ -115,6 +196,81 @@ export default function WaiterView({ tables, onSaveTables, employee, menuItems =
   const [orderSuccess, setOrderSuccess] = useState(false);
   const [billConfirmOpen, setBillConfirmOpen] = useState(false);
   const [deptOrders, setDeptOrders] = useState(getDeptOrders());
+  const [pullDistance, setPullDistance] = useState(0);
+  const [refreshingPTR, setRefreshingPTR] = useState(false);
+  const startYRef = useRef(0);
+  const pullingRef = useRef(false);
+  const tablesContainerRef = useRef(null);
+
+  const [waiterActiveTab, setWaiterActiveTab] = useState(activeTab);
+
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === 'tables' || activeTab === 'orders' || activeTab === 'profile') {
+      setWaiterActiveTab(activeTab);
+    }
+  }, [activeTab]);
+
+  const handleWaiterDeliverItem = (orderId, itemId) => {
+    const order = deptOrders[orderId];
+    const item = (order?.items || []).find(i => i.id === itemId);
+    updateDeptOrderItem(orderId, itemId, { status: 'delivered' });
+    setDeptOrders(getDeptOrders());
+  };
+
+  const handleRefresh = useCallback(() => {
+    window.dispatchEvent(new Event('taka_sync'));
+  }, []);
+
+  useEffect(() => {
+    const el = tablesContainerRef.current?.parentElement;
+    if (!el) return;
+    const onTouchStart = (e) => {
+      if (refreshingPTR) return;
+      if (el.scrollTop > 5) return;
+      startYRef.current = e.touches[0].clientY;
+      pullingRef.current = true;
+    };
+    const onTouchMove = (e) => {
+      if (!pullingRef.current || refreshingPTR) return;
+      const diff = e.touches[0].clientY - startYRef.current;
+      if (diff <= 0) { setPullDistance(0); return; }
+      setPullDistance(Math.min(diff * 0.5, 120));
+    };
+    const onTouchEnd = () => {
+      if (!pullingRef.current || refreshingPTR) return;
+      pullingRef.current = false;
+      if (pullDistance >= 80) {
+        setRefreshingPTR(true);
+        setPullDistance(0);
+        Promise.resolve().then(() => {
+          handleRefresh();
+          setTimeout(() => setRefreshingPTR(false), 800);
+        });
+      } else {
+        setPullDistance(0);
+      }
+    };
+    el.addEventListener('touchstart', onTouchStart, { passive: true });
+    el.addEventListener('touchmove', onTouchMove, { passive: true });
+    el.addEventListener('touchend', onTouchEnd);
+    return () => {
+      el.removeEventListener('touchstart', onTouchStart);
+      el.removeEventListener('touchmove', onTouchMove);
+      el.removeEventListener('touchend', onTouchEnd);
+    };
+  }, [refreshingPTR, pullDistance, handleRefresh]);
+
+  if (waiterActiveTab === 'orders') {
+    return <WaiterOrders employee={employee} deptOrders={deptOrders} onDeliverItem={handleWaiterDeliverItem} />;
+  }
+  if (waiterActiveTab === 'profile') {
+    return <WaiterProfile employee={employee} />;
+  }
 
   useEffect(() => {
     const sync = () => setDeptOrders(getDeptOrders());
@@ -292,7 +448,7 @@ export default function WaiterView({ tables, onSaveTables, employee, menuItems =
   if (view === 'new-order' && selectedTable) {
     const { subtotal, tax, serviceCharge, total } = calcTotals();
     return (
-      <div className="view-container">
+      <div className="view-container view-enter">
         {orderSuccess && (
           <div className="order-success-banner">تم إرسال الطلب للأقسام بنجاح!</div>
         )}
@@ -429,7 +585,7 @@ export default function WaiterView({ tables, onSaveTables, employee, menuItems =
     const deliveredItemsList = tableCurrentOrder.filter(item => item.status === 'delivered');
 
     return (
-      <div className="view-container">
+      <div className="view-container view-enter">
         <div className="order-header">
           <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
             <button className="back-btn" onClick={() => setView('tables')} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
@@ -472,7 +628,7 @@ export default function WaiterView({ tables, onSaveTables, employee, menuItems =
         )}
 
         {/* Current order items */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+        <div className="responsive-grid-2">
           <div className="admin-card">
             <h3 className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <ClipboardList size={18} style={{ color: 'var(--color-primary)' }} />
@@ -601,7 +757,37 @@ export default function WaiterView({ tables, onSaveTables, employee, menuItems =
 
   // MAIN TABLES VIEW
   return (
-    <div className="view-container">
+    <div className="view-container" ref={tablesContainerRef}>
+      {/* Pull-to-refresh indicator */}
+      {(pullDistance > 0 || refreshingPTR) && (
+        <div
+          style={{
+            height: refreshingPTR ? '48px' : `${Math.min(pullDistance, 80)}px`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            overflow: 'hidden',
+            transition: refreshingPTR ? 'height 0.3s ease' : 'none',
+            color: 'var(--color-role-accent)',
+            fontSize: '0.82rem',
+            fontWeight: 600,
+          }}
+        >
+          {refreshingPTR ? (
+            <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <svg className="animate-spin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+              </svg>
+              جاري التحديث...
+            </span>
+          ) : pullDistance >= 80 ? (
+            'أفلت للتحديث'
+          ) : (
+            'اسحب للتحديث'
+          )}
+        </div>
+      )}
+
       {/* Ready items global bar */}
       {readyItems.length > 0 && (
         <div className="ready-alert-banner">
@@ -673,7 +859,7 @@ export default function WaiterView({ tables, onSaveTables, employee, menuItems =
 
       {/* Bill confirm modal */}
       {billConfirmOpen && selectedTable && (
-        <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) setBillConfirmOpen(false); }}>
+        <div className="modal-overlay modal-mobile-bottom" onClick={e => { if (e.target === e.currentTarget) setBillConfirmOpen(false); }}>
           <div className="modal-content glass-card" style={{ maxWidth: '400px' }}>
             <div className="modal-header">
               <h3 className="modal-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

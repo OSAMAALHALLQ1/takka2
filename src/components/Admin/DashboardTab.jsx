@@ -44,14 +44,14 @@ export default function DashboardTab({ tables, bills, occupied, activeOrders, ac
         <StatCard icon={<Flame size={32} />} label="الأكثر طلباً (أسبوع)" value={topItemName} color="#8b5cf6" />
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginTop: '24px' }}>
+      <div className="responsive-grid-2" style={{ marginTop: '24px' }}>
         {/* Tables Status */}
         <div className="admin-card">
           <h3 className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Armchair size={20} style={{ color: 'var(--color-primary)' }} />
             حالة الطاولات
           </h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px', marginTop: '12px' }}>
+          <div className="responsive-grid-5" style={{ marginTop: '12px' }}>
             {tables.map(t => (
               <div key={t.id} style={{
                 padding: '8px', borderRadius: '8px', textAlign: 'center',
@@ -94,7 +94,7 @@ export default function DashboardTab({ tables, bills, occupied, activeOrders, ac
           <TrendingUp size={20} style={{ color: 'var(--color-primary)' }} />
           ملخص إحصائي
         </h3>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginTop: '12px' }}>
+        <div className="responsive-grid-3" style={{ marginTop: '12px' }}>
           <div style={{ textAlign: 'center' }}>
             <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--color-primary)', fontFamily: 'Outfit, sans-serif' }}>{bills.length}</div>
             <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>إجمالي الفواتير</div>

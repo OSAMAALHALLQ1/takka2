@@ -47,7 +47,7 @@ export default function ReportsTab({ bills, menuItems, tables }) {
         <StatCard icon={<Armchair size={32} />} label="الطاولات الكلية" value={tables.length} color="#9b59b6" />
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+      <div className="responsive-grid-2">
         {/* Top Items */}
         <div className="admin-card">
           <h3 className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

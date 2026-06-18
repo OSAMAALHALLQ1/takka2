@@ -218,7 +218,7 @@ export default function ManagerView({ tables, employeeList, onUpdateEmployees })
 
       {/* 2. EMPLOYEES DIRECTORY & LINK COPIES */}
       {activeSubTab === 'employees' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 2fr', gap: '24px' }}>
+        <div className="responsive-grid-1-2">
           
           {/* Add Employee Form (Left) */}
           <div className="glass-card" style={{ padding: '24px', height: 'fit-content' }}>
