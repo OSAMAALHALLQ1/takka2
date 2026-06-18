@@ -195,6 +195,7 @@ export default function WaiterView({ tables, onSaveTables, employee, menuItems =
   const [tableNotes, setTableNotes] = useState('');
   const [orderSuccess, setOrderSuccess] = useState(false);
   const [billConfirmOpen, setBillConfirmOpen] = useState(false);
+  const [showMobileCart, setShowMobileCart] = useState(false);
   const [deptOrders, setDeptOrders] = useState(getDeptOrders());
   const [pullDistance, setPullDistance] = useState(0);
   const [refreshingPTR, setRefreshingPTR] = useState(false);
@@ -505,8 +506,8 @@ export default function WaiterView({ tables, onSaveTables, employee, menuItems =
             </div>
           </div>
 
-          {/* Right: Cart */}
-          <div className="cart-col">
+          {/* Right: Cart - hidden on mobile, shown on desktop */}
+          <div className="cart-col desktop-cart">
             <div className="cart-header-bar">
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                 <ShoppingCart size={18} /> الطلب الحالي
@@ -575,6 +576,103 @@ export default function WaiterView({ tables, onSaveTables, employee, menuItems =
             </div>
           </div>
         </div>
+
+        {/* Mobile Floating Cart Button */}
+        <button
+          className="mobile-cart-fab"
+          onClick={() => setShowMobileCart(true)}
+          style={{
+            position: 'fixed',
+            bottom: 'calc(80px + env(safe-area-inset-bottom))',
+            left: '16px',
+            zIndex: 100,
+            background: 'var(--color-primary)',
+            color: '#fff',
+            border: 'none',
+            borderRadius: '50%',
+            width: '60px',
+            height: '60px',
+            display: 'none',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+            cursor: 'pointer',
+            transition: 'transform 0.2s ease',
+          }}
+          aria-label="عرض السلة"
+        >
+          <ShoppingCart size={24} />
+          {cart.length > 0 && (
+            <span style={{
+              position: 'absolute',
+              top: '-4px',
+              right: '-4px',
+              background: '#22c55e',
+              color: '#fff',
+              borderRadius: '50%',
+              width: '22px',
+              height: '22px',
+              fontSize: '0.7rem',
+              fontWeight: 800,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontFamily: 'Outfit, sans-serif',
+            }}>
+              {cart.reduce((s, i) => s + i.qty, 0)}
+            </span>
+          )}
+        </button>
+
+        {/* Mobile Cart Bottom Sheet */}
+        {showMobileCart && (
+          <div className="bottom-sheet-overlay animate-fade-in" onClick={() => setShowMobileCart(false)}>
+            <div className="bottom-sheet-drawer animate-slide-up" onClick={(e) => e.stopPropagation()} style={{ maxHeight: '80vh' }}>
+              <div className="bottom-sheet-handle" />
+              <div className="bottom-sheet-header">
+                <div className="bottom-sheet-title">
+                  <ShoppingCart size={18} style={{ color: 'var(--color-primary)' }} />
+                  <span>الطلب الحالي</span>
+                </div>
+                <button className="bottom-sheet-close" onClick={() => setShowMobileCart(false)}>×</button>
+              </div>
+              <div className="bottom-sheet-content">
+                {cart.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
+                    اختر أصنافاً من القائمة
+                  </div>
+                ) : (
+                  cart.map(item => (
+                    <div key={item.id} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', padding: '10px 0', borderBottom: '1px solid var(--border-light)' }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 600, fontSize: '0.88rem' }}>{item.name}</div>
+                        <div style={{ fontFamily: 'Outfit, sans-serif', color: 'var(--color-primary)', fontSize: '0.82rem' }}>{(item.price * item.qty).toFixed(2)} ₪</div>
+                        <input type="text" className="note-input" placeholder="ملاحظة" value={item.note || ''} onChange={e => updateNote(item.id, e.target.value)} />
+                      </div>
+                      <div className="qty-controls">
+                        <button className="qty-btn" onClick={() => removeFromCart(item.id)}>−</button>
+                        <span className="qty-num">{item.qty}</span>
+                        <button className="qty-btn" onClick={() => increaseCart(item.id)}>+</button>
+                      </div>
+                    </div>
+                  ))
+                )}
+                {cart.length > 0 && (
+                  <div style={{ marginTop: '12px', padding: '12px 0', borderTop: '1px solid var(--border-light)' }}>
+                    <div className="total-row"><span>المجموع الفرعي</span><span>{subtotal.toFixed(2)} ₪</span></div>
+                    <div className="total-row"><span>ضريبة (15%)</span><span>{tax.toFixed(2)} ₪</span></div>
+                    <div className="total-row"><span>خدمة (10%)</span><span>{serviceCharge.toFixed(2)} ₪</span></div>
+                    <div className="total-row grand"><span>الإجمالي</span><span>{total.toFixed(2)} ₪</span></div>
+                  </div>
+                )}
+                <input className="form-input" placeholder="ملاحظة للطاولة..." value={tableNotes} onChange={e => setTableNotes(e.target.value)} style={{ marginTop: '8px' }} />
+                <button className="send-order-btn" onClick={() => { handleSendOrder(); setShowMobileCart(false); }} disabled={cart.length === 0} style={{ marginTop: '12px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                  <Check size={18} /> أرسل الطلب للأقسام
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }

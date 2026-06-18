@@ -2052,6 +2052,27 @@ select.form-input option { background: #ffffff; color: var(--text-main); }
   display: inline;
 }
 
+/* Mobile cart FAB - hidden on desktop, shown on mobile */
+.desktop-cart {
+  display: block;
+}
+.mobile-cart-fab {
+  display: none !important;
+}
+
+@media (max-width: 768px) {
+  .desktop-cart {
+    display: none !important;
+  }
+  .mobile-cart-fab {
+    display: flex !important;
+  }
+  .order-layout .menu-col {
+    max-height: none !important;
+    padding-bottom: 100px;
+  }
+}
+
 /* ────────────────────────────────────────────────────────────────
    GENERAL RESPONSIVE GRID & FILTER UTILITIES
    ─────────────────────────────────────────────────────────────────*/

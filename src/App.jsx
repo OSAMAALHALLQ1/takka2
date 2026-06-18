@@ -22,6 +22,7 @@ import { NotificationProvider } from './context/NotificationContext';
 import KitchenDashboard from './components/Dashboard/KitchenDashboard';
 import BarDashboard from './components/Dashboard/BarDashboard';
 import ShishaDashboard from './components/Dashboard/ShishaDashboard';
+import InstallPrompt from './components/Layout/InstallPrompt';
 
 // ──────────────────────────────────────────────────────
 // Dept Screen (Kitchen / Bar / Shisha)
@@ -511,11 +512,26 @@ function MainApp() {
 
   if (!databaseReady) {
     return (
-      <div className="app-shell" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ textAlign: 'center' }}>
-          <Loader2 className="animate-spin" style={{ width: '3rem', height: '3rem', margin: '0 auto 16px', color: 'var(--color-primary)' }} />
-          <h2 style={{ fontSize: '1.3rem', marginBottom: '8px' }}>تكة | TAKA</h2>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>جاري تحميل النظام...</p>
+      <div className="app-shell" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-surface)' }}>
+        <div style={{ textAlign: 'center', animation: 'fadeInUp 0.5s ease' }}>
+          <div style={{
+            width: '80px', height: '80px', borderRadius: '20px',
+            background: 'var(--color-primary-glow)',
+            border: '2px solid var(--color-primary)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            margin: '0 auto 20px',
+            color: 'var(--color-primary)',
+            fontWeight: 800, fontSize: '1.8rem',
+          }}>
+            تكة
+          </div>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '8px', color: 'var(--text-main)' }}>تكة</h2>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '24px' }}>نظام إدارة المطعم</p>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+            <div className="skeleton-pulse" style={{ width: '8px', height: '8px', borderRadius: '50%', animationDelay: '0s' }} />
+            <div className="skeleton-pulse" style={{ width: '8px', height: '8px', borderRadius: '50%', animationDelay: '0.2s' }} />
+            <div className="skeleton-pulse" style={{ width: '8px', height: '8px', borderRadius: '50%', animationDelay: '0.4s' }} />
+          </div>
         </div>
       </div>
     );
@@ -704,6 +720,9 @@ function MainApp() {
           </div>
         </div>
       )}
+
+      {/* Install PWA prompt */}
+      <InstallPrompt />
 
       {/* Toast notifications */}
       {toastNotifs.length > 0 && (
