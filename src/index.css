@@ -1068,8 +1068,8 @@ select.form-input option { background: #ffffff; color: var(--text-main); }
 /* 2. Tablet Collapsed Sidebar (641px - 1024px) */
 @media (min-width: 641px) and (max-width: 1024px) {
   .admin-sidebar {
-    width: 70px !important;
-    min-width: 70px !important;
+    width: 220px !important;
+    min-width: 220px !important;
     align-items: center !important;
     padding: 20px 0 !important;
   }
@@ -1613,33 +1613,7 @@ select.form-input option { background: #ffffff; color: var(--text-main); }
   margin-right: auto;
 }
 
-.side-drawer-toggle {
-  width: 44px;
-  height: 24px;
-  background: var(--border-light);
-  border-radius: 12px;
-  position: relative;
-  transition: background var(--tr-fast);
-  margin-right: auto;
-  flex-shrink: 0;
-}
 
-.side-drawer-toggle-knob {
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 20px;
-  height: 20px;
-  background: #fff;
-  border-radius: 50%;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-  transition: transform var(--tr-fast);
-}
-
-.side-drawer-toggle-knob.on {
-  transform: translateX(20px);
-  background: var(--color-primary);
-}
 
 /* ────────────────────────────────────────────────────────────────
    SECTION SHELL (legacy compat)
