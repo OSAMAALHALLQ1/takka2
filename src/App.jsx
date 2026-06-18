@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Bell, Clock, Trash2, Settings, Menu, Loader2, Armchair, Users, KeyRound, ShieldCheck, Receipt, LogOut, User as UserIcon, ClipboardList } from 'lucide-react';
+import { Bell, Clock, Trash2, Settings, Menu, Loader2, Armchair, Users, KeyRound, ShieldCheck, Receipt, LogOut, User as UserIcon, ClipboardList, X } from 'lucide-react';
 import {
   getTables, saveTables, getNotifications,
   getMenu, getDeptOrders, updateDeptOrderItem,
@@ -17,6 +17,8 @@ import AdminDashboard from './components/AdminDashboard';
 import NotificationsToast from './components/NotificationsToast';
 import BrandLogo from './components/BrandLogo';
 import BottomNavigation from './components/Layout/BottomNavigation';
+import MobileHeader from './components/Layout/MobileHeader';
+import SideDrawer from './components/Layout/SideDrawer';
 import { OrderProvider } from './context/OrderContext';
 import { NotificationProvider } from './context/NotificationContext';
 import KitchenDashboard from './components/Dashboard/KitchenDashboard';
@@ -294,6 +296,7 @@ function MainApp() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [showMoreSheet, setShowMoreSheet] = useState(false);
+  const [showSideDrawer, setShowSideDrawer] = useState(false);
 
 
   const isMountedRef = useRef(false);
@@ -565,18 +568,20 @@ function MainApp() {
 
     return (
     <div className={`app-shell role-${user.role}`}>
-      {/* Header - compact on mobile */}
+      {/* Mobile header (visible on < 768px) */}
+      <MobileHeader user={user} onMenuClick={() => setShowSideDrawer(true)} />
+
+      {/* Desktop header (visible on >= 768px) */}
       <header className="header-bar">
         <div className="brand">
           <span className="brand-logo">
-            <BrandLogo size={24} style={{ marginLeft: '6px' }} />
-            <span className="brand-text-desktop">تكة | TAKA</span>
-            <span className="brand-text-mobile">تكة</span>
+            <BrandLogo size={28} style={{ marginLeft: '8px' }} />
+            تكة | TAKA
           </span>
           <span className="brand-tag">{ROLE_LABELS[user.role] || user.role}</span>
         </div>
 
-        <div className="user-profile" style={{ gap: '6px' }}>
+        <div className="user-profile" style={{ gap: '8px' }}>
           {user.role === 'manager' && (
             <button
               className="header-hamburger md:hidden"
@@ -628,14 +633,28 @@ function MainApp() {
           </div>
           
           <button
-            className="mobile-logout-btn"
+            className="btn btn-secondary"
             onClick={handleLogout}
+            style={{ padding: '8px 12px', fontSize: '0.82rem', display: 'flex', gap: '6px', alignItems: 'center', borderRadius: '8px', height: '40px' }}
             title="خروج"
           >
-            <LogOut size={18} />
+            <LogOut size={16} />
+            <span>خروج</span>
           </button>
         </div>
       </header>
+
+      <SideDrawer
+        open={showSideDrawer}
+        onClose={() => setShowSideDrawer(false)}
+        user={user}
+        soundEnabled={soundEnabled}
+        onToggleSound={toggleSound}
+        onLogout={handleLogout}
+        notifications={notifications}
+        unreadCount={notifications.filter(n => !n.read).length}
+        onMarkAllRead={() => { markAllNotificationsRead(); refreshNotifs(); }}
+      />
 
       <main className="app-main">
         {user.role === 'manager' && (
