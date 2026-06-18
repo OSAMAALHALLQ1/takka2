@@ -674,8 +674,71 @@ function MainApp() {
       <BottomNavigation
         role={user.role}
         activeTab={activeTab}
-        setActiveTab={handleBottomNav}
+        setActiveTab={setActiveTab}
       />
+
+      {/* Manager More Bottom Sheet Drawer */}
+      {showMoreSheet && user.role === 'manager' && (
+        <div className="bottom-sheet-overlay animate-fade-in" onClick={() => setShowMoreSheet(false)}>
+          <div className="bottom-sheet-drawer animate-slide-up" onClick={(e) => e.stopPropagation()}>
+            <div className="bottom-sheet-handle" />
+            <div className="bottom-sheet-header">
+              <div className="bottom-sheet-title">
+                <Settings size={18} style={{ color: 'var(--color-primary)' }} />
+                <span>التحكم الإضافي</span>
+              </div>
+              <button className="bottom-sheet-close" onClick={() => setShowMoreSheet(false)}>×</button>
+            </div>
+            <div className="bottom-sheet-content">
+              <div className="more-options-grid">
+                <button 
+                  className={`more-option-btn ${activeTab === 'tables' ? 'active' : ''}`}
+                  onClick={() => { setActiveTab('tables'); setShowMoreSheet(false); }}
+                >
+                  <Armchair size={22} style={{ color: activeTab === 'tables' ? 'var(--color-role-accent)' : 'var(--text-muted)' }} />
+                  <span className="more-option-label">الطاولات</span>
+                </button>
+                <button 
+                  className={`more-option-btn ${activeTab === 'bills' ? 'active' : ''}`}
+                  onClick={() => { setActiveTab('bills'); setShowMoreSheet(false); }}
+                >
+                  <Receipt size={22} style={{ color: activeTab === 'bills' ? 'var(--color-role-accent)' : 'var(--text-muted)' }} />
+                  <span className="more-option-label">الفواتير</span>
+                </button>
+                <button 
+                  className={`more-option-btn ${activeTab === 'menu' ? 'active' : ''}`}
+                  onClick={() => { setActiveTab('menu'); setShowMoreSheet(false); }}
+                >
+                  <ClipboardList size={22} style={{ color: activeTab === 'menu' ? 'var(--color-role-accent)' : 'var(--text-muted)' }} />
+                  <span className="more-option-label">المنيو</span>
+                </button>
+                <button 
+                  className={`more-option-btn ${activeTab === 'codes' ? 'active' : ''}`}
+                  onClick={() => { setActiveTab('codes'); setShowMoreSheet(false); }}
+                >
+                  <KeyRound size={22} style={{ color: activeTab === 'codes' ? 'var(--color-role-accent)' : 'var(--text-muted)' }} />
+                  <span className="more-option-label">أكواد الدعوة</span>
+                </button>
+                <button 
+                  className={`more-option-btn ${activeTab === 'permissions' ? 'active' : ''}`}
+                  onClick={() => { setActiveTab('permissions'); setShowMoreSheet(false); }}
+                >
+                  <ShieldCheck size={22} style={{ color: activeTab === 'permissions' ? 'var(--color-role-accent)' : 'var(--text-muted)' }} />
+                  <span className="more-option-label">الصلاحيات</span>
+                </button>
+                <button 
+                  className="more-option-btn"
+                  style={{ color: '#dc2626', borderColor: 'rgba(220, 38, 38, 0.15)' }}
+                  onClick={() => { setShowMoreSheet(false); handleLogout(); }}
+                >
+                  <LogOut size={22} />
+                  <span className="more-option-label">تسجيل خروج</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Manager More Bottom Sheet Drawer */}
       {showMoreSheet && user.role === 'manager' && (
