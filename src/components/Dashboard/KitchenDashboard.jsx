@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { DepartmentOrderCard } from '../Orders/DepartmentOrderCard';
 import { useOrders } from '../../hooks/useOrders';
+import ConnectionStatus from '../Common/ConnectionStatus';
 import { ChefHat } from 'lucide-react';
 
 export function KitchenDashboard() {
@@ -34,6 +35,7 @@ export function KitchenDashboard() {
         <div className="dept-header-badge">
           {kitchenOrders.length} طلب
         </div>
+        <ConnectionStatus />
       </div>
       
       {/* قائمة الطلبات */}

@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { saveMenu, addNotification } from '../../utils/storage';
+import { saveMenu } from '../../utils/storage';
+import { compressImage } from '../../utils/image-compressor';
+import { supabase } from '../../utils/supabaseClient';
 import { CATEGORY_LABELS } from './constants';
 import { renderItemImage } from './utils';
 import { UtensilsCrossed, Search, FolderOpen, Check, X, Pencil, Trash2 } from 'lucide-react';
@@ -12,6 +14,7 @@ export default function MenuTab({ menuItems, setMenuItems, departments }) {
   const [editId, setEditId] = useState(null);
   const emptyForm = { nameAr: '', nameEn: '', description: '', price: '', category: 'mains', department: 'kitchen', image: 'utensils', available: true, prepTime: 15 };
   const [form, setForm] = useState(emptyForm);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   const filtered = menuItems.filter(item => {
     const matchSearch = item.name?.includes(search) || item.nameAr?.includes(search) || item.nameEn?.toLowerCase().includes(search.toLowerCase());
@@ -39,7 +42,6 @@ export default function MenuTab({ menuItems, setMenuItems, departments }) {
     setShowForm(false);
     setEditId(null);
     setForm(emptyForm);
-    addNotification(editId ? 'تعديل صنف' : 'إضافة صنف', `تم ${editId ? 'تعديل' : 'إضافة'} ${form.nameAr}`, 'success');
   };
 
   const handleEdit = (item) => {
@@ -53,13 +55,68 @@ export default function MenuTab({ menuItems, setMenuItems, departments }) {
     const updated = menuItems.filter(m => m.id !== item.id);
     saveMenu(updated);
     setMenuItems(updated);
-    addNotification('حذف صنف', `تم حذف ${item.name}`, 'warning');
   };
 
   const toggleAvailable = (itemId) => {
     const updated = menuItems.map(m => m.id === itemId ? { ...m, available: !m.available } : m);
     saveMenu(updated);
     setMenuItems(updated);
+  };
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      alert('الرجاء اختيار صورة فقط');
+      return;
+    }
+
+    setIsUploadingImage(true);
+    try {
+      const result = await compressImage(file, {
+        maxWidth: 800,
+        maxHeight: 800,
+        quality: 0.8,
+        maxSizeKB: 150
+      });
+
+      let imageValue = '';
+      if (supabase) {
+        const safeName = result.file.name.replace(/[^a-zA-Z0-9._-]/g, '-');
+        const filePath = `menu/${Date.now()}_${safeName}`;
+        const { error } = await supabase.storage
+          .from('menu-images')
+          .upload(filePath, result.file, {
+            contentType: 'image/webp',
+            upsert: false
+          });
+
+        if (!error) {
+          const { data: urlData } = supabase.storage
+            .from('menu-images')
+            .getPublicUrl(filePath);
+          imageValue = urlData.publicUrl;
+        }
+      }
+
+      if (!imageValue) {
+        imageValue = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (ev) => resolve(ev.target.result);
+          reader.onerror = () => reject(new Error('فشل قراءة الصورة المضغوطة'));
+          reader.readAsDataURL(result.file);
+        });
+      }
+
+      console.log(`تم ضغط الصورة: ${result.originalSizeKB} KB -> ${result.compressedSizeKB} KB (توفير ${result.savedPercent}%)`);
+      setForm(p => ({ ...p, image: imageValue }));
+    } catch (err) {
+      alert(`فشل رفع الصورة: ${err.message}`);
+    } finally {
+      setIsUploadingImage(false);
+    }
   };
 
   return (
@@ -122,20 +179,8 @@ export default function MenuTab({ menuItems, setMenuItems, departments }) {
                 <input className="form-input" value={form.image} onChange={e => setForm(p => ({ ...p, image: e.target.value }))} placeholder="رابط صورة الصنف (URL) أو رمز الأيقونة..." style={{ flex: 1 }} />
                 <label className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', padding: '0 12px', borderRadius: '8px', fontSize: '0.85rem' }}>
                   <FolderOpen size={14} />
-                  <span>رفع</span>
-                  <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => {
-                    const file = e.target.files[0];
-                    if (!file) return;
-                    if (file.size > 20 * 1024 * 1024) {
-                      alert('حجم الصورة يجب أن لا يتجاوز 20 ميجابايت');
-                      return;
-                    }
-                    const reader = new FileReader();
-                    reader.onload = (ev) => {
-                      setForm(p => ({ ...p, image: ev.target.result }));
-                    };
-                    reader.readAsDataURL(file);
-                  }} />
+                  <span>{isUploadingImage ? 'يرفع...' : 'رفع'}</span>
+                  <input type="file" accept="image/*" disabled={isUploadingImage} style={{ display: 'none' }} onChange={handleImageUpload} />
                 </label>
               </div>
             </div>

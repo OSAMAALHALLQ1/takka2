@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { DepartmentOrderCard } from '../Orders/DepartmentOrderCard';
 import { useOrders } from '../../hooks/useOrders';
+import ConnectionStatus from '../Common/ConnectionStatus';
 import { Wind } from 'lucide-react';
 
 export function ShishaDashboard() {
@@ -34,6 +35,7 @@ export function ShishaDashboard() {
         <div className="dept-header-badge">
           {shishaOrders.length} طلب
         </div>
+        <ConnectionStatus />
       </div>
       
       {/* قائمة الطلبات */}

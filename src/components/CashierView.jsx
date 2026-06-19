@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getBills, saveBills, addNotification, getDeptOrders, getRestaurantName, deleteDeptOrdersForTable } from '../utils/storage';
+import { getBills, saveBills, getDeptOrders, getRestaurantName, deleteDeptOrdersForTable } from '../utils/storage';
 import { 
   Coins, 
   CreditCard, 
@@ -120,29 +120,6 @@ export default function CashierView({ tables, onSaveTables, employee, activeTab:
       
       // Update local state for deptOrders
       setDeptOrders(getDeptOrders());
-
-      // Calculate total daily revenue including this new invoice
-      const newTotalRevenue = allBills.reduce((s, b) => s + (b.total || 0), 0);
-
-      // Notify waiter & cashier & manager
-      addNotification(
-        `الطاولة #${selectedTable.id} أصبحت فاضية (دفع مكتمل)`,
-        `الطاولة جاهزة للتنظيف والتعقيم`,
-        'success',
-        ['waiter', 'manager']
-      );
-      addNotification(
-        `الطاولة #${selectedTable.id} تم الدفع - المبلغ: ${(selectedTable.total || 0).toFixed(0)}₪`,
-        `طريقة الدفع: ${PAYMENT_LABELS[paymentMethod] || paymentMethod}`,
-        'info',
-        ['cashier', 'manager', 'waiter']
-      );
-      addNotification(
-        `إجمالي الإيرادات اليوم: ${newTotalRevenue.toFixed(0)}₪`,
-        `تم تحديث إجمالي الإيرادات بعد تحصيل فاتورة الطاولة #${selectedTable.id}`,
-        'info',
-        ['manager']
-      );
 
       setShowConfirmModal(false);
       setShowSuccessModal(newBill);

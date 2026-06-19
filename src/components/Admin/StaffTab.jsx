@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { saveEmployees, addNotification } from '../../utils/storage';
+import { saveEmployees } from '../../utils/storage';
 import { ROLE_COLORS, ROLE_LABELS } from './constants';
 import { Users, Check, X, Pencil, Trash2 } from 'lucide-react';
 
@@ -50,14 +50,12 @@ export default function StaffTab({ employees, setEmployees }) {
     setShowForm(false);
     setEditId(null);
     setForm(emptyForm);
-    addNotification('موظف', editId ? `تم تعديل ${form.name}` : `تمت إضافة ${form.name}`, 'success');
   };
 
   const toggleActive = (emp) => {
     const updated = employees.map(e => e.id === emp.id ? { ...e, active: !e.active } : e);
     saveEmployees(updated);
     setEmployees(updated);
-    addNotification('موظف', `${emp.active ? 'تعطيل' : 'تفعيل'} ${emp.name}`, 'info');
   };
 
   const handleDelete = (emp) => {
@@ -65,7 +63,6 @@ export default function StaffTab({ employees, setEmployees }) {
     const updated = employees.filter(e => e.id !== emp.id);
     saveEmployees(updated);
     setEmployees(updated);
-    addNotification('موظف', `تم حذف ${emp.name}`, 'warning');
   };
 
   const handleEdit = (emp) => {

@@ -81,6 +81,14 @@ export const renderItemImage = (image, name, isCard = false, placeholderType = '
       <img 
         src={image} 
         alt={name} 
+        loading="lazy"
+        decoding="async"
+        width={isCard ? 400 : 40}
+        height={isCard ? 300 : 40}
+        onError={(e) => {
+          e.currentTarget.style.display = 'none';
+          e.currentTarget.onerror = null;
+        }}
         style={isCard ? { 
           width: '100%', 
           height: '90px', 

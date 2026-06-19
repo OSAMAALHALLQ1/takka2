@@ -107,6 +107,8 @@ export const NOTIFICATION_FIELD_MAP = {
   message: 'message',
   type: 'type',
   targetRoles: 'target_roles',
+  targetRole: 'target_role',
+  targetDepartment: 'target_department',
   timestamp: 'timestamp',
   read: 'read',
   restaurantId: 'restaurant_id'

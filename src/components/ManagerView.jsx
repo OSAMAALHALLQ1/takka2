@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { saveEmployees, getBills, resetDailyData, addNotification } from '../utils/storage';
+import { saveEmployees, getBills, resetDailyData } from '../utils/storage';
 import { Users, BarChart3, Receipt, Plus, Trash2, Link as LinkIcon, RefreshCw, FileSpreadsheet, DollarSign, UtensilsCrossed, Coins, Check } from 'lucide-react';
 
 export default function ManagerView({ tables, employeeList, onUpdateEmployees }) {
@@ -56,12 +56,6 @@ export default function ManagerView({ tables, employeeList, onUpdateEmployees })
     onUpdateEmployees(updatedEmployees);
     saveEmployees(updatedEmployees);
 
-    addNotification(
-      'موظف جديد',
-      `تمت إضافة الموظف ${newEmpName} بنجاح بكود: ${code}`,
-      'info'
-    );
-
     // Reset inputs
     setNewEmpName('');
     setNewEmpUsername('');
@@ -75,7 +69,6 @@ export default function ManagerView({ tables, employeeList, onUpdateEmployees })
       const updatedEmployees = employeeList.filter((emp) => emp.id !== id);
       onUpdateEmployees(updatedEmployees);
       saveEmployees(updatedEmployees);
-      addNotification('حذف موظف', `تم حذف الموظف ${name} من النظام`, 'warning');
     }
   };
 

@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { DepartmentOrderCard } from '../Orders/DepartmentOrderCard';
 import { useOrders } from '../../hooks/useOrders';
+import ConnectionStatus from '../Common/ConnectionStatus';
 import { GlassWater } from 'lucide-react';
 
 export function BarDashboard() {
@@ -34,6 +35,7 @@ export function BarDashboard() {
         <div className="dept-header-badge">
           {barOrders.length} طلب
         </div>
+        <ConnectionStatus />
       </div>
       
       {/* قائمة الطلبات */}

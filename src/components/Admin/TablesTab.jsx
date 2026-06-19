@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { saveTables, addNotification } from '../../utils/storage';
+import { saveTables } from '../../utils/storage';
 import { STATUS_LABELS, STATUS_COLORS, AREA_LABELS } from './constants';
 import { Armchair, Pencil, Trash2 } from 'lucide-react';
 
@@ -26,7 +26,6 @@ export default function TablesTab({ tables, setTables }) {
     setShowForm(false);
     setEditId(null);
     setForm(emptyForm);
-    addNotification('طاولات', editId ? `تم تعديل طاولة ${editId}` : `تمت إضافة طاولة ${num}`, 'success');
   };
 
   const handleDelete = (t) => {
@@ -35,21 +34,12 @@ export default function TablesTab({ tables, setTables }) {
     const updated = tables.filter(tt => tt.id !== t.id);
     saveTables(updated);
     setTables(updated);
-    addNotification('طاولات', `تم حذف ${t.name}`, 'warning');
   };
 
   const handleStatusChange = (tableId, newStatus) => {
     const updated = tables.map(t => t.id === tableId ? { ...t, status: newStatus } : t);
     saveTables(updated);
     setTables(updated);
-    if (newStatus === 'unavailable') {
-      addNotification(
-        `الطاولة #${tableId} معطوبة - لا تقبل طلبات`,
-        `تم تحويل حالة الطاولة إلى غير متوفرة`,
-        'danger',
-        ['manager', 'waiter']
-      );
-    }
   };
 
   return (

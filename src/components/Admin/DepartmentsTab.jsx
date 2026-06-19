@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { saveDepartments, addNotification } from '../../utils/storage';
+import { saveDepartments } from '../../utils/storage';
 import { renderItemImage, DEPARTMENT_ICONS } from './utils';
 import { Building2, FolderOpen, Pencil, Trash2, Clock } from 'lucide-react';
 
@@ -29,7 +29,6 @@ export default function DepartmentsTab({ departments, setDepartments, employees,
     setDepartments(updated);
     setShowForm(false);
     resetForm();
-    addNotification(editId ? 'تم تعديل القسم' : 'تم إضافة القسم', `القسم ${form.name} تم ${editId ? 'تعديله' : 'إضافته'} بنجاح`, 'success');
   };
 
   const handleEdit = (dept) => {
@@ -43,7 +42,6 @@ export default function DepartmentsTab({ departments, setDepartments, employees,
     const updated = departments.filter(d => d.id !== dept.id);
     saveDepartments(updated);
     setDepartments(updated);
-    addNotification('حذف قسم', `تم حذف قسم ${dept.name}`, 'warning');
   };
 
   return (

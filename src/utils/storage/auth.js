@@ -1,7 +1,6 @@
 import { cache, persist, writeRecord, triggerSync } from './core.js';
 import { clone, normalizeEmployee } from './helpers.js';
 import { EMPLOYEES_KEY, SESSION_KEY } from './constants.js';
-import { addNotification } from './notifications.js';
 
 export const getEmployees = () => clone(cache[EMPLOYEES_KEY]).map(normalizeEmployee);
 
@@ -37,22 +36,11 @@ export const authenticateByCode = (inputCode) => {
   );
   if (!emp) return null;
   
-  const isFirstLogin = !emp.lastLogin;
   const session = { id: emp.id, role: emp.role, name: emp.name, code: emp.code, username: emp.username };
   persist(SESSION_KEY, session);
   
   const emps = empsList.map(e => e.id === emp.id ? { ...e, lastLogin: Date.now() } : e);
   persist(EMPLOYEES_KEY, emps);
-
-  if (isFirstLogin) {
-    const roleAr = { manager: 'مدير', waiter: 'جرسون', cashier: 'محاسب', kitchen: 'مطبخ', bar: 'بار', shisha: 'شيشة' }[emp.role] || emp.role;
-    addNotification(
-      `موظف جديد فعّل حسابه: ${emp.name} ${roleAr}`,
-      `الموظف قام بتسجيل الدخول لأول مرة وتفعيل الحساب`,
-      'success',
-      ['manager']
-    );
-  }
 
   return session;
 };

@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { getCodes, createCode, revokeCode, deleteCode } from '../../utils/auth-store';
-import { addNotification } from '../../utils/storage';
 import { ROLE_LABELS, ROLE_COLORS } from './constants';
 import { KeyRound, CheckCircle, Copy, Ban, Trash2, Check } from 'lucide-react';
 
@@ -23,14 +22,12 @@ export default function CodesTab({ codes, setCodes }) {
     const code = createCode({ label: newLabel.trim(), allowedRoles: [newRole], expiresAt });
     setCodes(getCodes());
     setGeneratedCode(code);
-    addNotification('كود دعوة', `تم إنشاء كود لـ ${newLabel} (${ROLE_LABELS[newRole]})`, 'success');
     setNewLabel('');
   };
 
   const handleRevoke = (codeId) => {
     revokeCode(codeId);
     setCodes(getCodes());
-    addNotification('كود دعوة', 'تم إلغاء الكود', 'warning');
   };
 
   const handleDelete = (codeId) => {

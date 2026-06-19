@@ -346,13 +346,22 @@ function MainApp() {
     
     // Filter ALL notifications for the logged-in user's bell list
     const filtered = all.filter(n => {
-      if (n.targetRoles && n.targetRoles.length > 0) {
-        const matchesRole = n.targetRoles.includes(user.role);
-        const matchesCode = n.targetRoles.includes(user.code);
-        if (user.role === 'manager') return true; // Manager gets everything
-        return matchesRole || matchesCode;
+      const role = user.role === 'manager' ? 'admin' : user.role;
+      const targetRole = String(n.targetRole || '');
+      const targetRoles = Array.isArray(n.targetRoles) ? n.targetRoles : [];
+      const targetDepartment = n.targetDepartment || null;
+
+      if (role === 'admin') return true;
+      if (['kitchen', 'bar', 'shisha'].includes(role)) {
+        return targetDepartment === role;
       }
-      return user.role === 'manager' || user.role === 'waiter' || user.role === 'cashier';
+      if (role === 'waiter') {
+        return targetRole.includes('waiter') || targetRoles.includes(user.code);
+      }
+      if (role === 'cashier') {
+        return targetRole.includes('cashier');
+      }
+      return false;
     });
     setNotifications(filtered);
 
@@ -427,9 +436,8 @@ function MainApp() {
     prevDeptOrdersRef.current = deptOrders;
   }, [deptOrders, playNewOrder, playReady]);
 
-  // Background check for forgotten/delayed orders (10+ minutes) and table duration (2+ hours)
+  // Background check for forgotten/delayed orders (10+ minutes)
   const alertedDelayedRef = useRef(new Set());
-  const alertedTablesRef = useRef(new Set());
   
   useEffect(() => {
     if (!user) return;
@@ -448,38 +456,17 @@ function MainApp() {
               const alertKey = `${orderId}-${dept}-delayed`;
               if (!alertedDelayedRef.current.has(alertKey)) {
                 alertedDelayedRef.current.add(alertKey);
-                addNotification(
-                  `طلب الطاولة #${order.tableId} منسي! 10 دقائق قيد الانتظار`,
-                  `يرجى الاستعجال في تحضير الطلب بقسم ${dept === 'kitchen' ? 'المطبخ' : dept === 'bar' ? 'البار' : 'الشيشة'}`,
-                  'warning',
-                  [dept, 'manager']
-                );
-              }
-            });
-          }
-        }
-      });
-      
-      // 2. Check for long-seated tables
-      const currentTables = getTables().filter(t => t.status === 'eating' || t.status === 'bill_requested');
-      currentTables.forEach(t => {
-        if (t.seatedAt) {
-          const elapsed = now - t.seatedAt;
-          if (elapsed >= 2 * 60 * 60000) { // 2 hours
-            const alertKey = `${t.id}-${t.seatedAt}-occupied`;
-            if (!alertedTablesRef.current.has(alertKey)) {
-              alertedTablesRef.current.add(alertKey);
-              const targets = t.waiterCode ? [t.waiterCode, 'manager'] : ['waiter', 'manager'];
-              addNotification(
-                `الطاولة #${t.id} مشغولة منذ 2 ساعة - تنبيه!`,
-                `${t.name} مشغولة لفترة طويلة تتجاوز الساعتين`,
-                'warning',
-                targets
-              );
+                  addNotification(
+                    `طلب الطاولة #${order.tableId} منسي! 10 دقائق قيد الانتظار`,
+                    `يرجى الاستعجال في تحضير الطلب بقسم ${dept === 'kitchen' ? 'المطبخ' : dept === 'bar' ? 'البار' : 'الشيشة'}`,
+                    'warning',
+                    ['manager']
+                  );
+                }
+              });
             }
           }
-        }
-      });
+        });
     }, 15000); // Check every 15 seconds
     
     return () => clearInterval(interval);

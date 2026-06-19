@@ -9,7 +9,6 @@ import {
   saveBills,
   deleteDeptOrdersForTable
 } from '../utils/storage';
-import { useNotifications } from '../hooks/useNotifications';
 
 export const OrderContext = createContext();
 
@@ -19,7 +18,6 @@ export function OrderProvider({ children }) {
   const [invoices, setInvoices] = useState(() => getBills());
   const [loading, setLoading] = useState({});
   
-  const { addNotification } = useNotifications();
   const pendingOperationsRef = useRef(new Set());
 
   const sync = useCallback(() => {
@@ -98,17 +96,6 @@ export function OrderProvider({ children }) {
             await saveTables(currentTables);
           }
         }
-      }
-
-      // Add notification when order/item is marked ready
-      if (newStatus === 'ready') {
-        const roleTargets = department ? [department, 'manager'] : ['manager'];
-        addNotification(
-          'العنصر جاهز',
-          `تم تحديث حالة ${department ? department : 'الطلب'} إلى جاهز`,
-          'success',
-          roleTargets
-        );
       }
 
       // Trigger sync
@@ -202,12 +189,6 @@ export function OrderProvider({ children }) {
       // Trigger sync
       window.dispatchEvent(new CustomEvent('taka_sync'));
       
-      addNotification(
-        'تم إغلاق الفاتورة بنجاح',
-        `تم تحصيل الفاتورة ${invoiceId} للطاولة ${bill.tableName}`,
-        'success',
-        ['cashier', 'manager']
-      );
       return true;
     } catch (error) {
       console.error('Failed to close invoice:', error);
@@ -216,7 +197,7 @@ export function OrderProvider({ children }) {
       pendingOperationsRef.current.delete(opKey);
       setLoading(prev => ({ ...prev, [invoiceId]: false }));
     }
-  }, [addNotification]);
+  }, []);
 
   const value = useMemo(() => ({
     orders,

@@ -5,6 +5,8 @@ ALTER TABLE bills ADD COLUMN IF NOT EXISTS restaurant_id text DEFAULT 'taka-main
 ALTER TABLE employees ADD COLUMN IF NOT EXISTS restaurant_id text DEFAULT 'taka-main';
 ALTER TABLE departments ADD COLUMN IF NOT EXISTS restaurant_id text DEFAULT 'taka-main';
 ALTER TABLE notifications ADD COLUMN IF NOT EXISTS restaurant_id text DEFAULT 'taka-main';
+ALTER TABLE notifications ADD COLUMN IF NOT EXISTS target_role text;
+ALTER TABLE notifications ADD COLUMN IF NOT EXISTS target_department text;
 ALTER TABLE dept_orders ADD COLUMN IF NOT EXISTS restaurant_id text DEFAULT 'taka-main';
 
 -- 2. Enable RLS on all tables (if not already enabled)

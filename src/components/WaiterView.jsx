@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   saveDeptOrders, getDeptOrders, addNotification, updateDeptOrderItem,
-  updateOngoingItemQty, cancelOngoingItem, getTables,
+  updateOngoingItemQty, cancelOngoingItem,
   TAX_RATE, SERVICE_RATE
 } from '../utils/storage';
 import { 
@@ -45,6 +45,14 @@ const renderItemImage = (image, name, isCard = false) => {
       <img 
         src={image} 
         alt={name} 
+        loading="lazy"
+        decoding="async"
+        width={isCard ? 400 : 40}
+        height={isCard ? 300 : 40}
+        onError={(e) => {
+          e.currentTarget.style.display = 'none';
+          e.currentTarget.onerror = null;
+        }}
         style={isCard ? { 
           width: '100%', 
           height: '90px', 
@@ -217,10 +225,7 @@ export default function WaiterView({ tables, onSaveTables, employee, menuItems =
   }, [activeTab]);
 
   const handleWaiterDeliverItem = (orderId, itemId) => {
-    const order = deptOrders[orderId];
-    const item = (order?.items || []).find(i => i.id === itemId);
     updateDeptOrderItem(orderId, itemId, { status: 'delivered' });
-    setDeptOrders(getDeptOrders());
   };
 
   const handleRefresh = useCallback(() => {
@@ -266,24 +271,11 @@ export default function WaiterView({ tables, onSaveTables, employee, menuItems =
     };
   }, [refreshingPTR, pullDistance, handleRefresh]);
 
-  if (waiterActiveTab === 'orders') {
-    return <WaiterOrders employee={employee} deptOrders={deptOrders} onDeliverItem={handleWaiterDeliverItem} />;
-  }
-  if (waiterActiveTab === 'profile') {
-    return <WaiterProfile employee={employee} />;
-  }
-
   useEffect(() => {
     const sync = () => setDeptOrders(getDeptOrders());
     window.addEventListener('taka_sync', sync);
     window.addEventListener('takah_sync', sync);
     return () => { window.removeEventListener('taka_sync', sync); window.removeEventListener('takah_sync', sync); };
-  }, []);
-
-  // Refresh every 10s for real-time feel
-  useEffect(() => {
-    const t = setInterval(() => setDeptOrders(getDeptOrders()), 10000);
-    return () => clearInterval(t);
   }, []);
 
   const filteredMenu = menuItems.filter(item => {
@@ -320,6 +312,13 @@ export default function WaiterView({ tables, onSaveTables, employee, menuItems =
     return { subtotal, tax, serviceCharge, total };
   }, [cart]);
 
+  if (waiterActiveTab === 'orders') {
+    return <WaiterOrders employee={employee} deptOrders={deptOrders} onDeliverItem={handleWaiterDeliverItem} />;
+  }
+  if (waiterActiveTab === 'profile') {
+    return <WaiterProfile employee={employee} />;
+  }
+
   const openTable = (table) => {
     setSelectedTable(table);
     setCart(table.currentOrder?.map(i => ({ ...i })) || []);
@@ -348,7 +347,6 @@ export default function WaiterView({ tables, onSaveTables, employee, menuItems =
     const existing = getDeptOrders();
     existing[orderId] = newOrder;
     saveDeptOrders(existing);
-    setDeptOrders(getDeptOrders());
 
     const updatedTables = tables.map(t => {
       if (t.id !== selectedTable.id) return t;
@@ -408,20 +406,7 @@ export default function WaiterView({ tables, onSaveTables, employee, menuItems =
   };
 
   const handleDeliverItem = (orderId, itemId) => {
-    const order = deptOrders[orderId];
-    const item = (order?.items || []).find(i => i.id === itemId);
-    const dept = item?.department || 'kitchen';
-    const itemName = item?.name || 'صنف';
-    
     updateDeptOrderItem(orderId, itemId, { status: 'delivered' });
-    setDeptOrders(getDeptOrders());
-    
-    addNotification(
-      `تم تسليم طلب الطاولة #${order?.tableId || selectedTable?.id} إلى الجرسون`,
-      `صنف ${itemName} تم تسليمه`,
-      'success',
-      [dept, 'manager']
-    );
   };
 
   // Ready items for this waiter

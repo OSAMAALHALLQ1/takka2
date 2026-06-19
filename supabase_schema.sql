@@ -91,6 +91,8 @@ CREATE TABLE IF NOT EXISTS public.notifications (
     message TEXT,
     type TEXT,
     target_roles JSONB DEFAULT '[]'::jsonb,
+    target_role TEXT,
+    target_department TEXT,
     timestamp BIGINT,
     read BOOLEAN DEFAULT false,
     restaurant_id TEXT DEFAULT 'taka-main'
