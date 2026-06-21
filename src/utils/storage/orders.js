@@ -1,0 +1,210 @@
+import { supabase } from '../supabaseClient.js';
+import { cache, persist, writeRecord, triggerSync } from './core.js';
+import { clone } from './helpers.js';
+import { DEPT_ORDERS_KEY, TABLES_KEY, TAX_RATE, SERVICE_RATE } from './constants.js';
+import { getTables } from './tables.js';
+
+export const getDeptOrders = () => clone(cache[DEPT_ORDERS_KEY]);
+
+export const saveDeptOrders = async (d) => { 
+  if (!d || typeof d !== 'object') return false; 
+  return await persist(DEPT_ORDERS_KEY, d); 
+};
+
+export const deleteDeptOrder = async (id) => {
+  const orders = getDeptOrders();
+  if (orders[id]) {
+    delete orders[id];
+    cache[DEPT_ORDERS_KEY] = clone(orders);
+    await writeRecord(DEPT_ORDERS_KEY, orders);
+    triggerSync(DEPT_ORDERS_KEY);
+    if (supabase) {
+      try {
+        await supabase.from('dept_orders').delete().eq('id', id);
+      } catch (err) {
+        console.error('Failed to delete dept order from Supabase:', err);
+      }
+    }
+  }
+};
+
+export const deleteDeptOrdersForTable = async (tableId) => {
+  const orders = getDeptOrders();
+  const toDeleteIds = Object.keys(orders).filter(id => orders[id].tableId === tableId);
+  if (toDeleteIds.length > 0) {
+    const filtered = Object.fromEntries(Object.entries(orders).filter(([, o]) => o.tableId !== tableId));
+    cache[DEPT_ORDERS_KEY] = clone(filtered);
+    await writeRecord(DEPT_ORDERS_KEY, filtered);
+    triggerSync(DEPT_ORDERS_KEY);
+    if (supabase) {
+      try {
+        await supabase.from('dept_orders').delete().in('id', toDeleteIds);
+      } catch (err) {
+        console.error('Failed to delete table dept orders from Supabase:', err);
+      }
+    }
+    return toDeleteIds.length;
+  }
+  return 0;
+};
+
+export const updateDeptOrderItem = async (orderId, itemId, updates) => {
+  const orders = getDeptOrders();
+  if (!orders[orderId]) return false;
+
+  const finalUpdates = { ...updates };
+  if (updates.status === 'ready' && !updates.readyAt) {
+    finalUpdates.readyAt = Date.now();
+  }
+
+  orders[orderId].items = (orders[orderId].items || []).map(item =>
+    item.id === itemId ? { ...item, ...finalUpdates } : item
+  );
+  await persist(DEPT_ORDERS_KEY, orders, orderId);
+
+  // Sync item status back to the corresponding table
+  const tableId = orders[orderId].tableId;
+  if (tableId) {
+    const tables = getTables();
+    const tableIndex = tables.findIndex(t => t.id === tableId);
+    if (tableIndex !== -1) {
+      const table = tables[tableIndex];
+      let updated = false;
+      table.currentOrder = (table.currentOrder || []).map(item => {
+        if (item.id === itemId && item.status !== 'delivered') {
+          updated = true;
+          return { ...item, ...finalUpdates };
+        }
+        return item;
+      });
+      // Fallback matching if not already updated
+      if (!updated) {
+        table.currentOrder = (table.currentOrder || []).map(item => {
+          if (item.id === itemId) return { ...item, ...finalUpdates };
+          return item;
+        });
+      }
+      await persist(TABLES_KEY, tables, tableId);
+    }
+  }
+
+  return true;
+};
+
+export const cancelOngoingItem = async (tableId, orderId, itemId) => {
+  // 1. Update table's currentOrder by removing the item
+  const tables = getTables();
+  const tableIdx = tables.findIndex(t => t.id === tableId);
+  if (tableIdx === -1) return false;
+  
+  const table = tables[tableIdx];
+  let updatedTable = false;
+  
+  table.currentOrder = (table.currentOrder || []).filter(item => {
+    const matchOrder = !orderId || item.orderId === orderId;
+    const isMatch = matchOrder && item.id === itemId && ['new', 'preparing'].includes(item.status);
+    if (isMatch) {
+      updatedTable = true;
+      return false;
+    }
+    return true;
+  });
+  
+  if (updatedTable) {
+    if (table.currentOrder.length === 0) {
+      table.status = 'empty';
+      table.notes = '';
+      table.subtotal = 0;
+      table.tax = 0;
+      table.serviceCharge = 0;
+      table.total = 0;
+      table.waiterCode = null;
+      table.seatedAt = null;
+      table.guests = 0;
+    } else {
+      const sub = table.currentOrder.reduce((s, i) => s + i.price * i.qty, 0);
+      table.subtotal = sub;
+      table.tax = sub * TAX_RATE;
+      table.serviceCharge = sub * SERVICE_RATE;
+      table.total = sub + table.tax + table.serviceCharge;
+    }
+    await persist(TABLES_KEY, tables, tableId);
+  }
+
+  // 2. Update/remove item from corresponding dept order
+  if (orderId) {
+    const orders = getDeptOrders();
+    const order = orders[orderId];
+    if (order) {
+      order.items = (order.items || []).filter(item => {
+        return !(item.id === itemId && ['new', 'preparing'].includes(item.status));
+      });
+      
+      if (order.items.length === 0) {
+        await deleteDeptOrder(orderId);
+      } else {
+        const sub = order.items.reduce((s, i) => s + i.price * i.qty, 0);
+        order.subtotal = sub;
+        order.tax = sub * TAX_RATE;
+        order.serviceCharge = sub * SERVICE_RATE;
+        order.total = sub + order.tax + order.serviceCharge;
+        await persist(DEPT_ORDERS_KEY, orders, orderId);
+      }
+    }
+  }
+  return true;
+};
+
+export const updateOngoingItemQty = async (tableId, orderId, itemId, newQty) => {
+  if (newQty <= 0) {
+    return await cancelOngoingItem(tableId, orderId, itemId);
+  }
+
+  // 1. Update the table's currentOrder
+  const tables = getTables();
+  const tableIdx = tables.findIndex(t => t.id === tableId);
+  if (tableIdx === -1) return false;
+  
+  const table = tables[tableIdx];
+  let updatedTable = false;
+  table.currentOrder = (table.currentOrder || []).map(item => {
+    const matchOrder = !orderId || item.orderId === orderId;
+    if (matchOrder && item.id === itemId && ['new', 'preparing'].includes(item.status)) {
+      updatedTable = true;
+      return { ...item, qty: newQty };
+    }
+    return item;
+  });
+  
+  if (updatedTable) {
+    const sub = table.currentOrder.reduce((s, i) => s + i.price * i.qty, 0);
+    table.subtotal = sub;
+    table.tax = sub * TAX_RATE;
+    table.serviceCharge = sub * SERVICE_RATE;
+    table.total = sub + table.tax + table.serviceCharge;
+    
+    await persist(TABLES_KEY, tables, tableId);
+  }
+
+  // 2. Update the corresponding dept order
+  if (orderId) {
+    const orders = getDeptOrders();
+    const order = orders[orderId];
+    if (order) {
+      order.items = (order.items || []).map(item => {
+        if (item.id === itemId && ['new', 'preparing'].includes(item.status)) {
+          return { ...item, qty: newQty };
+        }
+        return item;
+      });
+      const sub = order.items.reduce((s, i) => s + i.price * i.qty, 0);
+      order.subtotal = sub;
+      order.tax = sub * TAX_RATE;
+      order.serviceCharge = sub * SERVICE_RATE;
+      order.total = sub + order.tax + order.serviceCharge;
+      
+      await persist(DEPT_ORDERS_KEY, orders, orderId);
+    }
+  }
+  return true;
+};
