@@ -1,5 +1,5 @@
 import { supabase } from '../supabaseClient.js';
-import { cache, persist, writeRecord, triggerSync } from './core.js';
+import { cache, persist, writeRecord, triggerSync, enqueueMutation } from './core.js';
 import { clone } from './helpers.js';
 import { BILLS_KEY, MAX_BILLS_KEPT } from './constants.js';
 
@@ -17,11 +17,7 @@ export const deleteBills = async (ids) => {
   await writeRecord(BILLS_KEY, next);
   triggerSync(BILLS_KEY);
   if (supabase) {
-    try {
-      await supabase.from('bills').delete().in('id', ids);
-    } catch (err) {
-      console.error('Failed to delete bills from Supabase:', err);
-    }
+    await enqueueMutation(BILLS_KEY, 'delete_in', ids);
   }
 };
 
@@ -30,11 +26,7 @@ export const deleteAllBills = async () => {
   await writeRecord(BILLS_KEY, []);
   triggerSync(BILLS_KEY);
   if (supabase) {
-    try {
-      await supabase.from('bills').delete().neq('id', 'dummy');
-    } catch (err) {
-      console.error('Failed to delete all bills from Supabase:', err);
-    }
+    await enqueueMutation(BILLS_KEY, 'delete_all');
   }
 };
 

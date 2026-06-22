@@ -76,88 +76,49 @@ export const triggerSync = (key) => {
   } catch { /* noop */ }
 };
 
+export const getSyncQueue = async () => {
+  return await readRecord('sync_queue', []);
+};
+
+export const saveSyncQueue = async (queue) => {
+  await writeRecord('sync_queue', queue);
+  try {
+    window.dispatchEvent(new CustomEvent('taka_sync_status', { detail: { pendingCount: queue?.length || 0 } }));
+  } catch { /* noop */ }
+};
+
+export const enqueueMutation = async (key, action, changedItemOrId = null, value = null) => {
+  if (!supabase) return;
+  const queue = await getSyncQueue();
+  const id = `mut-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+  queue.push({
+    id,
+    key,
+    action,
+    changedItemOrId: clone(changedItemOrId),
+    value: clone(value),
+    timestamp: Date.now()
+  });
+  await saveSyncQueue(queue);
+  
+  try {
+    window.dispatchEvent(new CustomEvent('taka_trigger_sync_queue'));
+  } catch { /* noop */ }
+};
+
 export const persist = async (key, value, changedItemOrId = null) => {
   cache[key] = clone(value);
   await writeRecord(key, value);
   triggerSync(key);
 
   if (supabase) {
-    try {
-      // Lazy load to avoid circular dependency
-      const { getTenantId } = await import('./tenant.js');
-      const tenantId = getTenantId();
-      
-      const injectTenant = (item) => {
-        item.restaurant_id = item.restaurant_id || tenantId;
-        return item;
-      };
-
-      if (key === TABLES_KEY && Array.isArray(value)) {
-        let itemsToUpsert = value;
-        if (changedItemOrId) {
-          const id = typeof changedItemOrId === 'object' ? changedItemOrId.id : changedItemOrId;
-          const found = value.find(t => t.id === id);
-          if (found) itemsToUpsert = [found];
-        }
-        const mapped = itemsToUpsert.map(t => injectTenant(mapToDB(t, TABLE_FIELD_MAP)));
-        await supabase.from('tables').upsert(mapped);
-      } else if (key === MENU_KEY && Array.isArray(value)) {
-        let itemsToUpsert = value;
-        if (changedItemOrId) {
-          const id = typeof changedItemOrId === 'object' ? changedItemOrId.id : changedItemOrId;
-          const found = value.find(m => m.id === id);
-          if (found) itemsToUpsert = [found];
-        }
-        const mapped = itemsToUpsert.map(m => injectTenant(mapToDB(m, MENU_FIELD_MAP)));
-        await supabase.from('menu').upsert(mapped);
-      } else if (key === DEPT_ORDERS_KEY) {
-        let itemsToUpsert = Object.values(value);
-        if (changedItemOrId) {
-          const id = typeof changedItemOrId === 'object' ? changedItemOrId.id : changedItemOrId;
-          const found = value[id];
-          itemsToUpsert = found ? [found] : [];
-        }
-        const arr = itemsToUpsert.map(o => injectTenant(mapToDB(o, DEPT_ORDER_FIELD_MAP)));
-        if (arr.length > 0) await supabase.from('dept_orders').upsert(arr);
-      } else if (key === BILLS_KEY && Array.isArray(value)) {
-        let itemsToUpsert = value;
-        if (changedItemOrId) {
-          const id = typeof changedItemOrId === 'object' ? changedItemOrId.id : changedItemOrId;
-          const found = value.find(b => b.id === id);
-          if (found) itemsToUpsert = [found];
-        }
-        const mapped = itemsToUpsert.map(b => injectTenant(mapToDB(b, BILL_FIELD_MAP)));
-        if (mapped.length > 0) await supabase.from('bills').upsert(mapped);
-      } else if (key === EMPLOYEES_KEY && Array.isArray(value)) {
-        let itemsToUpsert = value;
-        if (changedItemOrId) {
-          const id = typeof changedItemOrId === 'object' ? changedItemOrId.id : changedItemOrId;
-          const found = value.find(e => e.id === id);
-          if (found) itemsToUpsert = [found];
-        }
-        const mapped = itemsToUpsert.map(e => injectTenant(mapToDB(e, EMPLOYEE_FIELD_MAP)));
-        await supabase.from('employees').upsert(mapped);
-      } else if (key === DEPARTMENTS_KEY && Array.isArray(value)) {
-        let itemsToUpsert = value;
-        if (changedItemOrId) {
-          const id = typeof changedItemOrId === 'object' ? changedItemOrId.id : changedItemOrId;
-          const found = value.find(d => d.id === id);
-          if (found) itemsToUpsert = [found];
-        }
-        const mapped = itemsToUpsert.map(d => injectTenant(mapToDB(d, DEPARTMENT_FIELD_MAP)));
-        await supabase.from('departments').upsert(mapped);
-      } else if (key === NOTIFICATIONS_KEY && Array.isArray(value)) {
-        let itemsToUpsert = value;
-        if (changedItemOrId) {
-          const id = typeof changedItemOrId === 'object' ? changedItemOrId.id : changedItemOrId;
-          const found = value.find(n => n.id === id);
-          if (found) itemsToUpsert = [found];
-        }
-        const mapped = itemsToUpsert.map(n => injectTenant(mapToDB(n, NOTIFICATION_FIELD_MAP)));
-        if (mapped.length > 0) await supabase.from('notifications').upsert(mapped);
-      }
-    } catch (err) {
-      console.error('Supabase push error:', err);
+    const syncableKeys = [
+      TABLES_KEY, EMPLOYEES_KEY, BILLS_KEY, NOTIFICATIONS_KEY,
+      MENU_KEY, DEPT_ORDERS_KEY, DEPARTMENTS_KEY
+    ];
+    if (syncableKeys.includes(key)) {
+      await enqueueMutation(key, 'upsert', changedItemOrId, value);
     }
   }
 };
+

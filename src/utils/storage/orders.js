@@ -1,5 +1,5 @@
 import { supabase } from '../supabaseClient.js';
-import { cache, persist, writeRecord, triggerSync } from './core.js';
+import { cache, persist, writeRecord, triggerSync, enqueueMutation } from './core.js';
 import { clone } from './helpers.js';
 import { DEPT_ORDERS_KEY, TABLES_KEY, TAX_RATE, SERVICE_RATE } from './constants.js';
 import { getTables } from './tables.js';
@@ -19,11 +19,7 @@ export const deleteDeptOrder = async (id) => {
     await writeRecord(DEPT_ORDERS_KEY, orders);
     triggerSync(DEPT_ORDERS_KEY);
     if (supabase) {
-      try {
-        await supabase.from('dept_orders').delete().eq('id', id);
-      } catch (err) {
-        console.error('Failed to delete dept order from Supabase:', err);
-      }
+      await enqueueMutation(DEPT_ORDERS_KEY, 'delete', id);
     }
   }
 };
@@ -37,11 +33,7 @@ export const deleteDeptOrdersForTable = async (tableId) => {
     await writeRecord(DEPT_ORDERS_KEY, filtered);
     triggerSync(DEPT_ORDERS_KEY);
     if (supabase) {
-      try {
-        await supabase.from('dept_orders').delete().in('id', toDeleteIds);
-      } catch (err) {
-        console.error('Failed to delete table dept orders from Supabase:', err);
-      }
+      await enqueueMutation(DEPT_ORDERS_KEY, 'delete_in', toDeleteIds);
     }
     return toDeleteIds.length;
   }

@@ -1,5 +1,5 @@
 import { supabase } from '../supabaseClient.js';
-import { cache, persist, writeRecord, triggerSync } from './core.js';
+import { cache, persist, writeRecord, triggerSync, enqueueMutation } from './core.js';
 import { clone } from './helpers.js';
 import { NOTIFICATIONS_KEY, MAX_NOTIFICATIONS } from './constants.js';
 
@@ -102,11 +102,7 @@ export const deleteNotification = async (id) => {
   await writeRecord(NOTIFICATIONS_KEY, notifs);
   triggerSync(NOTIFICATIONS_KEY);
   if (supabase) {
-    try {
-      await supabase.from('notifications').delete().eq('id', id);
-    } catch (err) {
-      console.error('Failed to delete notification from Supabase:', err);
-    }
+    await enqueueMutation(NOTIFICATIONS_KEY, 'delete', id);
   }
 };
 
@@ -117,11 +113,7 @@ export const deleteNotifications = async (ids) => {
   await writeRecord(NOTIFICATIONS_KEY, notifs);
   triggerSync(NOTIFICATIONS_KEY);
   if (supabase) {
-    try {
-      await supabase.from('notifications').delete().in('id', ids);
-    } catch (err) {
-      console.error('Failed to delete notifications from Supabase:', err);
-    }
+    await enqueueMutation(NOTIFICATIONS_KEY, 'delete_in', ids);
   }
 };
 
