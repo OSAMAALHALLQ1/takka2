@@ -360,11 +360,7 @@ export default function CashierView({ tables, onSaveTables, employee, activeTab:
 
                 {/* Totals */}
                 <div style={{ borderTop: '1px solid var(--border-light)', paddingTop: '14px', marginBottom: '20px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.88rem', color: 'var(--text-muted)', marginBottom: '6px' }}>
-                    <span>المجموع الفرعي</span>
-                    <span style={{ fontFamily: 'Outfit, sans-serif' }}>{(selectedTable.subtotal || 0).toFixed(2)} ₪</span>
-                  </div>
-                  <div style={{ marginTop: '10px', background: 'var(--bg-surface-2)', border: '1px solid var(--border-light)', padding: '16px', borderRadius: '12px' }}>
+                  <div style={{ background: 'var(--bg-surface-2)', border: '1px solid var(--border-light)', padding: '16px', borderRadius: '12px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 800, fontSize: '1.2rem', color: 'var(--color-primary)' }}>
                       <span>الإجمالي المطلوب</span>
                       <span>{(selectedTable.total || selectedTable.subtotal || 0).toFixed(2)} ₪</span>

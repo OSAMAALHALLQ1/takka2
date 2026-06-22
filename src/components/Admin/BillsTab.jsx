@@ -173,9 +173,6 @@ export default function BillsTab({ bills, menuItems }) {
                 </div>
               ))}
               <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.9rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>المجموع الفرعي</span><span>{(selected.subtotal || 0).toFixed(2)} ₪</span></div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>الضريبة (15%)</span><span>{(selected.tax || 0).toFixed(2)} ₪</span></div>
-                {selected.serviceCharge > 0 && <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>خدمة (10%)</span><span>{(selected.serviceCharge || 0).toFixed(2)} ₪</span></div>}
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, fontSize: '1.1rem', color: '#27ae60', borderTop: '1px solid var(--border-light)', paddingTop: '8px', marginTop: '4px' }}>
                   <span>الإجمالي النهائي</span>
                   <span style={{ fontFamily: 'Outfit, sans-serif' }}>{(selected.total || 0).toFixed(2)} ₪</span>
