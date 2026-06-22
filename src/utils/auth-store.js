@@ -1,11 +1,9 @@
 const KEY_AUTH = 'takka_auth';
-const KEY_CODES = 'takka_codes';
 const KEY_PW = 'takka_manager_pw_v1';
 const KEY_MGR_ACC = 'takka_manager_account';
 
 export const DEFAULT_MANAGER_PASSWORD = 'osamaalhallqst9';
 const HASH_SALT = 'takka:salt:v1';
-const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
 // Lazy imports to avoid any circular dependency at load time
 import { getEmployees, saveEmployees } from './storage';
@@ -160,132 +158,7 @@ export function loginManager() {
   });
 }
 
-export function loginEmployee(code) {
-  writeAuth({
-    kind: 'employee',
-    codeId: code.id,
-    label: code.label,
-    allowedRoles: code.allowedRoles,
-    departments: code.departments,
-    loggedInAt: Date.now(),
-  });
-  const codes = readCodes();
-  const updated = codes.map((c) =>
-    c.id === code.id ? { ...c, lastUsedAt: Date.now() } : c,
-  );
-  writeCodes(updated);
-}
-
 export function logout() {
   writeAuth(null);
-}
-
-function readCodes() {
-  try {
-    const raw = localStorage.getItem(KEY_CODES);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed;
-  } catch {
-    return [];
-  }
-}
-
-function writeCodes(c) {
-  localStorage.setItem(KEY_CODES, JSON.stringify(c));
-  window.dispatchEvent(new CustomEvent('takka:codes-update'));
-}
-
-export function getCodes() {
-  return readCodes();
-}
-
-function generateCodeString() {
-  const bytes = new Uint8Array(8);
-  if (window.crypto?.getRandomValues) {
-    window.crypto.getRandomValues(bytes);
-  } else {
-    for (let i = 0; i < 8; i++) bytes[i] = Math.floor(Math.random() * 256);
-  }
-  let s = '';
-  for (let i = 0; i < 8; i++) {
-    s += CODE_ALPHABET[bytes[i] % CODE_ALPHABET.length];
-  }
-  return `TAKKA-${s.slice(0, 4)}-${s.slice(4, 8)}`;
-}
-
-export function createCode({ label, allowedRoles, departments, expiresAt }) {
-  const safeLabel = (label ?? '').trim() || 'Employee';
-  const roles = (allowedRoles ?? []).filter((r) => r !== 'manager');
-  const code = {
-    id: crypto.randomUUID?.() ?? `c-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    code: generateCodeString(),
-    label: safeLabel,
-    allowedRoles: roles.length ? roles : ['waiter'],
-    departments: departments ?? null,
-    createdAt: Date.now(),
-    expiresAt: expiresAt ?? null,
-    revoked: false,
-  };
-  const codes = readCodes();
-  writeCodes([...codes, code]);
-  return code;
-}
-
-export function revokeCode(id) {
-  const codes = readCodes();
-  writeCodes(
-    codes.map((c) => (c.id === id && !c.revoked ? { ...c, revoked: true } : c)),
-  );
-}
-
-export function deleteCode(id) {
-  const codes = readCodes();
-  writeCodes(codes.filter((c) => c.id !== id));
-}
-
-export function findActiveCode(rawInput) {
-  const target = (rawInput ?? '').trim().toUpperCase();
-  if (!target) return null;
-  const now = Date.now();
-  const codes = readCodes();
-  for (const c of codes) {
-    if (c.revoked) continue;
-    if (c.expiresAt && c.expiresAt <= now) continue;
-    if (c.code === target) return c;
-  }
-  return null;
-}
-
-export function registerEmployeeWithCode(codeString, employeeData) {
-  const code = findActiveCode(codeString);
-  if (!code) return { success: false, error: 'كود الدعوة غير صالح أو منتهي الصلاحية' };
-
-  const emps = getEmployees();
-  const taken = emps.some(e => e.username.trim().toLowerCase() === employeeData.username.trim().toLowerCase());
-  if (taken) return { success: false, error: 'اسم المستخدم محجوز بالفعل' };
-
-  const newEmp = {
-    id: code.id,
-    name: employeeData.name,
-    role: code.allowedRoles?.[0] || 'waiter',
-    username: employeeData.username,
-    password: employeeData.password,
-    code: `EMP-${Math.floor(1000 + Math.random() * 9000)}`,
-    phone: '',
-    email: employeeData.email || '',
-    active: true,
-    lastLogin: null,
-    departments: code.departments || null
-  };
-
-  const next = [...emps, newEmp];
-  saveEmployees(next);
-  if (code.expiresAt) {
-    revokeCode(code.id);
-  }
-
-  return { success: true, employee: newEmp };
 }
 

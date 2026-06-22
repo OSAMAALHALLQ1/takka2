@@ -2,14 +2,12 @@ import { useState, useEffect } from 'react';
 import {
   getTables, getEmployees, getMenu, getBills, getDepartments, getDeptOrders
 } from '../utils/storage';
-import { getCodes } from '../utils/auth-store';
 import { 
   LayoutDashboard, 
   Building2, 
   UtensilsCrossed, 
   Armchair, 
   Users, 
-  KeyRound, 
   ShieldCheck, 
   TrendingUp, 
   Receipt,
@@ -22,7 +20,6 @@ import DepartmentsTab from './Admin/DepartmentsTab';
 import MenuTab from './Admin/MenuTab';
 import TablesTab from './Admin/TablesTab';
 import StaffTab from './Admin/StaffTab';
-import CodesTab from './Admin/CodesTab';
 import PermissionsTab from './Admin/PermissionsTab';
 import ReportsTab from './Admin/ReportsTab';
 import BillsTab from './Admin/BillsTab';
@@ -33,7 +30,6 @@ export default function AdminDashboard({ user, onLogout, sidebarOpen, setSidebar
   const [menuItems, setMenuItems] = useState(getMenu());
   const [bills, setBills] = useState(getBills());
   const [departments, setDepartments] = useState(getDepartments());
-  const [codes, setCodes] = useState(getCodes());
   const [deptOrders, setDeptOrders] = useState(getDeptOrders());
 
   // Refresh on sync
@@ -44,7 +40,6 @@ export default function AdminDashboard({ user, onLogout, sidebarOpen, setSidebar
       setMenuItems(getMenu());
       setBills(getBills());
       setDepartments(getDepartments());
-      setCodes(getCodes());
       setDeptOrders(getDeptOrders());
     };
     window.addEventListener('taka_sync', sync);
