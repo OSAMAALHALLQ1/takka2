@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import {
-  getTables, getEmployees, getMenu, getBills, getDepartments, getDeptOrders
+  getTables, getEmployees, getMenu, getBills, getDepartments, getDeptOrders, getArchives
 } from '../utils/storage';
 import { 
   LayoutDashboard, 
@@ -11,8 +11,10 @@ import {
   ShieldCheck, 
   TrendingUp, 
   Receipt,
+  Archive,
   LogOut
 } from 'lucide-react';
+
 
 // Import Tabs
 import DashboardTab from './Admin/DashboardTab';
@@ -23,6 +25,8 @@ import StaffTab from './Admin/StaffTab';
 import PermissionsTab from './Admin/PermissionsTab';
 import ReportsTab from './Admin/ReportsTab';
 import BillsTab from './Admin/BillsTab';
+import ArchivesTab from './Admin/ArchivesTab';
+
 
 export default function AdminDashboard({ user, onLogout, sidebarOpen, setSidebarOpen, activeTab, setActiveTab }) {
   const [tables, setTables] = useState(getTables());
@@ -31,6 +35,8 @@ export default function AdminDashboard({ user, onLogout, sidebarOpen, setSidebar
   const [bills, setBills] = useState(getBills());
   const [departments, setDepartments] = useState(getDepartments());
   const [deptOrders, setDeptOrders] = useState(getDeptOrders());
+  const [archives, setArchives] = useState(getArchives());
+
 
   // Refresh on sync
   useEffect(() => {
@@ -41,10 +47,12 @@ export default function AdminDashboard({ user, onLogout, sidebarOpen, setSidebar
       setBills(getBills());
       setDepartments(getDepartments());
       setDeptOrders(getDeptOrders());
+      setArchives(getArchives());
     };
     window.addEventListener('taka_sync', sync);
     window.addEventListener('takah_sync', sync);
     return () => { window.removeEventListener('taka_sync', sync); window.removeEventListener('takah_sync', sync); };
+
   }, []);
 
   const TABS = [
@@ -56,7 +64,9 @@ export default function AdminDashboard({ user, onLogout, sidebarOpen, setSidebar
     { id: 'permissions', label: 'الصلاحيات', icon: ShieldCheck },
     { id: 'reports', label: 'التقارير', icon: TrendingUp },
     { id: 'bills', label: 'الفواتير', icon: Receipt },
+    { id: 'archives', label: 'أرشيف الفواتير', icon: Archive },
   ];
+
 
   const occupied = tables.filter(t => t.status !== 'empty').length;
   const todayRevenue = bills.reduce((s, b) => s + (b.total || 0), 0);
@@ -104,7 +114,9 @@ export default function AdminDashboard({ user, onLogout, sidebarOpen, setSidebar
         {activeTab === 'permissions' && <PermissionsTab />}
         {activeTab === 'reports' && <ReportsTab bills={bills} menuItems={menuItems} tables={tables} />}
         {activeTab === 'bills' && <BillsTab bills={bills} menuItems={menuItems} />}
+        {activeTab === 'archives' && <ArchivesTab archives={archives} />}
       </main>
+
     </div>
   );
 }

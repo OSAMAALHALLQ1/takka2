@@ -1,11 +1,13 @@
 import { supabase } from '../supabaseClient.js';
 import { clone, mapToDB } from './helpers.js';
+import { getTenantId } from './tenant.js';
 import { 
   DB_NAME, DB_VERSION, STORE_NAME,
   TABLES_KEY, EMPLOYEES_KEY, BILLS_KEY, NOTIFICATIONS_KEY,
-  MENU_KEY, DEPT_ORDERS_KEY, SESSION_KEY, DEPARTMENTS_KEY,
-  TABLE_FIELD_MAP, MENU_FIELD_MAP, DEPT_ORDER_FIELD_MAP, BILL_FIELD_MAP, EMPLOYEE_FIELD_MAP, DEPARTMENT_FIELD_MAP, NOTIFICATION_FIELD_MAP
+  MENU_KEY, DEPT_ORDERS_KEY, SESSION_KEY, DEPARTMENTS_KEY, ARCHIVES_KEY,
+  TABLE_FIELD_MAP, MENU_FIELD_MAP, DEPT_ORDER_FIELD_MAP, BILL_FIELD_MAP, EMPLOYEE_FIELD_MAP, DEPARTMENT_FIELD_MAP, NOTIFICATION_FIELD_MAP, ARCHIVE_FIELD_MAP
 } from './constants.js';
+
 
 let dbPromise = null;
 
@@ -17,8 +19,10 @@ export const cache = {
   [MENU_KEY]: [],
   [DEPT_ORDERS_KEY]: {},
   [SESSION_KEY]: null,
-  [DEPARTMENTS_KEY]: []
+  [DEPARTMENTS_KEY]: [],
+  [ARCHIVES_KEY]: []
 };
+
 
 export const openDatabase = () => {
   if (dbPromise) return dbPromise;
@@ -114,11 +118,10 @@ export const persist = async (key, value, changedItemOrId = null) => {
   if (supabase) {
     const syncableKeys = [
       TABLES_KEY, EMPLOYEES_KEY, BILLS_KEY, NOTIFICATIONS_KEY,
-      MENU_KEY, DEPT_ORDERS_KEY, DEPARTMENTS_KEY
+      MENU_KEY, DEPT_ORDERS_KEY, DEPARTMENTS_KEY, ARCHIVES_KEY
     ];
     if (syncableKeys.includes(key)) {
       await enqueueMutation(key, 'upsert', changedItemOrId, value);
     }
   }
 };
-

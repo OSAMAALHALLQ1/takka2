@@ -6,9 +6,10 @@ import {
   addNotification, initializeDatabase, clearSession, getSession,
   markAllNotificationsRead, markNotificationRead, deleteNotification,
   deleteNotifications,
-  DEFAULT_MENU
+  DEFAULT_MENU, authenticateByCode, getEmployees, persist
 } from './utils/storage';
-import { getAuth, logout as authLogout } from './utils/auth-store';
+
+import { getAuth, logout as authLogout, getManagerAccount, loginManager, loginEmployeeSession } from './utils/auth-store';
 import ManagerLogin from './components/ManagerLogin';
 import EmployeeLogin from './components/EmployeeLogin';
 import { supabase } from './utils/supabaseClient';
@@ -408,6 +409,42 @@ function MainApp() {
     let cancelled = false;
     initializeDatabase().then(() => {
       if (cancelled) return;
+      // Check URL parameters for auto-login
+      const params = new URLSearchParams(window.location.search);
+      const urlCode = params.get('code');
+      const urlUser = params.get('user');
+
+      if (urlCode || urlUser) {
+        const targetCode = (urlCode || urlUser).trim();
+        const acc = getManagerAccount();
+        let managerMatch = false;
+
+        if (acc && acc.active) {
+          if (acc.email.trim().toLowerCase() === targetCode.toLowerCase() || targetCode === 'ADMIN') {
+            managerMatch = true;
+          }
+        } else if (targetCode === 'ADMIN') {
+          managerMatch = true;
+        }
+
+        if (managerMatch) {
+          loginManager();
+        } else {
+          const session = authenticateByCode(targetCode);
+          if (session) {
+            loginEmployeeSession(session);
+          }
+        }
+
+        // Clean URL params to avoid saving codes in browser history
+        try {
+          const newUrl = window.location.origin + window.location.pathname;
+          window.history.replaceState({}, document.title, newUrl);
+        } catch (e) {
+          console.error('Failed to clean URL parameters:', e);
+        }
+      }
+
       loadStorage();
       const auth = getAuth();
       if (auth?.kind === 'manager') {
@@ -415,13 +452,22 @@ function MainApp() {
         setUser(session);
         setAuthPage('system');
       } else if (auth?.kind === 'employee') {
-        const session = getSession();
+        let session = getSession();
+        if (!session) {
+          const emps = getEmployees();
+          const emp = emps.find(e => e.id === auth.codeId);
+          if (emp) {
+            session = { id: emp.id, role: emp.role, name: emp.name, code: emp.code, username: emp.username, departments: emp.departments };
+            persist('session', session);
+          }
+        }
         if (session) { setUser(session); setAuthPage('system'); }
         else {
           setUser({ id: auth.codeId, role: auth.allowedRoles?.[0] || 'waiter', name: auth.label, code: auth.codeId?.slice(0, 6) || 'EMP', username: auth.label });
           setAuthPage('system');
         }
       }
+
       setDatabaseReady(true);
     });
     return () => { cancelled = true; };
@@ -513,6 +559,7 @@ function MainApp() {
     setAuthPage('system');
 };
   const handleEmployeeLogin = (session) => {
+    loginEmployeeSession(session);
     setUser(session);
     setAuthPage('system');
   };

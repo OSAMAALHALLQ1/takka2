@@ -108,6 +108,46 @@ export default function CashierView({ tables, onSaveTables, employee, activeTab:
       await saveBills(allBills);
       setBills(allBills);
 
+      // Check if we reached 50 bills for auto-archiving
+      if (allBills.length >= 50) {
+        try {
+          const billsToArchive = [...allBills];
+          const batchName = `دفعة #ARCH-${Date.now().toString().slice(-6)}`;
+          const totalRev = billsToArchive.reduce((sum, b) => sum + (b.total || 0), 0);
+          
+          const { generateInvoicesPDF } = await import('../utils/pdfGenerator');
+          const pdfBase64 = await generateInvoicesPDF(billsToArchive, batchName, totalRev);
+          
+          const archiveRecord = {
+            id: `arch-${Date.now()}`,
+            archiveName: batchName,
+            createdAt: Date.now(),
+            invoiceCount: billsToArchive.length,
+            totalAmount: totalRev,
+            pdfData: pdfBase64
+          };
+          
+          const { saveArchive, deleteBills } = await import('../utils/storage/bills');
+          await saveArchive(archiveRecord);
+          
+          const billIds = billsToArchive.map(b => b.id);
+          await deleteBills(billIds);
+          
+          const { addNotification } = await import('../utils/storage/notifications');
+          addNotification(
+            `أرشفة تلقائية لـ 50 فاتورة بنجاح`,
+            `تم توليد تقرير PDF للدفعة المجمعة وإيرادات إجمالية بقيمة ${totalRev.toFixed(1)} ₪`,
+            'success',
+            ['manager']
+          );
+          
+          setBills([]);
+        } catch (pdfErr) {
+          console.error('Failed to generate/save archive:', pdfErr);
+        }
+      }
+
+
       // Reset table
       const updatedTables = tables.map(t => {
         if (t.id !== selectedTable.id) return t;

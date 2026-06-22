@@ -158,6 +158,16 @@ export function loginManager() {
   });
 }
 
+export function loginEmployeeSession(session) {
+  writeAuth({
+    kind: 'employee',
+    codeId: session.id,
+    label: session.name,
+    allowedRoles: [session.role],
+    departments: session.departments || null,
+    loggedInAt: Date.now(),
+  });
+}
 export function logout() {
   writeAuth(null);
 }

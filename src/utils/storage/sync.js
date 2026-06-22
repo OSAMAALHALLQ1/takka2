@@ -1,10 +1,12 @@
 import { supabase } from '../supabaseClient.js';
 import { cache, writeRecord, readRecord, triggerSync, getSyncQueue, saveSyncQueue } from './core.js';
 import { clone, mapFromDB, mapToDB, normalizeEmployee } from './helpers.js';
+import { getTenantId } from './tenant.js';
 import {
   TABLES_KEY, EMPLOYEES_KEY, BILLS_KEY, NOTIFICATIONS_KEY,
-  MENU_KEY, DEPT_ORDERS_KEY, SESSION_KEY, DEPARTMENTS_KEY,
-  TABLE_FIELD_MAP, MENU_FIELD_MAP, DEPT_ORDER_FIELD_MAP, BILL_FIELD_MAP, EMPLOYEE_FIELD_MAP, DEPARTMENT_FIELD_MAP, NOTIFICATION_FIELD_MAP
+  MENU_KEY, DEPT_ORDERS_KEY, SESSION_KEY, DEPARTMENTS_KEY, ARCHIVES_KEY,
+  TABLE_FIELD_MAP, MENU_FIELD_MAP, DEPT_ORDER_FIELD_MAP, BILL_FIELD_MAP, EMPLOYEE_FIELD_MAP, DEPARTMENT_FIELD_MAP, NOTIFICATION_FIELD_MAP, ARCHIVE_FIELD_MAP
+
 } from './constants.js';
 import { DEFAULT_TABLES, DEFAULT_MENU, DEFAULT_EMPLOYEES, DEFAULT_DEPARTMENTS } from './defaults.js';
 
@@ -103,6 +105,7 @@ export const mergeFetchedData = (key, fetchedData, localData, queue, idField = '
     else if (key === EMPLOYEES_KEY) mappedFetched = fetchedData.map(e => mapFromDB(e, EMPLOYEE_FIELD_MAP));
     else if (key === DEPARTMENTS_KEY) mappedFetched = fetchedData.map(d => mapFromDB(d, DEPARTMENT_FIELD_MAP));
     else if (key === NOTIFICATIONS_KEY) mappedFetched = fetchedData.map(n => mapFromDB(n, NOTIFICATION_FIELD_MAP));
+    else if (key === ARCHIVES_KEY) mappedFetched = fetchedData.map(a => mapFromDB(a, ARCHIVE_FIELD_MAP));
     else mappedFetched = fetchedData;
 
     const localArray = Array.isArray(localData) ? localData : [];
@@ -245,6 +248,19 @@ export const processSyncQueue = async () => {
               if (error) throw error;
             }
             success = true;
+          } else if (key === ARCHIVES_KEY && Array.isArray(value)) {
+            let itemsToUpsert = value;
+            if (changedItemOrId) {
+              const id = typeof changedItemOrId === 'object' ? changedItemOrId.id : changedItemOrId;
+              const found = value.find(a => a.id === id);
+              if (found) itemsToUpsert = [found];
+            }
+            const mapped = itemsToUpsert.map(a => injectTenant(mapToDB(a, ARCHIVE_FIELD_MAP)));
+            if (mapped.length > 0) {
+              const { error } = await supabase.from('invoice_archives').upsert(mapped);
+              if (error) throw error;
+            }
+            success = true;
           }
         } else if (action === 'delete') {
           const dbTable = key === DEPT_ORDERS_KEY ? 'dept_orders' : key;
@@ -297,66 +313,101 @@ const recoverMissedData = async (supabaseClient) => {
     const queue = await getSyncQueue();
 
     // 1. Recover active dept orders
-    const { data: latestOrders } = await supabaseClient
-      .from('dept_orders')
-      .select('id, table_id, table_name, waiter_code, waiter_name, timestamp, items, subtotal, tax, service_charge, total, status, restaurant_id')
-      .eq('restaurant_id', tenantId);
+    try {
+      const { data: latestOrders } = await supabaseClient
+        .from('dept_orders')
+        .select('id, table_id, table_name, waiter_code, waiter_name, timestamp, items, subtotal, tax, service_charge, total, status, restaurant_id')
+        .eq('restaurant_id', tenantId);
 
-    if (latestOrders) {
-      const localData = await readRecord(DEPT_ORDERS_KEY, {});
-      const merged = mergeFetchedData(DEPT_ORDERS_KEY, latestOrders, localData, queue);
-      cache[DEPT_ORDERS_KEY] = clone(merged);
-      await writeRecord(DEPT_ORDERS_KEY, merged);
-      triggerSync(DEPT_ORDERS_KEY);
+      if (latestOrders) {
+        const localData = await readRecord(DEPT_ORDERS_KEY, {});
+        const merged = mergeFetchedData(DEPT_ORDERS_KEY, latestOrders, localData, queue);
+        cache[DEPT_ORDERS_KEY] = clone(merged);
+        await writeRecord(DEPT_ORDERS_KEY, merged);
+        triggerSync(DEPT_ORDERS_KEY);
+      }
+    } catch (err) {
+      console.error('Failed to recover active dept orders:', err);
     }
 
     // 2. Recover tables
-    const { data: latestTables } = await supabaseClient
-      .from('tables')
-      .select('id, name, seats, area, status, current_order, notes, subtotal, tax, service_charge, total, waiter_code, seated_at, guests, restaurant_id')
-      .eq('restaurant_id', tenantId);
-    if (latestTables) {
-      const localData = await readRecord(TABLES_KEY, []);
-      const merged = mergeFetchedData(TABLES_KEY, latestTables, localData, queue);
-      cache[TABLES_KEY] = clone(merged);
-      await writeRecord(TABLES_KEY, merged);
-      triggerSync(TABLES_KEY);
+    try {
+      const { data: latestTables } = await supabaseClient
+        .from('tables')
+        .select('id, name, seats, area, status, current_order, notes, subtotal, tax, service_charge, total, waiter_code, seated_at, guests, restaurant_id')
+        .eq('restaurant_id', tenantId);
+      if (latestTables) {
+        const localData = await readRecord(TABLES_KEY, []);
+        const merged = mergeFetchedData(TABLES_KEY, latestTables, localData, queue);
+        cache[TABLES_KEY] = clone(merged);
+        await writeRecord(TABLES_KEY, merged);
+        triggerSync(TABLES_KEY);
+      }
+    } catch (err) {
+      console.error('Failed to recover tables:', err);
     }
 
     // 3. Recover recent bills (last 24 hours)
-    const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
-    const { data: latestBills } = await supabaseClient
-      .from('bills')
-      .select('id, table_id, table_name, cashier_code, cashier_name, timestamp, date_formatted, time_formatted, items, subtotal, tax, service_charge, total, payment_method, notes, restaurant_id')
-      .eq('restaurant_id', tenantId)
-      .gt('timestamp', oneDayAgo);
-    if (latestBills) {
-      const localData = await readRecord(BILLS_KEY, []);
-      const merged = mergeFetchedData(BILLS_KEY, latestBills, localData, queue);
-      cache[BILLS_KEY] = clone(merged);
-      await writeRecord(BILLS_KEY, merged);
-      triggerSync(BILLS_KEY);
+    try {
+      const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
+      const { data: latestBills } = await supabaseClient
+        .from('bills')
+        .select('id, table_id, table_name, cashier_code, cashier_name, timestamp, date_formatted, time_formatted, items, subtotal, tax, service_charge, total, payment_method, notes, restaurant_id')
+        .eq('restaurant_id', tenantId)
+        .gt('timestamp', oneDayAgo);
+      if (latestBills) {
+        const localData = await readRecord(BILLS_KEY, []);
+        const merged = mergeFetchedData(BILLS_KEY, latestBills, localData, queue);
+        cache[BILLS_KEY] = clone(merged);
+        await writeRecord(BILLS_KEY, merged);
+        triggerSync(BILLS_KEY);
+      }
+    } catch (err) {
+      console.error('Failed to recover bills:', err);
     }
 
     // 4. Recover notifications
-    const { data: latestNotifs } = await supabaseClient
-      .from('notifications')
-      .select('id, title, message, type, target_roles, target_role, target_department, timestamp, read, restaurant_id')
-      .eq('restaurant_id', tenantId)
-      .order('timestamp', { ascending: false })
-      .limit(30);
-    if (latestNotifs) {
-      const localData = await readRecord(NOTIFICATIONS_KEY, []);
-      const merged = mergeFetchedData(NOTIFICATIONS_KEY, latestNotifs, localData, queue);
-      merged.sort((a, b) => b.timestamp - a.timestamp);
-      cache[NOTIFICATIONS_KEY] = clone(merged);
-      await writeRecord(NOTIFICATIONS_KEY, merged);
-      triggerSync(NOTIFICATIONS_KEY);
+    try {
+      const { data: latestNotifs } = await supabaseClient
+        .from('notifications')
+        .select('id, title, message, type, target_roles, target_role, target_department, timestamp, read, restaurant_id')
+        .eq('restaurant_id', tenantId)
+        .order('timestamp', { ascending: false })
+        .limit(30);
+      if (latestNotifs) {
+        const localData = await readRecord(NOTIFICATIONS_KEY, []);
+        const merged = mergeFetchedData(NOTIFICATIONS_KEY, latestNotifs, localData, queue);
+        merged.sort((a, b) => b.timestamp - a.timestamp);
+        cache[NOTIFICATIONS_KEY] = clone(merged);
+        await writeRecord(NOTIFICATIONS_KEY, merged);
+        triggerSync(NOTIFICATIONS_KEY);
+      }
+    } catch (err) {
+      console.error('Failed to recover notifications:', err);
     }
+
+    // 5. Recover archives
+    try {
+      const { data: latestArchives } = await supabaseClient
+        .from('invoice_archives')
+        .select('id, archive_name, created_at, invoice_count, total_amount, pdf_data, restaurant_id')
+        .eq('restaurant_id', tenantId);
+      if (latestArchives) {
+        const localData = await readRecord(ARCHIVES_KEY, []);
+        const merged = mergeFetchedData(ARCHIVES_KEY, latestArchives, localData, queue);
+        cache[ARCHIVES_KEY] = clone(merged);
+        await writeRecord(ARCHIVES_KEY, merged);
+        triggerSync(ARCHIVES_KEY);
+      }
+    } catch (err) {
+      console.error('Failed to recover archives:', err);
+    }
+
   } catch (err) {
     console.error('Failed to recover missed data:', err);
   }
 };
+
 
 export const initializeDatabase = async () => {
   if (initPromise) return initPromise;
@@ -380,6 +431,7 @@ export const initializeDatabase = async () => {
     await seedIfMissing(DEPT_ORDERS_KEY, {});
     await seedIfMissing(SESSION_KEY, null);
     await seedIfMissing(DEPARTMENTS_KEY, DEFAULT_DEPARTMENTS);
+    await seedIfMissing(ARCHIVES_KEY, []);
 
     if (supabase) {
       try {
@@ -387,99 +439,144 @@ export const initializeDatabase = async () => {
         const queue = await getSyncQueue();
 
         // 1. Initial Tables fetch
-        const { data: tables } = await supabase
-          .from('tables')
-          .select('id, name, seats, area, status, current_order, notes, subtotal, tax, service_charge, total, waiter_code, seated_at, guests, restaurant_id')
-          .eq('restaurant_id', tenantId);
-        if (tables && tables.length > 0) {
-          const localData = await readRecord(TABLES_KEY, []);
-          const merged = mergeFetchedData(TABLES_KEY, tables, localData, queue);
-          cache[TABLES_KEY] = clone(merged);
-          await writeRecord(TABLES_KEY, merged);
-          triggerSync(TABLES_KEY);
+        try {
+          const { data: tables } = await supabase
+            .from('tables')
+            .select('id, name, seats, area, status, current_order, notes, subtotal, tax, service_charge, total, waiter_code, seated_at, guests, restaurant_id')
+            .eq('restaurant_id', tenantId);
+          if (tables && tables.length > 0) {
+            const localData = await readRecord(TABLES_KEY, []);
+            const merged = mergeFetchedData(TABLES_KEY, tables, localData, queue);
+            cache[TABLES_KEY] = clone(merged);
+            await writeRecord(TABLES_KEY, merged);
+            triggerSync(TABLES_KEY);
+          }
+        } catch (err) {
+          console.error('Failed initial tables fetch:', err);
         }
 
         // 2. Initial Menu fetch
-        const { data: menu } = await supabase
-          .from('menu')
-          .select('id, name_ar, name_en, name, category, price, description, image, department, available, prep_time, restaurant_id')
-          .eq('restaurant_id', tenantId);
-        if (menu && menu.length > 0) {
-          const localData = await readRecord(MENU_KEY, []);
-          const merged = mergeFetchedData(MENU_KEY, menu, localData, queue);
-          cache[MENU_KEY] = clone(merged);
-          await writeRecord(MENU_KEY, merged);
-          triggerSync(MENU_KEY);
+        try {
+          const { data: menu } = await supabase
+            .from('menu')
+            .select('id, name_ar, name_en, name, category, price, description, image, department, available, prep_time, restaurant_id')
+            .eq('restaurant_id', tenantId);
+          if (menu && menu.length > 0) {
+            const localData = await readRecord(MENU_KEY, []);
+            const merged = mergeFetchedData(MENU_KEY, menu, localData, queue);
+            cache[MENU_KEY] = clone(merged);
+            await writeRecord(MENU_KEY, merged);
+            triggerSync(MENU_KEY);
+          }
+        } catch (err) {
+          console.error('Failed initial menu fetch:', err);
         }
 
         // 3. Initial Bills fetch (only last 24 hours of bills)
-        const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
-        const { data: bills } = await supabase
-          .from('bills')
-          .select('id, table_id, table_name, cashier_code, cashier_name, timestamp, date_formatted, time_formatted, items, subtotal, tax, service_charge, total, payment_method, notes, restaurant_id')
-          .eq('restaurant_id', tenantId)
-          .gt('timestamp', oneDayAgo);
-        if (bills && bills.length > 0) {
-          const localData = await readRecord(BILLS_KEY, []);
-          const merged = mergeFetchedData(BILLS_KEY, bills, localData, queue);
-          cache[BILLS_KEY] = clone(merged);
-          await writeRecord(BILLS_KEY, merged);
-          triggerSync(BILLS_KEY);
+        try {
+          const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
+          const { data: bills } = await supabase
+            .from('bills')
+            .select('id, table_id, table_name, cashier_code, cashier_name, timestamp, date_formatted, time_formatted, items, subtotal, tax, service_charge, total, payment_method, notes, restaurant_id')
+            .eq('restaurant_id', tenantId)
+            .gt('timestamp', oneDayAgo);
+          if (bills && bills.length > 0) {
+            const localData = await readRecord(BILLS_KEY, []);
+            const merged = mergeFetchedData(BILLS_KEY, bills, localData, queue);
+            cache[BILLS_KEY] = clone(merged);
+            await writeRecord(BILLS_KEY, merged);
+            triggerSync(BILLS_KEY);
+          }
+        } catch (err) {
+          console.error('Failed initial bills fetch:', err);
         }
 
         // 4. Initial Employees fetch
-        const { data: employees } = await supabase
-          .from('employees')
-          .select('id, name, name_en, role, username, password, code, phone, email, salary, active, last_login, restaurant_id')
-          .eq('restaurant_id', tenantId);
-        if (employees && employees.length > 0) {
-          const localData = await readRecord(EMPLOYEES_KEY, []);
-          const merged = mergeFetchedData(EMPLOYEES_KEY, employees, localData, queue);
-          cache[EMPLOYEES_KEY] = clone(merged);
-          await writeRecord(EMPLOYEES_KEY, merged);
-          triggerSync(EMPLOYEES_KEY);
+        try {
+          const { data: employees } = await supabase
+            .from('employees')
+            .select('id, name, name_en, role, username, password, code, phone, email, salary, active, last_login, restaurant_id')
+            .eq('restaurant_id', tenantId);
+          if (employees && employees.length > 0) {
+            const localData = await readRecord(EMPLOYEES_KEY, []);
+            const merged = mergeFetchedData(EMPLOYEES_KEY, employees, localData, queue);
+            cache[EMPLOYEES_KEY] = clone(merged);
+            await writeRecord(EMPLOYEES_KEY, merged);
+            triggerSync(EMPLOYEES_KEY);
+          }
+        } catch (err) {
+          console.error('Failed initial employees fetch:', err);
         }
 
         // 5. Initial Departments fetch
-        const { data: depts } = await supabase
-          .from('departments')
-          .select('id, name, name_en, icon, color, description, work_hours, active_orders, last_order_at, restaurant_id')
-          .eq('restaurant_id', tenantId);
-        if (depts && depts.length > 0) {
-          const localData = await readRecord(DEPARTMENTS_KEY, []);
-          const merged = mergeFetchedData(DEPARTMENTS_KEY, depts, localData, queue);
-          cache[DEPARTMENTS_KEY] = clone(merged);
-          await writeRecord(DEPARTMENTS_KEY, merged);
-          triggerSync(DEPARTMENTS_KEY);
+        try {
+          const { data: depts } = await supabase
+            .from('departments')
+            .select('id, name, name_en, icon, color, description, work_hours, active_orders, last_order_at, restaurant_id')
+            .eq('restaurant_id', tenantId);
+          if (depts && depts.length > 0) {
+            const localData = await readRecord(DEPARTMENTS_KEY, []);
+            const merged = mergeFetchedData(DEPARTMENTS_KEY, depts, localData, queue);
+            cache[DEPARTMENTS_KEY] = clone(merged);
+            await writeRecord(DEPARTMENTS_KEY, merged);
+            triggerSync(DEPARTMENTS_KEY);
+          }
+        } catch (err) {
+          console.error('Failed initial departments fetch:', err);
         }
 
         // 6. Initial Notifications fetch (only top 30)
-        const { data: notifs } = await supabase
-          .from('notifications')
-          .select('id, title, message, type, target_roles, target_role, target_department, timestamp, read, restaurant_id')
-          .eq('restaurant_id', tenantId)
-          .order('timestamp', { ascending: false })
-          .limit(30);
-        if (notifs && notifs.length > 0) {
-          const localData = await readRecord(NOTIFICATIONS_KEY, []);
-          const merged = mergeFetchedData(NOTIFICATIONS_KEY, notifs, localData, queue);
-          merged.sort((a, b) => b.timestamp - a.timestamp);
-          cache[NOTIFICATIONS_KEY] = clone(merged);
-          await writeRecord(NOTIFICATIONS_KEY, merged);
-          triggerSync(NOTIFICATIONS_KEY);
+        try {
+          const { data: notifs } = await supabase
+            .from('notifications')
+            .select('id, title, message, type, target_roles, target_role, target_department, timestamp, read, restaurant_id')
+            .eq('restaurant_id', tenantId)
+            .order('timestamp', { ascending: false })
+            .limit(30);
+          if (notifs && notifs.length > 0) {
+            const localData = await readRecord(NOTIFICATIONS_KEY, []);
+            const merged = mergeFetchedData(NOTIFICATIONS_KEY, notifs, localData, queue);
+            merged.sort((a, b) => b.timestamp - a.timestamp);
+            cache[NOTIFICATIONS_KEY] = clone(merged);
+            await writeRecord(NOTIFICATIONS_KEY, merged);
+            triggerSync(NOTIFICATIONS_KEY);
+          }
+        } catch (err) {
+          console.error('Failed initial notifications fetch:', err);
         }
 
         // 7. Initial Dept Orders fetch
-        const { data: deptOrders } = await supabase
-          .from('dept_orders')
-          .select('id, table_id, table_name, waiter_code, waiter_name, timestamp, items, subtotal, tax, service_charge, total, status, restaurant_id')
-          .eq('restaurant_id', tenantId);
-        if (deptOrders && deptOrders.length > 0) {
-          const localData = await readRecord(DEPT_ORDERS_KEY, {});
-          const merged = mergeFetchedData(DEPT_ORDERS_KEY, deptOrders, localData, queue);
-          cache[DEPT_ORDERS_KEY] = clone(merged);
-          await writeRecord(DEPT_ORDERS_KEY, merged);
-          triggerSync(DEPT_ORDERS_KEY);
+        try {
+          const { data: deptOrders } = await supabase
+            .from('dept_orders')
+            .select('id, table_id, table_name, waiter_code, waiter_name, timestamp, items, subtotal, tax, service_charge, total, status, restaurant_id')
+            .eq('restaurant_id', tenantId);
+          if (deptOrders && deptOrders.length > 0) {
+            const localData = await readRecord(DEPT_ORDERS_KEY, {});
+            const merged = mergeFetchedData(DEPT_ORDERS_KEY, deptOrders, localData, queue);
+            cache[DEPT_ORDERS_KEY] = clone(merged);
+            await writeRecord(DEPT_ORDERS_KEY, merged);
+            triggerSync(DEPT_ORDERS_KEY);
+          }
+        } catch (err) {
+          console.error('Failed initial dept orders fetch:', err);
+        }
+
+        // 8. Initial Invoice Archives fetch
+        try {
+          const { data: archives } = await supabase
+            .from('invoice_archives')
+            .select('id, archive_name, created_at, invoice_count, total_amount, pdf_data, restaurant_id')
+            .eq('restaurant_id', tenantId);
+          if (archives && archives.length > 0) {
+            const localData = await readRecord(ARCHIVES_KEY, []);
+            const merged = mergeFetchedData(ARCHIVES_KEY, archives, localData, queue);
+            cache[ARCHIVES_KEY] = clone(merged);
+            await writeRecord(ARCHIVES_KEY, merged);
+            triggerSync(ARCHIVES_KEY);
+          }
+        } catch (err) {
+          console.error('Failed initial invoice archives fetch:', err);
         }
 
         // Process any mutations left in the queue upon startup
@@ -675,6 +772,26 @@ export const initializeDatabase = async () => {
               await writeRecord(NOTIFICATIONS_KEY, updated);
               triggerSync(NOTIFICATIONS_KEY);
             })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'invoice_archives', ...filterConfig }, async (payload) => {
+              const current = cache[ARCHIVES_KEY] || [];
+              let updated = [...current];
+
+              if (payload.eventType === 'DELETE') {
+                updated = updated.filter(a => a.id !== payload.old.id);
+              } else {
+                const item = mapFromDB(payload.new, ARCHIVE_FIELD_MAP);
+                const idx = updated.findIndex(a => a.id === item.id);
+                if (idx !== -1) {
+                  updated[idx] = item;
+                } else {
+                  updated.push(item);
+                }
+              }
+
+              cache[ARCHIVES_KEY] = clone(updated);
+              await writeRecord(ARCHIVES_KEY, updated);
+              triggerSync(ARCHIVES_KEY);
+            })
             .subscribe(async (status) => {
               if (status === 'SUBSCRIBED') {
                 retryCount = 0;
@@ -717,7 +834,9 @@ export const refreshCache = async () => {
   cache[DEPT_ORDERS_KEY] = await readRecord(DEPT_ORDERS_KEY, {});
   cache[SESSION_KEY] = await readRecord(SESSION_KEY, null);
   cache[DEPARTMENTS_KEY] = await readRecord(DEPARTMENTS_KEY, DEFAULT_DEPARTMENTS);
+  cache[ARCHIVES_KEY] = await readRecord(ARCHIVES_KEY, []);
 };
+
 
 export const resetDailyData = async () => {
   cache[TABLES_KEY] = clone(DEFAULT_TABLES);

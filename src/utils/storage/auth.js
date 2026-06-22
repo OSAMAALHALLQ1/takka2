@@ -19,7 +19,7 @@ export const authenticateUser = (username, password) => {
     String(e.password || '') === p
   );
   if (!emp) return null;
-  const session = { id: emp.id, role: emp.role, name: emp.name, code: emp.code, username: emp.username };
+  const session = { id: emp.id, role: emp.role, name: emp.name, code: emp.code, username: emp.username, departments: emp.departments };
   persist(SESSION_KEY, session);
   const emps = getEmployees().map(e => e.id === emp.id ? { ...e, lastLogin: Date.now() } : e);
   persist(EMPLOYEES_KEY, emps);
@@ -69,6 +69,7 @@ export const authenticateByCode = async (inputCode) => {
     name: emp.name, 
     code: emp.code, 
     username: emp.username,
+    departments: emp.departments,
     sessionToken
   };
   persist(SESSION_KEY, session);
