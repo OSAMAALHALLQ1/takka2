@@ -8,7 +8,7 @@ export default function EmployeeLogin({ onSwitch, onLoginSuccess }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
 
-  function handleLoginSubmit(e) {
+  async function handleLoginSubmit(e) {
     e.preventDefault();
     if (busy) return;
     if (!codeInput.trim()) {
@@ -20,12 +20,18 @@ export default function EmployeeLogin({ onSwitch, onLoginSuccess }) {
     setBusy(true);
 
     try {
-      const session = authenticateByCode(codeInput);
+      const session = await authenticateByCode(codeInput);
       if (!session) {
         setError('الكود غير صحيح أو الحساب غير مفعل');
         return;
       }
       onLoginSuccess?.(session);
+    } catch (err) {
+      if (err.message === 'DUPLICATE_LOGIN') {
+        setError('عذراً، هذا الحساب مسجل دخول من جهاز آخر حالياً. يرجى الانتظار أو تسجيل الخروج من الجهاز الآخر.');
+      } else {
+        setError('حدث خطأ أثناء تسجيل الدخول، يرجى المحاولة لاحقاً');
+      }
     } finally {
       setBusy(false);
     }

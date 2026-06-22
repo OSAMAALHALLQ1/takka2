@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { deleteBills, deleteAllBills, exportBills, filterBills, exportBillsToCSV } from '../../utils/storage';
+import { deleteBills, deleteAllBills, exportBills, filterBills, exportBillsToCSV, getRestaurantName } from '../../utils/storage';
 import { Receipt, Download, Trash2, Flame, Eye, Printer } from 'lucide-react';
 
 export default function BillsTab({ bills, menuItems }) {
@@ -11,17 +11,22 @@ export default function BillsTab({ bills, menuItems }) {
 
   const printBill = (bill) => {
     const w = window.open('', '', 'width=400,height=600');
+    const rawName = getRestaurantName().trim();
+    const displayName = (rawName === 'سول' || rawName.toLowerCase() === 'soul' || rawName === 'تكة' || rawName === 'تكة | TAKKA') 
+      ? 'Soul Mate' 
+      : rawName.replace(/سول/g, 'Soul Mate').replace(/soul/gi, 'Soul Mate');
+
     w.document.write(`<html><head><title>فاتورة - ${bill.tableName}</title>
     <style>body{font-family:Arial;direction:rtl;padding:20px;text-align:right}
     h2{text-align:center}.row{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px dashed #ccc}
     .total{font-weight:bold;font-size:1.2em;border-top:2px solid #000;margin-top:8px;padding-top:8px}
     </style></head><body>
-    <h2>تكة | TAKKA</h2>
+    <h2>${displayName}</h2>
     <p style="text-align:center">${bill.tableName} | ${bill.timeFormatted} | ${bill.dateFormatted}</p>
     <hr>
     ${(bill.items || []).map(item => `<div class="row"><span>${item.name} × ${item.qty}</span><span>${(item.price * item.qty).toFixed(2)} ₪</span></div>`).join('')}
     <div class="row total"><span>الإجمالي النهائي:</span><span>${(bill.total || 0).toFixed(2)} ₪</span></div>
-    <p style="text-align:center;margin-top:20px">شكراً لزيارتكم</p>
+    <p style="text-align:center;margin-top:20px">شكراً لزيارتكم ${displayName}</p>
     </body></html>`);
     w.document.close();
     setTimeout(() => w.print(), 300);

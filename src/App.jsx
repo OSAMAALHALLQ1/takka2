@@ -5,11 +5,13 @@ import {
   getMenu, getDeptOrders, updateDeptOrderItem,
   addNotification, initializeDatabase, clearSession, getSession,
   markAllNotificationsRead, markNotificationRead, deleteNotification,
+  deleteNotifications,
   DEFAULT_MENU
 } from './utils/storage';
 import { getAuth, logout as authLogout } from './utils/auth-store';
 import ManagerLogin from './components/ManagerLogin';
 import EmployeeLogin from './components/EmployeeLogin';
+import { supabase } from './utils/supabaseClient';
 
 import WaiterView from './components/WaiterView';
 import CashierView from './components/CashierView';
@@ -69,6 +71,13 @@ function NotificationBell({ notifications, onRefresh }) {
   const handleMarkAll = () => {
     markAllNotificationsRead();
     onRefresh();
+  };
+  const handleClearAll = async () => {
+    if (notifications.length === 0) return;
+    if (window.confirm('هل تريد مسح جميع هذه الإشعارات؟')) {
+      await deleteNotifications(notifications.map(n => n.id));
+      onRefresh();
+    }
   };
   const handleDelete = (id) => {
     deleteNotification(id);
@@ -149,6 +158,14 @@ function NotificationBell({ notifications, onRefresh }) {
                       style={{ background: 'none', border: 'none', color: 'var(--color-primary)', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700 }}
                     >
                       تحديد الكل كمقروء
+                    </button>
+                  )}
+                  {notifications.length > 0 && (
+                    <button 
+                      onClick={handleClearAll} 
+                      style={{ background: 'none', border: 'none', color: '#e74c3c', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700 }}
+                    >
+                      مسح الكل
                     </button>
                   )}
                   <button className="bottom-sheet-close" onClick={() => setOpen(false)}>×</button>
@@ -234,7 +251,14 @@ function NotificationBell({ notifications, onRefresh }) {
         <div className="notifications-dropdown" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-light)', boxShadow: 'var(--shadow-lg)' }}>
           <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border-light)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <strong style={{ fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '6px' }}><Bell size={16} style={{ color: 'var(--color-primary)' }} /> الإشعارات ({notifications.length})</strong>
-            {unread > 0 && <button onClick={handleMarkAll} style={{ background: 'none', border: 'none', color: 'var(--color-primary)', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600 }}>تحديد الكل كمقروء</button>}
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+              {unread > 0 && (
+                <button onClick={handleMarkAll} style={{ background: 'none', border: 'none', color: 'var(--color-primary)', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600 }}>تحديد الكل كمقروء</button>
+              )}
+              {notifications.length > 0 && (
+                <button onClick={handleClearAll} style={{ background: 'none', border: 'none', color: '#e74c3c', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600 }}>مسح الكل</button>
+              )}
+            </div>
           </div>
           <div style={{ maxHeight: '380px', overflowY: 'auto' }}>
             {notifications.length === 0 ? (
@@ -354,11 +378,8 @@ function MainApp() {
       const targetDepartment = n.targetDepartment || null;
 
       if (role === 'admin') {
-        const isOnlyForWaiter = (targetRoles.includes('waiter') || targetRoles.some(r => String(r).startsWith('W-'))) && !targetRoles.includes('manager') && !targetRoles.includes('admin');
-        if (isOnlyForWaiter && String(n.title).includes('جاهز')) {
-          return false;
-        }
-        return true;
+        // Manager only gets bill/invoice request notifications (containing "حساب" or "فاتورة")
+        return String(n.title).includes('حساب') || String(n.title).includes('فاتورة');
       }
       if (['kitchen', 'bar', 'shisha'].includes(role)) {
         return targetDepartment === role;
@@ -430,6 +451,41 @@ function MainApp() {
       window.removeEventListener('takka:auth-update', authHandler);
     };
   }, [user, refreshNotifs]);
+
+  // ── Session Heartbeat Check (Duplicate Device Login Exclusivity) ──
+  useEffect(() => {
+    if (!user || user.role === 'manager') return;
+
+    const heartbeatInterval = setInterval(async () => {
+      if (navigator.onLine && supabase) {
+        try {
+          const { data } = await supabase
+            .from('employees')
+            .select('phone')
+            .eq('id', user.id)
+            .single();
+
+          if (data) {
+            if (data.phone && data.phone !== user.sessionToken) {
+              clearInterval(heartbeatInterval);
+              alert('تم تسجيل خروجك لأن الحساب مسجل دخول من جهاز آخر حالياً.');
+              handleLogout();
+              return;
+            }
+          }
+
+          await supabase
+            .from('employees')
+            .update({ last_login: Date.now(), phone: user.sessionToken })
+            .eq('id', user.id);
+        } catch (err) {
+          console.warn('Heartbeat error:', err);
+        }
+      }
+    }, 15000);
+
+    return () => clearInterval(heartbeatInterval);
+  }, [user]);
 
   // ── Detect new orders / ready items → play sounds ──
   useEffect(() => {

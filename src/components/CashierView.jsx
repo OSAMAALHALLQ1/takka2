@@ -145,6 +145,9 @@ export default function CashierView({ tables, onSaveTables, employee, activeTab:
     const itemRows = (bill.items || []).map(item =>
       `<div class="row"><span>${item.name} × ${item.qty}</span><span>${(item.price * item.qty).toFixed(2)} ₪</span></div>`
     ).join('');
+    const rawName = getRestaurantName().trim();
+    const displayName = (rawName === 'سول' || rawName.toLowerCase() === 'soul') ? 'Soul Mate' : rawName.replace(/سول/g, 'Soul Mate').replace(/soul/gi, 'Soul Mate');
+
     w.document.write(`<!DOCTYPE html><html dir="rtl"><head><title>فاتورة ${bill.id}</title>
     <style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif;padding:24px;max-width:380px;margin:0 auto}
     h1{text-align:center;font-size:1.4rem;margin-bottom:4px}h2{text-align:center;font-size:1rem;font-weight:400;color:#555;margin-bottom:16px}
@@ -153,7 +156,7 @@ export default function CashierView({ tables, onSaveTables, employee, activeTab:
     .row.bold{font-weight:700;font-size:1rem}.row.big{font-weight:800;font-size:1.2rem;border-top:2px solid #000;margin-top:8px;padding-top:8px}
     .info{font-size:0.8rem;color:#555;margin:3px 0}.footer{text-align:center;margin-top:20px;font-size:0.85rem;color:#777}
     </style></head><body>
-    <h1>${getRestaurantName()}</h1>
+    <h1>${displayName}</h1>
     <div class="info">رقم الفاتورة: <b>${bill.id}</b></div>
     <div class="info">الطاولة: <b>${bill.tableName}</b></div>
     <div class="info">التاريخ: ${bill.dateFormatted} | الوقت: ${bill.timeFormatted}</div>
@@ -163,7 +166,7 @@ export default function CashierView({ tables, onSaveTables, employee, activeTab:
     <hr class="divider">
     <div class="row big"><span>الإجمالي النهائي:</span><span>${(bill.total || bill.subtotal || 0).toFixed(2)} ₪</span></div>
     <div class="row" style="margin-top:4px"><span>طريقة الدفع:</span><span>${PAYMENT_LABELS[bill.paymentMethod] || bill.paymentMethod}</span></div>
-    <div class="footer"><p>شكراً لزيارتكم ${getRestaurantName()}</p><p>صحتين وعافية! 🙏</p></div>
+    <div class="footer"><p>شكراً لزيارتكم ${displayName}</p><p>صحتين وعافية! 🙏</p></div>
     </body></html>`);
     w.document.close();
     setTimeout(() => { w.print(); }, 400);

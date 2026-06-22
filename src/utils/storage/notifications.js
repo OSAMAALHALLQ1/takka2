@@ -109,3 +109,19 @@ export const deleteNotification = async (id) => {
     }
   }
 };
+
+export const deleteNotifications = async (ids) => {
+  if (!Array.isArray(ids) || ids.length === 0) return;
+  const notifs = getNotifications().filter(n => !ids.includes(n.id));
+  cache[NOTIFICATIONS_KEY] = clone(notifs);
+  await writeRecord(NOTIFICATIONS_KEY, notifs);
+  triggerSync(NOTIFICATIONS_KEY);
+  if (supabase) {
+    try {
+      await supabase.from('notifications').delete().in('id', ids);
+    } catch (err) {
+      console.error('Failed to delete notifications from Supabase:', err);
+    }
+  }
+};
+

@@ -1,5 +1,6 @@
 import { cache, persist, writeRecord, triggerSync } from './core.js';
 import { clone, normalizeEmployee } from './helpers.js';
+import { supabase } from '../supabaseClient.js';
 import { EMPLOYEES_KEY, SESSION_KEY } from './constants.js';
 
 export const getEmployees = () => clone(cache[EMPLOYEES_KEY]).map(normalizeEmployee);
@@ -25,7 +26,7 @@ export const authenticateUser = (username, password) => {
   return session;
 };
 
-export const authenticateByCode = (inputCode) => {
+export const authenticateByCode = async (inputCode) => {
   const code = String(inputCode || '').trim().toLowerCase();
   const empsList = getEmployees();
   const emp = empsList.find(e =>
@@ -35,21 +36,77 @@ export const authenticateByCode = (inputCode) => {
      String(e.username || '').trim().toLowerCase() === code)
   );
   if (!emp) return null;
+
+  const sessionToken = 'sess-' + Math.random().toString(36).slice(2, 15);
+
+  if (supabase) {
+    try {
+      const { data } = await supabase
+        .from('employees')
+        .select('phone, last_login')
+        .eq('id', emp.id)
+        .single();
+
+      if (data) {
+        const lastLoginTime = data.last_login || 0;
+        const activeToken = data.phone || '';
+        const isRecentlyActive = (Date.now() - lastLoginTime) < 30000;
+
+        if (isRecentlyActive && activeToken) {
+          throw new Error('DUPLICATE_LOGIN');
+        }
+      }
+    } catch (err) {
+      if (err.message === 'DUPLICATE_LOGIN') {
+        throw err;
+      }
+    }
+  }
   
-  const session = { id: emp.id, role: emp.role, name: emp.name, code: emp.code, username: emp.username };
+  const session = { 
+    id: emp.id, 
+    role: emp.role, 
+    name: emp.name, 
+    code: emp.code, 
+    username: emp.username,
+    sessionToken
+  };
   persist(SESSION_KEY, session);
   
-  const emps = empsList.map(e => e.id === emp.id ? { ...e, lastLogin: Date.now() } : e);
+  const emps = empsList.map(e => e.id === emp.id ? { ...e, lastLogin: Date.now(), phone: sessionToken } : e);
   persist(EMPLOYEES_KEY, emps);
+
+  if (supabase) {
+    try {
+      await supabase
+        .from('employees')
+        .update({ last_login: Date.now(), phone: sessionToken })
+        .eq('id', emp.id);
+    } catch {
+      // ignore
+    }
+  }
 
   return session;
 };
 
 export const getSession = () => clone(cache[SESSION_KEY]);
 export const clearSession = async () => {
+  const currentSession = getSession();
   cache[SESSION_KEY] = null;
   await writeRecord(SESSION_KEY, null);
   triggerSync(SESSION_KEY);
+
+  if (supabase && currentSession) {
+    try {
+      await supabase
+        .from('employees')
+        .update({ phone: null, last_login: 0 })
+        .eq('id', currentSession.id);
+    } catch {
+      // ignore
+    }
+  }
 };
 
 export const getManagerCredentials = () => getEmployees().find(e => e.role === 'manager') || null;
