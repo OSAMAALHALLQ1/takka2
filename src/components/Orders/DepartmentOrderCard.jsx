@@ -34,13 +34,13 @@ export function DepartmentOrderCard({ order, department }) {
           `طلب الطاولة #${order.tableName || order.tableId || order.tableNumber} جاهز!`,
           `قسم ${deptLabel} جهّز الأصناف المطلوبة`,
           'success',
-          ['waiter', 'manager']
+          ['waiter', order.waiterCode]
         );
       }
     } catch (error) {
       addNotification('حدث خطأ في تحديث الطلب', 'error');
     }
-  }, [order.id, order.tableName, order.tableId, order.tableNumber, department, updateOrderStatus, addNotification]);
+  }, [order.id, order.tableName, order.tableId, order.tableNumber, order.waiterCode, department, updateOrderStatus, addNotification]);
   
   const isProcessing = loading[order.id];
   
@@ -74,11 +74,18 @@ export function DepartmentOrderCard({ order, department }) {
         {(order.items || [])
           .filter(item => item.department === department)
           .map(item => (
-            <div key={item.id} className="card-item-row">
-              <span className="card-item-name">{item.name}</span>
-              <div className="card-item-qty-wrapper">
-                <span className="card-item-qty">× {item.qty || item.quantity}</span>
+            <div key={item.id} style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+              <div className="card-item-row" style={{ padding: '4px 0 2px 0' }}>
+                <span className="card-item-name">{item.name}</span>
+                <div className="card-item-qty-wrapper">
+                  <span className="card-item-qty">× {item.qty || item.quantity}</span>
+                </div>
               </div>
+              {item.changedFrom && (
+                <span style={{ fontSize: '0.78rem', color: '#dc2626', fontWeight: 'bold', background: '#fef2f2', padding: '2px 8px', borderRadius: '4px', marginTop: '2px', border: '1px solid #fee2e2', display: 'inline-block', width: 'fit-content' }}>
+                  ⚠️ تم تغيير الصنف بدلاً من: {item.changedFrom}
+                </span>
+              )}
             </div>
           ))}
       </div>

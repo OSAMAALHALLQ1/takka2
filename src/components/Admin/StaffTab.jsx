@@ -12,6 +12,10 @@ export default function StaffTab({ employees, setEmployees }) {
   const nonManagers = employees.filter(e => e.role !== 'manager');
 
   const handleSave = () => {
+    if (!editId && nonManagers.length >= 8) {
+      alert('عذراً، لقد وصلت للحد الأقصى المسموح به للموظفين وهو 8 موظفين');
+      return;
+    }
     if (!form.name.trim()) { alert('يرجى إدخال الاسم الكامل'); return; }
 
     const cleanPhone = String(form.phone || '').trim();
@@ -78,7 +82,15 @@ export default function StaffTab({ employees, setEmployees }) {
           <Users size={24} style={{ color: 'var(--color-primary)' }} />
           إدارة الموظفين
         </h2>
-        <button className="btn-primary-gold" onClick={() => { setForm(emptyForm); setEditId(null); setShowForm(true); }}>+ موظف جديد</button>
+        <button className="btn-primary-gold" onClick={() => { 
+          if (nonManagers.length >= 8) {
+            alert('عذراً، لقد وصلت للحد الأقصى المسموح به للموظفين وهو 8 موظفين');
+            return;
+          }
+          setForm(emptyForm); 
+          setEditId(null); 
+          setShowForm(true); 
+        }}>+ موظف جديد</button>
       </div>
 
       {showForm && (

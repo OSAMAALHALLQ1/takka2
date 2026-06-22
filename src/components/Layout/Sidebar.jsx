@@ -23,7 +23,6 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, activeTab, setAct
     { id: 'menu', label: 'المنيو', icon: UtensilsCrossed },
     { id: 'tables', label: 'الطاولات', icon: Armchair },
     { id: 'staff', label: 'الموظفون', icon: Users },
-    { id: 'codes', label: 'أكواد الدعوة', icon: KeyRound },
     { id: 'permissions', label: 'الصلاحيات', icon: ShieldCheck },
     { id: 'reports', label: 'التقارير', icon: TrendingUp },
     { id: 'bills', label: 'الفواتير', icon: Receipt },

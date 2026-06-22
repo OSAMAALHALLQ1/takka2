@@ -669,7 +669,9 @@ select.form-input option { background: #ffffff; color: var(--text-main); }
   border-radius: 16px;
   display: flex;
   flex-direction: column;
+  height: calc(100vh - 120px);
   max-height: calc(100vh - 120px);
+  min-height: 440px;
   position: sticky;
   top: 80px;
   overflow: hidden;
@@ -1193,18 +1195,6 @@ select.form-input option { background: #ffffff; color: var(--text-main); }
   }
 }
 
-@media (max-width: 900px) {
-  .order-layout {
-    grid-template-columns: 1fr;
-    grid-template-rows: 1fr auto;
-  }
-  .cart-col {
-    position: static;
-    max-height: 340px;
-  }
-  .admin-main { padding: 16px; width: 100%; }
-  .menu-items-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
-}
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -2831,6 +2821,48 @@ h4 {
   margin: 4px 0;
   word-break: break-word;
 }
+
+/* Height-based responsiveness for Waiter Cart on small laptop/tablet screens */
+@media (max-height: 768px) {
+  .cart-col {
+    height: calc(100vh - 100px);
+    max-height: calc(100vh - 100px);
+    top: 70px;
+    min-height: 400px;
+  }
+  .cart-items-scroll {
+    padding: 6px 8px;
+  }
+  .cart-item-row {
+    padding: 6px 0;
+    gap: 8px;
+  }
+  .qty-controls {
+    gap: 6px;
+  }
+  .qty-btn {
+    width: 26px;
+    height: 26px;
+    font-size: 0.85rem;
+  }
+  .qty-num {
+    font-size: 0.9rem;
+  }
+  .note-input {
+    margin-top: 4px;
+    padding: 4px 8px;
+    font-size: 0.75rem;
+  }
+  .send-order-btn {
+    padding: 10px;
+    font-size: 0.9rem;
+  }
+  .back-btn {
+    padding: 6px 12px;
+    font-size: 0.8rem;
+  }
+}
+
 
 
 

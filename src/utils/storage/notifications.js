@@ -5,7 +5,7 @@ import { NOTIFICATIONS_KEY, MAX_NOTIFICATIONS } from './constants.js';
 
 const DEPARTMENT_TARGETS = new Set(['kitchen', 'bar', 'shisha']);
 const ROLE_TARGETS = new Set(['admin', 'manager', 'waiter', 'cashier']);
-const ALLOWED_KINDS = new Set(['new_order', 'order_ready', 'order_delayed', 'bill_requested']);
+const ALLOWED_KINDS = new Set(['new_order', 'order_ready', 'bill_requested']);
 const BLOCKED_TITLES = [
   'إضافة صنف',
   'تعديل صنف',
@@ -28,7 +28,6 @@ const inferNotificationKind = (title, targetRoles) => {
 
   if (text.includes('طلب جديد')) return 'new_order';
   if (text.includes('جاهز')) return 'order_ready';
-  if (text.includes('منسي') || text.includes('تأخر')) return 'order_delayed';
   if (text.includes('طلب حساب') || text.includes('فاتورة') || hasCashier) return 'bill_requested';
   if (hasDepartment) return 'new_order';
   return null;

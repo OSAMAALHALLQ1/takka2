@@ -353,7 +353,13 @@ function MainApp() {
       const targetRoles = Array.isArray(n.targetRoles) ? n.targetRoles : [];
       const targetDepartment = n.targetDepartment || null;
 
-      if (role === 'admin') return true;
+      if (role === 'admin') {
+        const isOnlyForWaiter = (targetRoles.includes('waiter') || targetRoles.some(r => String(r).startsWith('W-'))) && !targetRoles.includes('manager') && !targetRoles.includes('admin');
+        if (isOnlyForWaiter && String(n.title).includes('جاهز')) {
+          return false;
+        }
+        return true;
+      }
       if (['kitchen', 'bar', 'shisha'].includes(role)) {
         return targetDepartment === role;
       }
@@ -438,41 +444,7 @@ function MainApp() {
     prevDeptOrdersRef.current = deptOrders;
   }, [deptOrders, playNewOrder, playReady]);
 
-  // Background check for forgotten/delayed orders (10+ minutes)
-  const alertedDelayedRef = useRef(new Set());
-  
-  useEffect(() => {
-    if (!user) return;
-    const interval = setInterval(() => {
-      const now = Date.now();
-      
-      // 1. Check for forgotten orders
-      const orders = getDeptOrders();
-      Object.entries(orders).forEach(([orderId, order]) => {
-        const elapsed = now - order.timestamp;
-        if (elapsed >= 10 * 60000) { // 10 minutes
-          const pendingItems = (order.items || []).filter(i => ['new', 'preparing'].includes(i.status));
-          if (pendingItems.length > 0) {
-            const depts = [...new Set(pendingItems.map(i => i.department))];
-            depts.forEach(dept => {
-              const alertKey = `${orderId}-${dept}-delayed`;
-              if (!alertedDelayedRef.current.has(alertKey)) {
-                alertedDelayedRef.current.add(alertKey);
-                  addNotification(
-                    `طلب الطاولة #${order.tableId} منسي! 10 دقائق قيد الانتظار`,
-                    `يرجى الاستعجال في تحضير الطلب بقسم ${dept === 'kitchen' ? 'المطبخ' : dept === 'bar' ? 'البار' : 'الشيشة'}`,
-                    'warning',
-                    ['manager']
-                  );
-                }
-              });
-            }
-          }
-        });
-    }, 15000); // Check every 15 seconds
-    
-    return () => clearInterval(interval);
-  }, [user]);
+
 
   const handleSaveTables = (newTables) => { setTables(newTables); saveTables(newTables); };
   const handleLogout = () => { clearSession(); authLogout(); setUser(null); setAuthPage('login'); };

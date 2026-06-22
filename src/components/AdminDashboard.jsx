@@ -58,7 +58,6 @@ export default function AdminDashboard({ user, onLogout, sidebarOpen, setSidebar
     { id: 'menu', label: 'المنيو', icon: UtensilsCrossed },
     { id: 'tables', label: 'الطاولة', icon: Armchair },
     { id: 'staff', label: 'الموظفون', icon: Users },
-    { id: 'codes', label: 'أكواد الدعوة', icon: KeyRound },
     { id: 'permissions', label: 'الصلاحيات', icon: ShieldCheck },
     { id: 'reports', label: 'التقارير', icon: TrendingUp },
     { id: 'bills', label: 'الفواتير', icon: Receipt },
@@ -107,7 +106,6 @@ export default function AdminDashboard({ user, onLogout, sidebarOpen, setSidebar
         {activeTab === 'menu' && <MenuTab menuItems={menuItems} setMenuItems={setMenuItems} departments={departments} />}
         {activeTab === 'tables' && <TablesTab tables={tables} setTables={setTables} />}
         {activeTab === 'staff' && <StaffTab employees={employees} setEmployees={setEmployees} />}
-        {activeTab === 'codes' && <CodesTab codes={codes} setCodes={setCodes} />}
         {activeTab === 'permissions' && <PermissionsTab />}
         {activeTab === 'reports' && <ReportsTab bills={bills} menuItems={menuItems} tables={tables} />}
         {activeTab === 'bills' && <BillsTab bills={bills} menuItems={menuItems} />}

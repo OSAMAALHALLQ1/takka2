@@ -208,3 +208,78 @@ export const updateOngoingItemQty = async (tableId, orderId, itemId, newQty) => 
   }
   return true;
 };
+
+export const modifyOngoingItem = async (tableId, orderId, itemId, newItem, newQty, newNote) => {
+  // 1. Update the table's currentOrder
+  const tables = getTables();
+  const tableIdx = tables.findIndex(t => t.id === tableId);
+  if (tableIdx === -1) return { success: false };
+
+  const table = tables[tableIdx];
+  let updatedTable = false;
+  let oldItemName = '';
+
+  table.currentOrder = (table.currentOrder || []).map(item => {
+    const matchOrder = !orderId || item.orderId === orderId;
+    if (matchOrder && item.id === itemId && ['new', 'preparing'].includes(item.status)) {
+      updatedTable = true;
+      oldItemName = item.name;
+      return {
+        ...item,
+        id: newItem.id,
+        name: newItem.nameAr || newItem.name,
+        price: newItem.price,
+        department: newItem.department,
+        image: newItem.image || '',
+        qty: newQty,
+        note: newNote,
+        status: 'new', // reset status to 'new' for kitchen to prepare
+        changedFrom: item.name
+      };
+    }
+    return item;
+  });
+
+  if (updatedTable) {
+    const sub = table.currentOrder.reduce((s, i) => s + i.price * i.qty, 0);
+    table.subtotal = sub;
+    table.tax = sub * TAX_RATE;
+    table.serviceCharge = sub * SERVICE_RATE;
+    table.total = sub + table.tax + table.serviceCharge;
+
+    await persist(TABLES_KEY, tables, tableId);
+  }
+
+  // 2. Update the corresponding dept order
+  if (orderId) {
+    const orders = getDeptOrders();
+    const order = orders[orderId];
+    if (order) {
+      order.items = (order.items || []).map(item => {
+        if (item.id === itemId && ['new', 'preparing'].includes(item.status)) {
+          return {
+            ...item,
+            id: newItem.id,
+            name: newItem.nameAr || newItem.name,
+            price: newItem.price,
+            department: newItem.department,
+            image: newItem.image || '',
+            qty: newQty,
+            note: newNote,
+            status: 'new',
+            changedFrom: oldItemName
+          };
+        }
+        return item;
+      });
+      const sub = order.items.reduce((s, i) => s + i.price * i.qty, 0);
+      order.subtotal = sub;
+      order.tax = sub * TAX_RATE;
+      order.serviceCharge = sub * SERVICE_RATE;
+      order.total = sub + order.tax + order.serviceCharge;
+
+      await persist(DEPT_ORDERS_KEY, orders, orderId);
+    }
+  }
+  return { success: true, oldItemName };
+};

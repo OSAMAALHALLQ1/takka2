@@ -51,7 +51,6 @@ export default function DepartmentsTab({ departments, setDepartments, employees,
           <Building2 size={24} style={{ color: 'var(--color-primary)' }} />
           إدارة الأقسام
         </h2>
-        <button className="btn-primary-gold" onClick={() => { resetForm(); setShowForm(true); }}>+ إضافة قسم</button>
       </div>
 
       {showForm && (
@@ -184,9 +183,6 @@ export default function DepartmentsTab({ departments, setDepartments, employees,
               <div style={{ display: 'flex', gap: '6px' }}>
                 <button className="icon-btn" onClick={() => handleEdit(dept)} title="تعديل">
                   <Pencil size={14} />
-                </button>
-                <button className="icon-btn danger" onClick={() => handleDelete(dept)} title="حذف">
-                  <Trash2 size={14} />
                 </button>
               </div>
             </div>

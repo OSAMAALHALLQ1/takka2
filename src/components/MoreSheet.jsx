@@ -8,7 +8,6 @@ export default function MoreSheet({ show, onClose, userRole, onLogout, onNavigat
     { tab: 'tables', icon: Armchair, label: 'الطاولات' },
     { tab: 'bills', icon: Receipt, label: 'الفواتير' },
     { tab: 'menu', icon: ClipboardList, label: 'المنيو' },
-    { tab: 'codes', icon: KeyRound, label: 'أكواد الدعوة' },
     { tab: 'permissions', icon: ShieldCheck, label: 'الصلاحيات' },
   ];
 

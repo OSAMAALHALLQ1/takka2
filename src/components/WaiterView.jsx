@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   saveDeptOrders, getDeptOrders, addNotification, updateDeptOrderItem,
-  updateOngoingItemQty, cancelOngoingItem,
+  updateOngoingItemQty, cancelOngoingItem, modifyOngoingItem,
   TAX_RATE, SERVICE_RATE
 } from '../utils/storage';
 import { 
@@ -14,6 +14,7 @@ import {
   Clock, 
   Notebook, 
   Trash2, 
+  Edit,
   CheckCircle2, 
   Timer, 
   Package, 
@@ -214,6 +215,13 @@ export default function WaiterView({ tables, onSaveTables, employee, menuItems =
   const [waiterActiveTab, setWaiterActiveTab] = useState(activeTab);
   const [expandedId, setExpandedId] = useState(null);
 
+  const [editingItem, setEditingItem] = useState(null);
+  const [selectedReplacement, setSelectedReplacement] = useState(null);
+  const [editQty, setEditQty] = useState(1);
+  const [editNote, setEditNote] = useState('');
+  const [editSearch, setEditSearch] = useState('');
+  const [editCategory, setEditCategory] = useState('all');
+
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
@@ -227,6 +235,39 @@ export default function WaiterView({ tables, onSaveTables, employee, menuItems =
 
   const handleWaiterDeliverItem = (orderId, itemId) => {
     updateDeptOrderItem(orderId, itemId, { status: 'delivered' });
+  };
+
+  const handleEditItemClick = (item) => {
+    setEditingItem(item);
+    const menuMatch = menuItems.find(m => m.id === item.id);
+    setSelectedReplacement(menuMatch || null);
+    setEditQty(item.qty || 1);
+    setEditNote(item.note || '');
+    setEditSearch('');
+    setEditCategory('all');
+  };
+
+  const handleConfirmEdit = async () => {
+    if (!editingItem || !selectedReplacement) return;
+    const result = await modifyOngoingItem(
+      selectedTable.id,
+      editingItem.orderId,
+      editingItem.id,
+      selectedReplacement,
+      editQty,
+      editNote
+    );
+    if (result && result.success) {
+      addNotification(
+        `تعديل طلب الطاولة #${selectedTable.id}`,
+        `تم تغيير الصنف من ${result.oldItemName} إلى ${selectedReplacement.nameAr || selectedReplacement.name} × ${editQty}`,
+        'warning',
+        [selectedReplacement.department, employee.code, 'manager']
+      );
+      setEditingItem(null);
+      setSelectedReplacement(null);
+      window.dispatchEvent(new CustomEvent('taka_sync'));
+    }
   };
 
   const handleRefresh = useCallback(() => {
@@ -550,9 +591,6 @@ export default function WaiterView({ tables, onSaveTables, employee, menuItems =
 
             {cart.length > 0 && (
               <div className="cart-totals-section">
-                <div className="total-row"><span>المجموع الفرعي</span><span>{subtotal.toFixed(2)} ₪</span></div>
-                <div className="total-row"><span>ضريبة (15%)</span><span>{tax.toFixed(2)} ₪</span></div>
-                <div className="total-row"><span>خدمة (10%)</span><span>{serviceCharge.toFixed(2)} ₪</span></div>
                 <div className="total-row grand"><span>الإجمالي</span><span>{total.toFixed(2)} ₪</span></div>
               </div>
             )}
@@ -667,9 +705,6 @@ export default function WaiterView({ tables, onSaveTables, employee, menuItems =
               {/* Fixed Footer pinned to the bottom of the drawer */}
               {cart.length > 0 && (
                 <div className="bottom-sheet-footer">
-                  <div className="total-row"><span>المجموع الفرعي</span><span>{subtotal.toFixed(2)} ₪</span></div>
-                  <div className="total-row"><span>ضريبة (15%)</span><span>{tax.toFixed(2)} ₪</span></div>
-                  <div className="total-row"><span>خدمة (10%)</span><span>{serviceCharge.toFixed(2)} ₪</span></div>
                   <div className="total-row grand"><span>الإجمالي</span><span>{total.toFixed(2)} ₪</span></div>
                   <input className="form-input" placeholder="ملاحظة للطاولة..." value={tableNotes} onChange={e => setTableNotes(e.target.value)} style={{ marginTop: '8px', marginBottom: '8px' }} />
                   <button className="send-order-btn" onClick={() => { handleSendOrder(); setShowMobileCart(false); }} disabled={cart.length === 0} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
@@ -767,6 +802,7 @@ export default function WaiterView({ tables, onSaveTables, employee, menuItems =
                                   <button className="qty-btn" onClick={() => updateOngoingItemQty(selectedTable.id, item.orderId, item.id, Math.max(1, item.qty - 1))} disabled={item.qty <= 1}>−</button>
                                   <span>{item.qty}</span>
                                   <button className="qty-btn" onClick={() => updateOngoingItemQty(selectedTable.id, item.orderId, item.id, item.qty + 1)}>+</button>
+                                  <button className="qty-btn" onClick={() => handleEditItemClick(item)} title="تعديل الصنف" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><Edit size={12} /></button>
                                   <button className="qty-btn" onClick={() => cancelOngoingItem(selectedTable.id, item.orderId, item.id)} title="إلغاء الصنف" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><Trash2 size={12} /></button>
                                 </div>
                               </div>
@@ -840,9 +876,6 @@ export default function WaiterView({ tables, onSaveTables, employee, menuItems =
               الفاتورة الحالية
             </h3>
             <div style={{ marginTop: '12px' }}>
-              <div className="total-row"><span>المجموع الفرعي</span><span>{(tableData.subtotal || 0).toFixed(2)} ₪</span></div>
-              <div className="total-row"><span>الضريبة (15%)</span><span>{(tableData.tax || 0).toFixed(2)} ₪</span></div>
-              <div className="total-row"><span>خدمة (10%)</span><span>{(tableData.serviceCharge || 0).toFixed(2)} ₪</span></div>
               <div className="total-row grand"><span>الإجمالي النهائي</span><span>{(tableData.total || 0).toFixed(2)} ₪</span></div>
             </div>
 
@@ -984,6 +1017,134 @@ export default function WaiterView({ tables, onSaveTables, employee, menuItems =
                   <Check size={18} /> نعم، إرسال الطلب
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit/Change Item Modal */}
+      {editingItem && (
+        <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) setEditingItem(null); }}>
+          <div className="modal-content glass-card" style={{ maxWidth: '500px', width: '100%', padding: 0, overflow: 'hidden' }}>
+            <div className="modal-header">
+              <h3 className="modal-title">تعديل الصنف</h3>
+              <button className="modal-close" onClick={() => setEditingItem(null)}>×</button>
+            </div>
+            <div className="modal-body" style={{ maxHeight: '70vh', overflowY: 'auto', padding: '16px' }}>
+              <div style={{ marginBottom: '12px', background: 'var(--bg-surface-2)', padding: '12px', borderRadius: '10px' }}>
+                <strong>الصنف الحالي: </strong>
+                <span>{editingItem.name} × {editingItem.qty}</span>
+              </div>
+              
+              <div style={{ fontWeight: 700, fontSize: '0.9rem', marginBottom: '8px' }}>اختر الصنف البديل:</div>
+              
+              {/* Category selector */}
+              <div className="dept-tabs" style={{ gap: '6px', marginBottom: '10px' }}>
+                {DEPT_TABS.map(tab => {
+                  const IconComponent = tab.icon;
+                  return (
+                    <button 
+                      key={tab.id} 
+                      className={`dept-tab ${editCategory === tab.id ? 'active' : ''}`} 
+                      onClick={() => setEditCategory(tab.id)}
+                      style={{ padding: '6px 12px', fontSize: '0.8rem' }}
+                    >
+                      <IconComponent size={14} /> <span>{tab.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              
+              {/* Search */}
+              <div style={{ position: 'relative', marginBottom: '12px' }}>
+                <input 
+                  className="form-input" 
+                  placeholder="بحث عن صنف بديل..." 
+                  value={editSearch} 
+                  onChange={e => setEditSearch(e.target.value)} 
+                  style={{ paddingRight: '40px', padding: '8px 12px' }} 
+                />
+                <Search size={16} style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+              </div>
+              
+              {/* Menu items list */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '200px', overflowY: 'auto', border: '1px solid var(--border-light)', borderRadius: '8px', padding: '8px', background: 'var(--bg-surface)' }}>
+                {menuItems.filter(item => {
+                  if (!item.available) return false;
+                  const matchDept = editCategory === 'all' || item.department === editCategory;
+                  const matchSearch = !editSearch || item.name?.includes(editSearch) || item.nameAr?.includes(editSearch);
+                  return matchDept && matchSearch;
+                }).map(item => {
+                  const isSelected = selectedReplacement?.id === item.id;
+                  return (
+                    <div 
+                      key={item.id} 
+                      onClick={() => setSelectedReplacement(item)}
+                      style={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        padding: '8px 12px', 
+                        borderRadius: '6px', 
+                        cursor: 'pointer',
+                        background: isSelected ? 'var(--color-primary-glow)' : 'transparent',
+                        border: isSelected ? '1px solid var(--color-primary)' : '1px solid transparent',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      <span style={{ fontWeight: 600, fontSize: '0.88rem' }}>{item.nameAr || item.name}</span>
+                      <span style={{ color: 'var(--color-primary)', fontWeight: 700, fontSize: '0.85rem' }}>{item.price} ₪</span>
+                    </div>
+                  );
+                })}
+              </div>
+              
+              {selectedReplacement && (
+                <div style={{ marginTop: '16px', background: 'var(--bg-surface-2)', padding: '12px', borderRadius: '10px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                    <strong>الصنف المختار:</strong>
+                    <span style={{ color: 'var(--color-primary)', fontWeight: 700 }}>{selectedReplacement.nameAr || selectedReplacement.name}</span>
+                  </div>
+                  
+                  {/* Quantity & Note */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>الكمية:</span>
+                    <div className="qty-controls">
+                      <button className="qty-btn" onClick={() => setEditQty(q => Math.max(1, q - 1))}>−</button>
+                      <span className="qty-num">{editQty}</span>
+                      <button className="qty-btn" onClick={() => setEditQty(q => q + 1)}>+</button>
+                    </div>
+                  </div>
+                  
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>الملاحظة:</span>
+                    <input 
+                      type="text" 
+                      className="form-input" 
+                      placeholder="مثال: بدون بصل" 
+                      value={editNote} 
+                      onChange={e => setEditNote(e.target.value)} 
+                      style={{ padding: '8px 12px' }}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="modal-footer" style={{ padding: '12px 16px' }}>
+              <button 
+                className="send-order-btn" 
+                onClick={handleConfirmEdit}
+                disabled={!selectedReplacement}
+                style={{ flex: 1, padding: '10px 14px', fontSize: '0.9rem' }}
+              >
+                تأكيد التعديل
+              </button>
+              <button 
+                className="back-btn" 
+                onClick={() => setEditingItem(null)}
+                style={{ padding: '10px 14px', fontSize: '0.9rem' }}
+              >
+                إلغاء
+              </button>
             </div>
           </div>
         </div>
