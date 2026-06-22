@@ -11,6 +11,7 @@ import { DEFAULT_TABLES, DEFAULT_MENU, DEFAULT_EMPLOYEES, DEFAULT_DEPARTMENTS } 
 let initPromise = null;
 let isConnected = true;
 let networkListenersAttached = false;
+let triggerReconnect = null;
 
 export const isRealtimeConnected = () => isConnected;
 
@@ -63,8 +64,7 @@ const recoverMissedData = async (supabaseClient) => {
       .eq('restaurant_id', tenantId);
 
     if (latestOrders) {
-      const current = cache[DEPT_ORDERS_KEY] || {};
-      const updated = { ...current };
+      const updated = {};
       latestOrders.forEach(d => {
         const jsObj = mapFromDB(d, DEPT_ORDER_FIELD_MAP);
         updated[jsObj.id] = jsObj;
@@ -124,7 +124,10 @@ export const initializeDatabase = async () => {
     if (!networkListenersAttached && typeof window !== 'undefined') {
       networkListenersAttached = true;
       dispatchConnectionStatus(window.navigator?.onLine !== false);
-      window.addEventListener('online', () => dispatchConnectionStatus(true));
+      window.addEventListener('online', () => {
+        dispatchConnectionStatus(true);
+        if (triggerReconnect) triggerReconnect();
+      });
       window.addEventListener('offline', () => dispatchConnectionStatus(false));
     }
 
@@ -404,6 +407,11 @@ export const initializeDatabase = async () => {
                 }
               }
             });
+        };
+
+        triggerReconnect = () => {
+          retryCount = 0;
+          setupRealtimeChannel();
         };
 
         setupRealtimeChannel();
