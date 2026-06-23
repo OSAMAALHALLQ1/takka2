@@ -2362,7 +2362,7 @@ select.form-input option { background: #ffffff; color: var(--text-main); }
 
 /* Mobile cart FAB - hidden on desktop, shown on mobile */
 .desktop-cart {
-  display: block;
+  display: flex;
 }
 .mobile-cart-fab {
   display: none !important;

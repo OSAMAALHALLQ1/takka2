@@ -10,6 +10,8 @@ export const MENU_KEY = 'menu';
 export const DEPT_ORDERS_KEY = 'department_orders';
 export const SESSION_KEY = 'session';
 export const DEPARTMENTS_KEY = 'departments';
+export const ARCHIVES_KEY = 'invoice_archives';
+
 
 export const TAX_RATE = 0.0;
 export const SERVICE_RATE = 0.0;
@@ -129,3 +131,14 @@ export const DEPT_ORDER_FIELD_MAP = {
   status: 'status',
   restaurantId: 'restaurant_id'
 };
+
+export const ARCHIVE_FIELD_MAP = {
+  id: 'id',
+  archiveName: 'archive_name',
+  createdAt: 'created_at',
+  invoiceCount: 'invoice_count',
+  totalAmount: 'total_amount',
+  pdfData: 'pdf_data',
+  restaurantId: 'restaurant_id'
+};
+

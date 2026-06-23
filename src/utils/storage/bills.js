@@ -1,7 +1,7 @@
 import { supabase } from '../supabaseClient.js';
 import { cache, persist, writeRecord, triggerSync, enqueueMutation } from './core.js';
 import { clone } from './helpers.js';
-import { BILLS_KEY, MAX_BILLS_KEPT } from './constants.js';
+import { BILLS_KEY, MAX_BILLS_KEPT, ARCHIVES_KEY } from './constants.js';
 
 export const getBills = () => clone(cache[BILLS_KEY]);
 
@@ -9,6 +9,15 @@ export const saveBills = async (b) => {
   if (!Array.isArray(b)) return false; 
   return await persist(BILLS_KEY, b.slice(0, MAX_BILLS_KEPT)); 
 };
+
+export const getArchives = () => clone(cache[ARCHIVES_KEY]) || [];
+
+export const saveArchive = async (archive) => {
+  const archives = getArchives();
+  archives.push(archive);
+  return await persist(ARCHIVES_KEY, archives, archive.id);
+};
+
 
 export const deleteBills = async (ids) => {
   const current = getBills();

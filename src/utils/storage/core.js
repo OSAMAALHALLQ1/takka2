@@ -1,11 +1,11 @@
 import { supabase } from '../supabaseClient.js';
-import { createMutationId } from '../ids.js';
 import { clone } from './helpers.js';
 import { 
   DB_NAME, DB_VERSION, STORE_NAME,
   TABLES_KEY, EMPLOYEES_KEY, BILLS_KEY, NOTIFICATIONS_KEY,
-  MENU_KEY, DEPT_ORDERS_KEY, SESSION_KEY, DEPARTMENTS_KEY
+  MENU_KEY, DEPT_ORDERS_KEY, SESSION_KEY, DEPARTMENTS_KEY, ARCHIVES_KEY,
 } from './constants.js';
+
 
 let dbPromise = null;
 const MAX_SYNC_QUEUE_LENGTH = 500;
@@ -18,8 +18,10 @@ export const cache = {
   [MENU_KEY]: [],
   [DEPT_ORDERS_KEY]: {},
   [SESSION_KEY]: null,
-  [DEPARTMENTS_KEY]: []
+  [DEPARTMENTS_KEY]: [],
+  [ARCHIVES_KEY]: []
 };
+
 
 export const openDatabase = () => {
   if (dbPromise) return dbPromise;
@@ -134,7 +136,7 @@ export const enqueueMutation = async (key, action, changedItemOrId = null, value
   if (!supabase) return;
   const queue = await getSyncQueue();
   const nextQueue = coalesceSyncQueue(queue, {
-    id: createMutationId(),
+    id: `mut-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
     key,
     action,
     changedItemOrId: clone(changedItemOrId),
@@ -158,7 +160,7 @@ export const persist = async (key, value, changedItemOrId = null) => {
   if (supabase) {
     const syncableKeys = [
       TABLES_KEY, EMPLOYEES_KEY, BILLS_KEY, NOTIFICATIONS_KEY,
-      MENU_KEY, DEPT_ORDERS_KEY, DEPARTMENTS_KEY
+      MENU_KEY, DEPT_ORDERS_KEY, DEPARTMENTS_KEY, ARCHIVES_KEY
     ];
     if (syncableKeys.includes(key)) {
       await enqueueMutation(key, 'upsert', changedItemOrId, value);
