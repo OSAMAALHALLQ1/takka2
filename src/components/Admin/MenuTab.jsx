@@ -15,6 +15,7 @@ export default function MenuTab({ menuItems, setMenuItems, departments }) {
   const emptyForm = { nameAr: '', nameEn: '', description: '', price: '', category: 'mains', department: 'kitchen', image: 'utensils', available: true, prepTime: 15 };
   const [form, setForm] = useState(emptyForm);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [imageCompressionInfo, setImageCompressionInfo] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
 
   const filtered = menuItems.filter(item => {
@@ -43,10 +44,12 @@ export default function MenuTab({ menuItems, setMenuItems, departments }) {
     setShowForm(false);
     setEditId(null);
     setForm(emptyForm);
+    setImageCompressionInfo(null);
   };
 
   const handleEdit = (item) => {
     setForm({ nameAr: item.nameAr || item.name, nameEn: item.nameEn || '', description: item.description || '', price: item.price.toString(), category: item.category, department: item.department, image: item.image || 'utensils', available: item.available !== false, prepTime: item.prepTime || 15 });
+    setImageCompressionInfo(null);
     setEditId(item.id);
     setShowForm(true);
   };
@@ -74,13 +77,21 @@ export default function MenuTab({ menuItems, setMenuItems, departments }) {
       return;
     }
 
+    const maxUploadMB = 25;
+    if (file.size > maxUploadMB * 1024 * 1024) {
+      alert(`حجم الصورة كبير جداً. الحد الأقصى ${maxUploadMB} ميجا`);
+      return;
+    }
+
     setIsUploadingImage(true);
+    setImageCompressionInfo(null);
     try {
       const result = await compressImage(file, {
-        maxWidth: 800,
-        maxHeight: 800,
-        quality: 0.8,
-        maxSizeKB: 150
+        maxWidth: 1600,
+        maxHeight: 1600,
+        quality: 0.86,
+        minQuality: 0.72,
+        maxSizeKB: 450
       });
 
       let imageValue = '';
@@ -112,6 +123,7 @@ export default function MenuTab({ menuItems, setMenuItems, departments }) {
       }
 
       setForm(p => ({ ...p, image: imageValue }));
+      setImageCompressionInfo(result);
     } catch (err) {
       alert(`فشل رفع الصورة: ${err.message}`);
     } finally {
@@ -126,7 +138,7 @@ export default function MenuTab({ menuItems, setMenuItems, departments }) {
           <UtensilsCrossed size={24} style={{ color: 'var(--color-primary)' }} />
           إدارة المنيو
         </h2>
-        <button className="btn-primary-gold" onClick={() => { setForm(emptyForm); setEditId(null); setShowForm(true); }}>+ إضافة صنف</button>
+        <button className="btn-primary-gold" onClick={() => { setForm(emptyForm); setImageCompressionInfo(null); setEditId(null); setShowForm(true); }}>+ إضافة صنف</button>
       </div>
 
       {/* Filters */}
@@ -174,15 +186,21 @@ export default function MenuTab({ menuItems, setMenuItems, departments }) {
               </select>
             </div>
             <div className="form-group">
-              <label className="form-label">صورة الصنف (رابط أو ملف حتى 20 ميجا)</label>
+              <label className="form-label">صورة الصنف (رابط أو ملف حتى 25 ميجا)</label>
               <div style={{ display: 'flex', gap: '8px' }}>
                 <input className="form-input" value={form.image} onChange={e => setForm(p => ({ ...p, image: e.target.value }))} placeholder="رابط صورة الصنف (URL) أو رمز الأيقونة..." style={{ flex: 1 }} />
                 <label className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', padding: '0 12px', borderRadius: '8px', fontSize: '0.85rem' }}>
                   <FolderOpen size={14} />
-                  <span>{isUploadingImage ? 'يرفع...' : 'رفع'}</span>
+                  <span>{isUploadingImage ? 'يضغط ويرفع...' : 'رفع'}</span>
                   <input type="file" accept="image/*" disabled={isUploadingImage} style={{ display: 'none' }} onChange={handleImageUpload} />
                 </label>
               </div>
+              {imageCompressionInfo && (
+                <div style={{ marginTop: '8px', fontSize: '0.78rem', color: '#15803d', fontWeight: 700 }}>
+                  تم ضغط الصورة من {imageCompressionInfo.originalSizeLabel} إلى {imageCompressionInfo.compressedSizeLabel}
+                  {' '}({imageCompressionInfo.savedPercent}% توفير، {imageCompressionInfo.width}×{imageCompressionInfo.height})
+                </div>
+              )}
             </div>
             <div className="form-group" style={{ gridColumn: '1 / -1' }}>
               <label className="form-label">وصف الصنف</label>
@@ -201,7 +219,7 @@ export default function MenuTab({ menuItems, setMenuItems, departments }) {
           </div>
           <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
             <button className="btn-primary-gold" onClick={handleSave}>{editId ? 'حفظ' : 'إضافة'}</button>
-            <button className="btn-secondary" onClick={() => { setShowForm(false); setEditId(null); }}>إلغاء</button>
+            <button className="btn-secondary" onClick={() => { setShowForm(false); setImageCompressionInfo(null); setEditId(null); }}>إلغاء</button>
           </div>
         </div>
       )}

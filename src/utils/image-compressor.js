@@ -1,69 +1,92 @@
-// src/utils/image-compressor.js
+const DEFAULT_ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+
+const formatBytes = (bytes) => {
+  if (!Number.isFinite(bytes) || bytes <= 0) return '0 KB';
+  const units = ['B', 'KB', 'MB'];
+  let value = bytes;
+  let unitIndex = 0;
+  while (value >= 1024 && unitIndex < units.length - 1) {
+    value /= 1024;
+    unitIndex++;
+  }
+  return `${value >= 10 ? value.toFixed(1) : value.toFixed(2)} ${units[unitIndex]}`;
+};
 
 export const compressImage = (file, options = {}) => {
   return new Promise((resolve, reject) => {
     const {
-      maxWidth = 800,
-      maxHeight = 800,
-      quality = 0.8,      // 80% جودة — فرق غير محسوس بالعين
-      maxSizeKB = 150     // حد أقصى 150 KB
+      maxWidth = 1600,
+      maxHeight = 1600,
+      quality = 0.86,
+      minQuality = 0.72,
+      maxSizeKB = 450,
+      outputType = 'image/webp',
+      allowedTypes = DEFAULT_ALLOWED_TYPES
     } = options;
+
+    if (!file || !allowedTypes.includes(file.type)) {
+      reject(new Error('صيغة الصورة غير مدعومة. استخدم JPG أو PNG أو WebP'));
+      return;
+    }
 
     const reader = new FileReader();
     reader.readAsDataURL(file);
-    
+
     reader.onload = (e) => {
       const img = new Image();
       img.src = e.target.result;
-      
+
       img.onload = () => {
         const canvas = document.createElement('canvas');
-        
-        // احسب الأبعاد الجديدة مع الحفاظ على النسبة
+
         let { width, height } = img;
-        if (width > maxWidth) {
-          height = (height * maxWidth) / width;
-          width = maxWidth;
+        const ratio = Math.min(maxWidth / width, maxHeight / height, 1);
+
+        if (ratio < 1) {
+          width = Math.round(width * ratio);
+          height = Math.round(height * ratio);
         }
-        if (height > maxHeight) {
-          width = (width * maxHeight) / height;
-          height = maxHeight;
-        }
-        
+
         canvas.width = width;
         canvas.height = height;
-        
+
         const ctx = canvas.getContext('2d');
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
         ctx.drawImage(img, 0, 0, width, height);
-        
-        // اضغط تدريجياً لحد ما توصل للحجم المطلوب
+
         let currentQuality = quality;
         const compress = () => {
           canvas.toBlob(
             (blob) => {
               if (!blob) { reject(new Error('فشل الضغط')); return; }
-              
               const sizeKB = blob.size / 1024;
-              
-              if (sizeKB > maxSizeKB && currentQuality > 0.3) {
-                currentQuality -= 0.1;
+
+              if (sizeKB > maxSizeKB && currentQuality > minQuality) {
+                currentQuality = Math.max(minQuality, currentQuality - 0.04);
                 compress(); // جرب مرة ثانية بجودة أقل
               } else {
-                // حوّل لـ File object
+                const extension = outputType === 'image/webp' ? '.webp' : '.jpg';
                 const compressedFile = new File(
-                  [blob], 
-                  file.name.replace(/\.[^.]+$/, '.webp'),
-                  { type: 'image/webp' }
+                  [blob],
+                  file.name.replace(/\.[^.]+$/, extension),
+                  { type: outputType }
                 );
                 resolve({
                   file: compressedFile,
                   originalSizeKB: Math.round(file.size / 1024),
                   compressedSizeKB: Math.round(sizeKB),
-                  savedPercent: Math.round((1 - sizeKB / (file.size/1024)) * 100)
+                  originalSizeLabel: formatBytes(file.size),
+                  compressedSizeLabel: formatBytes(blob.size),
+                  savedPercent: Math.max(0, Math.round((1 - blob.size / file.size) * 100)),
+                  width,
+                  height,
+                  quality: Number(currentQuality.toFixed(2)),
+                  type: outputType
                 });
               }
             },
-            'image/webp',
+            outputType,
             currentQuality
           );
         };
