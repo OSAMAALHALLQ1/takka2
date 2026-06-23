@@ -7,13 +7,16 @@ import {
   TABLE_FIELD_MAP, MENU_FIELD_MAP, DEPT_ORDER_FIELD_MAP, BILL_FIELD_MAP, EMPLOYEE_FIELD_MAP, DEPARTMENT_FIELD_MAP, NOTIFICATION_FIELD_MAP
 } from './constants.js';
 import { DEFAULT_TABLES, DEFAULT_MENU, DEFAULT_EMPLOYEES, DEFAULT_DEPARTMENTS } from './defaults.js';
+import { normalizeMenuItem, normalizeMenuItems } from './menu-normalization.js';
 
 let initPromise = null;
 let isConnected = true;
 let networkListenersAttached = false;
 let triggerReconnect = null;
 const MENU_DATASET_VERSION_KEY = 'menu_dataset_version';
-const MENU_DATASET_VERSION = 'soulmate-menu-2026-06-23';
+const MENU_DATASET_VERSION = 'soulmate-menu-2026-06-23-v2';
+const DEFAULT_MENU_IDS = new Set(DEFAULT_MENU.map(item => String(item.id)));
+const MIN_DEFAULT_MENU_MATCHES = Math.max(1, Math.floor(DEFAULT_MENU.length * 0.8));
 
 export const isRealtimeConnected = () => isConnected;
 
@@ -25,6 +28,14 @@ const dispatchConnectionStatus = (connected) => {
     // ignore
   }
 };
+
+const getDefaultMenuMatchCount = (items) => (
+  normalizeMenuItems(items).filter(item => DEFAULT_MENU_IDS.has(String(item.id))).length
+);
+
+const hasExpectedDefaultMenu = (items) => getDefaultMenuMatchCount(items) >= MIN_DEFAULT_MENU_MATCHES;
+
+const getSoulMateMenu = () => normalizeMenuItems(DEFAULT_MENU);
 
 const seedIfMissing = async (key, fallback) => {
   const value = await readRecord(key, null);
@@ -45,11 +56,15 @@ const seedIfMissing = async (key, fallback) => {
     return;
   }
   if (value === null) {
-    cache[key] = clone(fallback);
-    await writeRecord(key, fallback);
+    const initialValue = key === MENU_KEY ? getSoulMateMenu() : fallback;
+    cache[key] = clone(initialValue);
+    await writeRecord(key, initialValue);
   } else {
     const normalized = key === EMPLOYEES_KEY && Array.isArray(value)
-      ? value.map(normalizeEmployee) : value;
+      ? value.map(normalizeEmployee)
+      : key === MENU_KEY
+        ? normalizeMenuItems(value)
+        : value;
     cache[key] = clone(normalized);
     await writeRecord(key, normalized);
   }
@@ -57,12 +72,46 @@ const seedIfMissing = async (key, fallback) => {
 
 const ensureDefaultMenuVersion = async () => {
   const currentVersion = await readRecord(MENU_DATASET_VERSION_KEY, null);
-  if (currentVersion === MENU_DATASET_VERSION) return false;
+  const currentMenu = await readRecord(MENU_KEY, []);
+  if (currentVersion === MENU_DATASET_VERSION && hasExpectedDefaultMenu(currentMenu)) return false;
 
-  cache[MENU_KEY] = clone(DEFAULT_MENU);
-  await writeRecord(MENU_KEY, DEFAULT_MENU);
+  const soulMateMenu = getSoulMateMenu();
+  cache[MENU_KEY] = clone(soulMateMenu);
+  await writeRecord(MENU_KEY, soulMateMenu);
   await writeRecord(MENU_DATASET_VERSION_KEY, MENU_DATASET_VERSION);
   triggerSync(MENU_KEY);
+  return true;
+};
+
+const replaceRemoteMenuDataset = async (tenantId) => {
+  if (!supabase) return false;
+
+  const soulMateMenu = getSoulMateMenu();
+  const mappedDefaultMenu = soulMateMenu.map(item => ({ ...mapToDB(item, MENU_FIELD_MAP), restaurant_id: tenantId }));
+  const { error: upsertError } = await supabase.from('menu').upsert(mappedDefaultMenu);
+  if (upsertError) throw upsertError;
+
+  const { data: existingRows, error: fetchError } = await supabase
+    .from('menu')
+    .select('id')
+    .eq('restaurant_id', tenantId);
+  if (fetchError) throw fetchError;
+
+  const staleIds = (existingRows || [])
+    .map(row => String(row.id))
+    .filter(id => !DEFAULT_MENU_IDS.has(id));
+
+  for (let i = 0; i < staleIds.length; i += 100) {
+    const chunk = staleIds.slice(i, i + 100);
+    if (chunk.length === 0) continue;
+    const { error: deleteError } = await supabase
+      .from('menu')
+      .delete()
+      .eq('restaurant_id', tenantId)
+      .in('id', chunk);
+    if (deleteError) throw deleteError;
+  }
+
   return true;
 };
 
@@ -111,7 +160,7 @@ export const mergeFetchedData = (key, fetchedData, localData, queue, idField = '
   if (Array.isArray(fetchedData)) {
     let mappedFetched = [];
     if (key === TABLES_KEY) mappedFetched = fetchedData.map(t => mapFromDB(t, TABLE_FIELD_MAP));
-    else if (key === MENU_KEY) mappedFetched = fetchedData.map(m => mapFromDB(m, MENU_FIELD_MAP));
+    else if (key === MENU_KEY) mappedFetched = normalizeMenuItems(fetchedData.map(m => mapFromDB(m, MENU_FIELD_MAP)));
     else if (key === BILLS_KEY) mappedFetched = fetchedData.map(b => mapFromDB(b, BILL_FIELD_MAP));
     else if (key === EMPLOYEES_KEY) mappedFetched = fetchedData.map(e => mapFromDB(e, EMPLOYEE_FIELD_MAP));
     else if (key === DEPARTMENTS_KEY) mappedFetched = fetchedData.map(d => mapFromDB(d, DEPARTMENT_FIELD_MAP));
@@ -197,10 +246,10 @@ export const processSyncQueue = async () => {
             if (error) throw error;
             success = true;
           } else if (key === MENU_KEY && Array.isArray(value)) {
-            let itemsToUpsert = value;
+            let itemsToUpsert = normalizeMenuItems(value);
             if (changedItemOrId) {
               const id = typeof changedItemOrId === 'object' ? changedItemOrId.id : changedItemOrId;
-              const found = value.find(m => m.id === id);
+              const found = itemsToUpsert.find(m => m.id === id);
               if (found) itemsToUpsert = [found];
             }
             const mapped = itemsToUpsert.map(m => injectTenant(mapToDB(m, MENU_FIELD_MAP)));
@@ -435,10 +484,23 @@ export const initializeDatabase = async () => {
         const tenantId = (await import('./tenant.js')).getTenantId();
         const queue = await getSyncQueue();
         if (shouldReplaceMenu) {
-          const mappedDefaultMenu = DEFAULT_MENU.map(item => ({ ...mapToDB(item, MENU_FIELD_MAP), restaurant_id: tenantId }));
-          await supabase.from('menu').delete().eq('restaurant_id', tenantId).neq('id', 'dummy');
-          if (mappedDefaultMenu.length > 0) {
-            await supabase.from('menu').upsert(mappedDefaultMenu);
+          try {
+            await replaceRemoteMenuDataset(tenantId);
+          } catch (err) {
+            console.error('Failed to replace remote Soul Mate menu:', err);
+            await saveSyncQueue([
+              ...queue.filter(m => m.key !== MENU_KEY),
+              {
+                id: `menu-replace-${Date.now()}`,
+                key: MENU_KEY,
+                action: 'upsert',
+                changedItemOrId: null,
+                value: getSoulMateMenu(),
+                timestamp: Date.now(),
+                attempts: 0,
+                nextAttemptAt: 0
+              }
+            ]);
           }
         }
 
@@ -462,10 +524,24 @@ export const initializeDatabase = async () => {
           .eq('restaurant_id', tenantId);
         if (menu && menu.length > 0) {
           const localData = await readRecord(MENU_KEY, []);
-          const merged = mergeFetchedData(MENU_KEY, menu, localData, queue);
-          cache[MENU_KEY] = clone(merged);
-          await writeRecord(MENU_KEY, merged);
-          triggerSync(MENU_KEY);
+          const remoteMenu = normalizeMenuItems(menu.map(m => mapFromDB(m, MENU_FIELD_MAP)));
+          const defaultDatasetActive = (await readRecord(MENU_DATASET_VERSION_KEY, null)) === MENU_DATASET_VERSION;
+          const remoteHasSoulMate = hasExpectedDefaultMenu(remoteMenu);
+
+          if (defaultDatasetActive && !remoteHasSoulMate) {
+            cache[MENU_KEY] = clone(getSoulMateMenu());
+            await writeRecord(MENU_KEY, getSoulMateMenu());
+            triggerSync(MENU_KEY);
+          } else {
+            const allowedLocalIds = new Set(normalizeMenuItems(localData).map(item => String(item.id)));
+            const menuToMerge = defaultDatasetActive
+              ? remoteMenu.filter(item => DEFAULT_MENU_IDS.has(String(item.id)) || allowedLocalIds.has(String(item.id)))
+              : remoteMenu;
+            const merged = mergeFetchedData(MENU_KEY, menuToMerge, localData, queue);
+            cache[MENU_KEY] = clone(merged);
+            await writeRecord(MENU_KEY, merged);
+            triggerSync(MENU_KEY);
+          }
         }
 
         // 3. Initial Bills fetch (only last 24 hours of bills)
@@ -633,13 +709,18 @@ export const initializeDatabase = async () => {
               const queue = await getSyncQueue();
               const current = cache[MENU_KEY] || [];
               let updated = [...current];
+              const defaultDatasetActive = (await readRecord(MENU_DATASET_VERSION_KEY, null)) === MENU_DATASET_VERSION;
 
               if (payload.eventType === 'DELETE') {
                 if (!isItemInSyncQueue(queue, MENU_KEY, payload.old.id)) {
                   updated = updated.filter(m => m.id !== payload.old.id);
                 }
               } else {
-                const item = mapFromDB(payload.new, MENU_FIELD_MAP);
+                const item = normalizeMenuItem(mapFromDB(payload.new, MENU_FIELD_MAP));
+                if (!item) return;
+                if (defaultDatasetActive && !DEFAULT_MENU_IDS.has(String(item.id)) && !updated.some(m => String(m.id) === String(item.id))) {
+                  return;
+                }
                 if (!isItemInSyncQueue(queue, MENU_KEY, item.id)) {
                   const idx = updated.findIndex(m => m.id === item.id);
                   if (idx !== -1) {
@@ -650,8 +731,9 @@ export const initializeDatabase = async () => {
                 }
               }
 
-              cache[MENU_KEY] = clone(updated);
-              await writeRecord(MENU_KEY, updated);
+              const normalized = normalizeMenuItems(updated);
+              cache[MENU_KEY] = clone(normalized);
+              await writeRecord(MENU_KEY, normalized);
               triggerSync(MENU_KEY);
             })
             .on('postgres_changes', { event: '*', schema: 'public', table: 'employees', ...filterConfig }, async (payload) => {
@@ -769,7 +851,7 @@ export const refreshCache = async () => {
   cache[EMPLOYEES_KEY] = (await readRecord(EMPLOYEES_KEY, DEFAULT_EMPLOYEES)).map(normalizeEmployee);
   cache[BILLS_KEY] = await readRecord(BILLS_KEY, []);
   cache[NOTIFICATIONS_KEY] = await readRecord(NOTIFICATIONS_KEY, []);
-  cache[MENU_KEY] = await readRecord(MENU_KEY, DEFAULT_MENU);
+  cache[MENU_KEY] = normalizeMenuItems(await readRecord(MENU_KEY, DEFAULT_MENU));
   cache[DEPT_ORDERS_KEY] = await readRecord(DEPT_ORDERS_KEY, {});
   cache[SESSION_KEY] = await readRecord(SESSION_KEY, null);
   cache[DEPARTMENTS_KEY] = await readRecord(DEPARTMENTS_KEY, DEFAULT_DEPARTMENTS);
