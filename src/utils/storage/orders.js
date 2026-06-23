@@ -26,9 +26,9 @@ export const deleteDeptOrder = async (id) => {
 
 export const deleteDeptOrdersForTable = async (tableId) => {
   const orders = getDeptOrders();
-  const toDeleteIds = Object.keys(orders).filter(id => orders[id].tableId === tableId);
+  const toDeleteIds = Object.keys(orders).filter(id => Number(orders[id].tableId) === Number(tableId));
   if (toDeleteIds.length > 0) {
-    const filtered = Object.fromEntries(Object.entries(orders).filter(([, o]) => o.tableId !== tableId));
+    const filtered = Object.fromEntries(Object.entries(orders).filter(([, o]) => Number(o.tableId) !== Number(tableId)));
     cache[DEPT_ORDERS_KEY] = clone(filtered);
     await writeRecord(DEPT_ORDERS_KEY, filtered);
     triggerSync(DEPT_ORDERS_KEY);
@@ -61,7 +61,7 @@ export const updateDeptOrderItem = async (orderId, itemId, updates) => {
   const tableId = orders[orderId].tableId;
   if (tableId) {
     const tables = getTables();
-    const tableIndex = tables.findIndex(t => t.id === tableId);
+    const tableIndex = tables.findIndex(t => Number(t.id) === Number(tableId));
     if (tableIndex !== -1) {
       const table = tables[tableIndex];
       let updated = false;
@@ -89,7 +89,7 @@ export const updateDeptOrderItem = async (orderId, itemId, updates) => {
 export const cancelOngoingItem = async (tableId, orderId, itemId) => {
   // 1. Update table's currentOrder by removing the item
   const tables = getTables();
-  const tableIdx = tables.findIndex(t => t.id === tableId);
+  const tableIdx = tables.findIndex(t => Number(t.id) === Number(tableId));
   if (tableIdx === -1) return false;
   
   const table = tables[tableIdx];
@@ -157,7 +157,7 @@ export const updateOngoingItemQty = async (tableId, orderId, itemId, newQty) => 
 
   // 1. Update the table's currentOrder
   const tables = getTables();
-  const tableIdx = tables.findIndex(t => t.id === tableId);
+  const tableIdx = tables.findIndex(t => Number(t.id) === Number(tableId));
   if (tableIdx === -1) return false;
   
   const table = tables[tableIdx];
@@ -207,7 +207,7 @@ export const updateOngoingItemQty = async (tableId, orderId, itemId, newQty) => 
 export const modifyOngoingItem = async (tableId, orderId, itemId, newItem, newQty, newNote) => {
   // 1. Update the table's currentOrder
   const tables = getTables();
-  const tableIdx = tables.findIndex(t => t.id === tableId);
+  const tableIdx = tables.findIndex(t => Number(t.id) === Number(tableId));
   if (tableIdx === -1) return { success: false };
 
   const table = tables[tableIdx];
