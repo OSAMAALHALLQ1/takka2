@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { KeyRound, Eye, EyeOff, LogIn, ShieldCheck, AlertTriangle, UserRound } from 'lucide-react';
-import { loginManager } from '../utils/auth-store';
+import { loginManager, verifyManagerPassword } from '../utils/auth-store';
 import BrandLogo from './BrandLogo';
 
 export default function ManagerLogin({ onSwitch, onLogin }) {
@@ -15,16 +15,19 @@ export default function ManagerLogin({ onSwitch, onLogin }) {
     setError(null);
     setBusy(true);
     
-    // Brief simulate delay for feedback and premium feel
-    setTimeout(() => {
+    try {
+      const isValid = await verifyManagerPassword(managerCode.trim());
       setBusy(false);
-      if (managerCode.trim() === 'khaled.soul.takka') {
+      if (isValid) {
         loginManager();
         onLogin?.();
       } else {
         setError('كود دخول المدير غير صحيح');
       }
-    }, 600);
+    } catch {
+      setBusy(false);
+      setError('حدث خطأ أثناء التحقق، يرجى المحاولة لاحقاً');
+    }
   }
 
   return (

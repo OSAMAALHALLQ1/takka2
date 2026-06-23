@@ -134,6 +134,13 @@ export const mergeFetchedData = (key, fetchedData, localData, queue, idField = '
 };
 
 let isProcessingQueue = false;
+const MAX_RETRY_DELAY_MS = 60000;
+
+const getRetryDelay = (attempts) => {
+  const baseDelay = Math.min(1000 * (2 ** Math.min(attempts, 6)), MAX_RETRY_DELAY_MS);
+  const jitter = Math.floor(Math.random() * 750);
+  return baseDelay + jitter;
+};
 
 export const processSyncQueue = async () => {
   if (isProcessingQueue || !supabase) return;
@@ -156,7 +163,10 @@ export const processSyncQueue = async () => {
       const queue = await getSyncQueue();
       if (queue.length === 0) break;
 
-      const mutation = queue[0];
+      const now = Date.now();
+      const mutation = queue.find(m => !m.nextAttemptAt || m.nextAttemptAt <= now);
+      if (!mutation) break;
+
       const { key, action, changedItemOrId, value } = mutation;
       let success = false;
 
@@ -248,22 +258,47 @@ export const processSyncQueue = async () => {
           }
         } else if (action === 'delete') {
           const dbTable = key === DEPT_ORDERS_KEY ? 'dept_orders' : key;
-          const { error } = await supabase.from(dbTable).delete().eq('id', changedItemOrId);
+          const { error } = await supabase
+            .from(dbTable)
+            .delete()
+            .eq('restaurant_id', tenantId)
+            .eq('id', changedItemOrId);
           if (error) throw error;
           success = true;
         } else if (action === 'delete_in') {
           const dbTable = key === DEPT_ORDERS_KEY ? 'dept_orders' : key;
-          const { error } = await supabase.from(dbTable).delete().in('id', changedItemOrId);
+          const { error } = await supabase
+            .from(dbTable)
+            .delete()
+            .eq('restaurant_id', tenantId)
+            .in('id', changedItemOrId);
           if (error) throw error;
           success = true;
         } else if (action === 'delete_all') {
           const dbTable = key === DEPT_ORDERS_KEY ? 'dept_orders' : key;
-          const { error } = await supabase.from(dbTable).delete().neq('id', 'dummy');
+          const { error } = await supabase
+            .from(dbTable)
+            .delete()
+            .eq('restaurant_id', tenantId)
+            .neq('id', 'dummy');
           if (error) throw error;
           success = true;
         }
       } catch (err) {
         console.error(`Failed to process mutation ${mutation.id}:`, err);
+        const currentQueue = await getSyncQueue();
+        const attempts = (mutation.attempts || 0) + 1;
+        const updatedQueue = currentQueue.map(m => (
+          m.id === mutation.id
+            ? {
+                ...m,
+                attempts,
+                nextAttemptAt: Date.now() + getRetryDelay(attempts),
+                lastError: String(err?.message || err).slice(0, 240)
+              }
+            : m
+        ));
+        await saveSyncQueue(updatedQueue);
         break; // Keep mutation in queue and retry on next heartbeat/trigger
       }
 
@@ -738,11 +773,12 @@ export const resetDailyData = async () => {
 
   if (supabase) {
     try {
-      const mappedTables = DEFAULT_TABLES.map(t => mapToDB(t, TABLE_FIELD_MAP));
+      const tenantId = (await import('./tenant.js')).getTenantId();
+      const mappedTables = DEFAULT_TABLES.map(t => ({ ...mapToDB(t, TABLE_FIELD_MAP), restaurant_id: tenantId }));
       await supabase.from('tables').upsert(mappedTables);
-      await supabase.from('bills').delete().neq('id', 'dummy');
-      await supabase.from('notifications').delete().neq('id', 'dummy');
-      await supabase.from('dept_orders').delete().neq('id', 'dummy');
+      await supabase.from('bills').delete().eq('restaurant_id', tenantId).neq('id', 'dummy');
+      await supabase.from('notifications').delete().eq('restaurant_id', tenantId).neq('id', 'dummy');
+      await supabase.from('dept_orders').delete().eq('restaurant_id', tenantId).neq('id', 'dummy');
     } catch (err) {
       console.error('Supabase reset error:', err);
     }

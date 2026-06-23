@@ -502,7 +502,10 @@ function MainApp() {
 
 
 
-  const handleSaveTables = (newTables) => { setTables(newTables); saveTables(newTables); };
+  const handleSaveTables = async (newTables) => {
+    setTables(newTables);
+    return await saveTables(newTables);
+  };
   const handleLogout = () => { clearSession(); authLogout(); setUser(null); setAuthPage('login'); };
   const handleManagerLogin = () => {
     const auth = getAuth();

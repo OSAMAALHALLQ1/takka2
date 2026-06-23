@@ -1,13 +1,14 @@
 import { supabase } from '../supabaseClient.js';
-import { clone, mapToDB } from './helpers.js';
+import { createMutationId } from '../ids.js';
+import { clone } from './helpers.js';
 import { 
   DB_NAME, DB_VERSION, STORE_NAME,
   TABLES_KEY, EMPLOYEES_KEY, BILLS_KEY, NOTIFICATIONS_KEY,
-  MENU_KEY, DEPT_ORDERS_KEY, SESSION_KEY, DEPARTMENTS_KEY,
-  TABLE_FIELD_MAP, MENU_FIELD_MAP, DEPT_ORDER_FIELD_MAP, BILL_FIELD_MAP, EMPLOYEE_FIELD_MAP, DEPARTMENT_FIELD_MAP, NOTIFICATION_FIELD_MAP
+  MENU_KEY, DEPT_ORDERS_KEY, SESSION_KEY, DEPARTMENTS_KEY
 } from './constants.js';
 
 let dbPromise = null;
+const MAX_SYNC_QUEUE_LENGTH = 500;
 
 export const cache = {
   [TABLES_KEY]: [],
@@ -87,19 +88,62 @@ export const saveSyncQueue = async (queue) => {
   } catch { /* noop */ }
 };
 
+const getMutationTarget = (changedItemOrId) => {
+  if (changedItemOrId === null || changedItemOrId === undefined) return '*';
+  if (Array.isArray(changedItemOrId)) {
+    return changedItemOrId.map(item => getMutationTarget(item)).sort().join(',');
+  }
+  if (typeof changedItemOrId === 'object') {
+    return String(changedItemOrId.id ?? JSON.stringify(changedItemOrId));
+  }
+  return String(changedItemOrId);
+};
+
+const coalesceSyncQueue = (queue, mutation) => {
+  const target = getMutationTarget(mutation.changedItemOrId);
+
+  const filtered = queue.filter(item => {
+    if (item.key !== mutation.key) return true;
+
+    const itemTarget = getMutationTarget(item.changedItemOrId);
+
+    if (mutation.action === 'delete_all') return false;
+
+    if (mutation.action === 'upsert') {
+      if (target === '*') return item.action !== 'upsert';
+      return !(item.action === 'upsert' && itemTarget === target);
+    }
+
+    if (mutation.action === 'delete') {
+      return !(item.action === 'upsert' && itemTarget === target);
+    }
+
+    if (mutation.action === 'delete_in') {
+      const targets = new Set(String(target).split(','));
+      return !(item.action === 'upsert' && targets.has(itemTarget));
+    }
+
+    return true;
+  });
+
+  filtered.push(mutation);
+  return filtered.slice(-MAX_SYNC_QUEUE_LENGTH);
+};
+
 export const enqueueMutation = async (key, action, changedItemOrId = null, value = null) => {
   if (!supabase) return;
   const queue = await getSyncQueue();
-  const id = `mut-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-  queue.push({
-    id,
+  const nextQueue = coalesceSyncQueue(queue, {
+    id: createMutationId(),
     key,
     action,
     changedItemOrId: clone(changedItemOrId),
     value: clone(value),
-    timestamp: Date.now()
+    timestamp: Date.now(),
+    attempts: 0,
+    nextAttemptAt: 0
   });
-  await saveSyncQueue(queue);
+  await saveSyncQueue(nextQueue);
   
   try {
     window.dispatchEvent(new CustomEvent('taka_trigger_sync_queue'));
@@ -121,4 +165,3 @@ export const persist = async (key, value, changedItemOrId = null) => {
     }
   }
 };
-

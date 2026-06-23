@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getBills, saveBills, getDeptOrders, getRestaurantName, deleteDeptOrdersForTable } from '../utils/storage';
+import { createBillId } from '../utils/ids';
 import { 
   Coins, 
   CreditCard, 
@@ -83,7 +84,8 @@ export default function CashierView({ tables, onSaveTables, employee, activeTab:
     if (!selectedTable || isProcessingPayment) return;
     setIsProcessingPayment(true);
     try {
-      const billId = `INV-${Date.now()}`;
+      const paymentTs = Date.now();
+      const billId = createBillId(selectedTable.id, selectedTable.seatedAt);
       const newBill = {
         id: billId, tableId: selectedTable.id, tableName: selectedTable.name,
         items: selectedTable.currentOrder || [],
@@ -95,18 +97,20 @@ export default function CashierView({ tables, onSaveTables, employee, activeTab:
         cashierCode: employee.code, cashierName: employee.name,
         waiterCode: selectedTable.waiterCode,
         notes: cashierNote || selectedTable.notes || '',
-        timestamp: Date.now(),
+        timestamp: paymentTs,
         timeFormatted: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
         dateFormatted: new Date().toLocaleDateString('ar-EG'),
         seatedAt: selectedTable.seatedAt,
-        seatedDuration: selectedTable.seatedAt ? Math.floor((Date.now() - selectedTable.seatedAt) / 60000) : 0
+        seatedDuration: selectedTable.seatedAt ? Math.floor((paymentTs - selectedTable.seatedAt) / 60000) : 0
       };
 
       // Save bill
       const allBills = getBills();
-      allBills.push(newBill);
-      await saveBills(allBills);
-      setBills(allBills);
+      const nextBills = allBills.some(b => b.id === billId)
+        ? allBills.map(b => b.id === billId ? { ...b, ...newBill } : b)
+        : [...allBills, newBill];
+      await saveBills(nextBills);
+      setBills(nextBills);
 
       // Reset table
       const updatedTables = tables.map(t => {

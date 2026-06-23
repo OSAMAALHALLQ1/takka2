@@ -1,4 +1,5 @@
 import { supabase } from '../supabaseClient.js';
+import { createNotificationId } from '../ids.js';
 import { cache, persist, writeRecord, triggerSync, enqueueMutation } from './core.js';
 import { clone } from './helpers.js';
 import { NOTIFICATIONS_KEY, MAX_NOTIFICATIONS } from './constants.js';
@@ -6,6 +7,7 @@ import { NOTIFICATIONS_KEY, MAX_NOTIFICATIONS } from './constants.js';
 const DEPARTMENT_TARGETS = new Set(['kitchen', 'bar', 'shisha']);
 const ROLE_TARGETS = new Set(['admin', 'manager', 'waiter', 'cashier']);
 const ALLOWED_KINDS = new Set(['new_order', 'order_ready', 'bill_requested']);
+const DUPLICATE_WINDOW_MS = 8000;
 const BLOCKED_TITLES = [
   'إضافة صنف',
   'تعديل صنف',
@@ -70,8 +72,17 @@ export const addNotification = (title, message, type = 'info', targetRoles = [])
   const targetRoleStr = roles.length > 0 ? roles.join(',') : null;
 
   const notifs = getNotifications();
+  const normalizedTargets = [...arr].sort().join('|');
+  const duplicate = notifs.find(item => (
+    item.title === title &&
+    item.message === message &&
+    [...(item.targetRoles || [])].sort().join('|') === normalizedTargets &&
+    Date.now() - (item.timestamp || 0) < DUPLICATE_WINDOW_MS
+  ));
+  if (duplicate) return duplicate;
+
   const n = {
-    id: `n-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    id: createNotificationId(),
     title: String(title).slice(0, 100),
     message: String(message).slice(0, 400),
     type: ['info', 'success', 'danger', 'warning'].includes(type) ? type : 'info',
@@ -116,4 +127,3 @@ export const deleteNotifications = async (ids) => {
     await enqueueMutation(NOTIFICATIONS_KEY, 'delete_in', ids);
   }
 };
-

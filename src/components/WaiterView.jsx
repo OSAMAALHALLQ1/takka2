@@ -4,6 +4,7 @@ import {
   updateOngoingItemQty, cancelOngoingItem, modifyOngoingItem,
   TAX_RATE, SERVICE_RATE
 } from '../utils/storage';
+import { createOrderId } from '../utils/ids';
 import { 
   LayoutGrid, 
   ChefHat, 
@@ -203,6 +204,7 @@ export default function WaiterView({ tables, onSaveTables, employee, menuItems =
   const [guestsCount, setGuestsCount] = useState(2);
   const [tableNotes, setTableNotes] = useState('');
   const [orderSuccess, setOrderSuccess] = useState(false);
+  const [isSendingOrder, setIsSendingOrder] = useState(false);
   const [billConfirmOpen, setBillConfirmOpen] = useState(false);
   const [showMobileCart, setShowMobileCart] = useState(false);
   const [deptOrders, setDeptOrders] = useState(getDeptOrders());
@@ -373,49 +375,55 @@ export default function WaiterView({ tables, onSaveTables, employee, menuItems =
     }
   };
 
-  const handleSendOrder = () => {
-    if (cart.length === 0) return;
+  const handleSendOrder = async () => {
+    if (cart.length === 0 || isSendingOrder) return;
+    setIsSendingOrder(true);
     const { subtotal, tax, serviceCharge, total } = calcTotals();
-    const orderId = `order-${Date.now()}`;
-    const itemsWithStatus = cart.map(item => ({ ...item, orderId, status: 'new', orderedAt: Date.now() }));
+    const nowTs = Date.now();
+    const orderId = createOrderId();
+    const itemsWithStatus = cart.map(item => ({ ...item, orderId, status: 'new', orderedAt: nowTs }));
 
     const newOrder = {
       id: orderId, tableId: selectedTable.id, tableName: selectedTable.name,
       waiterCode: employee.code, waiterName: employee.name,
-      timestamp: Date.now(), items: itemsWithStatus,
+      timestamp: nowTs, items: itemsWithStatus,
       subtotal, tax, serviceCharge, total, status: 'new'
     };
 
-    const existing = getDeptOrders();
-    existing[orderId] = newOrder;
-    saveDeptOrders(existing);
+    try {
+      const existing = getDeptOrders();
+      existing[orderId] = newOrder;
+      await saveDeptOrders(existing);
 
-    const updatedTables = tables.map(t => {
-      if (t.id !== selectedTable.id) return t;
-      const existingItems = t.currentOrder || [];
-      const combined = [...existingItems, ...itemsWithStatus];
-      const newSubtotal = combined.reduce((s, i) => s + i.price * i.qty, 0);
-      const newTax = newSubtotal * TAX_RATE;
-      const newServiceCharge = newSubtotal * SERVICE_RATE;
-      return { ...t, status: 'eating', currentOrder: combined, notes: tableNotes, subtotal: newSubtotal, tax: newTax, serviceCharge: newServiceCharge, total: newSubtotal + newTax + newServiceCharge, waiterCode: employee.code, guests: guestsCount, seatedAt: t.seatedAt || Date.now() };
-    });
-    onSaveTables(updatedTables);
+      const updatedTables = tables.map(t => {
+        if (t.id !== selectedTable.id) return t;
+        const existingItems = t.currentOrder || [];
+        const combined = [...existingItems, ...itemsWithStatus];
+        const newSubtotal = combined.reduce((s, i) => s + i.price * i.qty, 0);
+        const newTax = newSubtotal * TAX_RATE;
+        const newServiceCharge = newSubtotal * SERVICE_RATE;
+        return { ...t, status: 'eating', currentOrder: combined, notes: tableNotes, subtotal: newSubtotal, tax: newTax, serviceCharge: newServiceCharge, total: newSubtotal + newTax + newServiceCharge, waiterCode: employee.code, guests: guestsCount, seatedAt: t.seatedAt || nowTs };
+      });
+      await onSaveTables(updatedTables);
 
-    const deptsInvolved = [...new Set(itemsWithStatus.map(i => i.department))];
-    
-    deptsInvolved.forEach(dept => {
-      const deptItems = itemsWithStatus.filter(i => i.department === dept);
-      const itemsStr = deptItems.map(i => `${i.name} × ${i.qty}`).join('، ');
-      addNotification(
-        `طلب جديد من الطاولة #${selectedTable.id}`,
-        `${itemsStr}`,
-        'success',
-        [dept, employee.code, 'manager']
-      );
-    });
-    
-    setOrderSuccess(true);
-    setTimeout(() => { setOrderSuccess(false); setView('tables'); setCart([]); }, 2000);
+      const deptsInvolved = [...new Set(itemsWithStatus.map(i => i.department))];
+
+      deptsInvolved.forEach(dept => {
+        const deptItems = itemsWithStatus.filter(i => i.department === dept);
+        const itemsStr = deptItems.map(i => `${i.name} × ${i.qty}`).join('، ');
+        addNotification(
+          `طلب جديد من الطاولة #${selectedTable.id}`,
+          `${itemsStr}`,
+          'success',
+          [dept, employee.code, 'manager']
+        );
+      });
+
+      setOrderSuccess(true);
+      setTimeout(() => { setOrderSuccess(false); setView('tables'); setCart([]); }, 2000);
+    } finally {
+      setIsSendingOrder(false);
+    }
   };
 
   const handleRequestBill = () => {
@@ -474,7 +482,7 @@ export default function WaiterView({ tables, onSaveTables, employee, menuItems =
 
   // ── VIEWS ──────────────────────────────────
   if (view === 'new-order' && selectedTable) {
-    const { subtotal, tax, serviceCharge, total } = calcTotals();
+    const { total } = calcTotals();
     return (
       <div className="view-container view-enter">
         {orderSuccess && (
@@ -606,10 +614,10 @@ export default function WaiterView({ tables, onSaveTables, employee, menuItems =
               <button
                 className="send-order-btn"
                 onClick={handleSendOrder}
-                disabled={cart.length === 0}
+                disabled={cart.length === 0 || isSendingOrder}
                 style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
               >
-                <Check size={18} /> أرسل الطلب للأقسام
+                <Check size={18} /> {isSendingOrder ? 'جاري الإرسال...' : 'أرسل الطلب للأقسام'}
               </button>
               <button className="back-btn" style={{ width: '100%', marginTop: '8px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }} onClick={() => { setView('tables'); setCart([]); }}>
                 <ArrowRight size={16} /> عودة للطاولات
@@ -707,8 +715,8 @@ export default function WaiterView({ tables, onSaveTables, employee, menuItems =
                 <div className="bottom-sheet-footer">
                   <div className="total-row grand"><span>الإجمالي</span><span>{total.toFixed(2)} ₪</span></div>
                   <input className="form-input" placeholder="ملاحظة للطاولة..." value={tableNotes} onChange={e => setTableNotes(e.target.value)} style={{ marginTop: '8px', marginBottom: '8px' }} />
-                  <button className="send-order-btn" onClick={() => { handleSendOrder(); setShowMobileCart(false); }} disabled={cart.length === 0} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                    <Check size={18} /> أرسل الطلب للأقسام
+                  <button className="send-order-btn" onClick={async () => { await handleSendOrder(); setShowMobileCart(false); }} disabled={cart.length === 0 || isSendingOrder} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                    <Check size={18} /> {isSendingOrder ? 'جاري الإرسال...' : 'أرسل الطلب للأقسام'}
                   </button>
                 </div>
               )}

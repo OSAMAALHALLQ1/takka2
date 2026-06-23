@@ -1,6 +1,7 @@
 import { cache, persist, writeRecord, triggerSync } from './core.js';
 import { clone, normalizeEmployee } from './helpers.js';
 import { supabase } from '../supabaseClient.js';
+import { createSessionToken } from '../ids.js';
 import { EMPLOYEES_KEY, SESSION_KEY } from './constants.js';
 
 export const getEmployees = () => clone(cache[EMPLOYEES_KEY]).map(normalizeEmployee);
@@ -37,7 +38,7 @@ export const authenticateByCode = async (inputCode) => {
   );
   if (!emp) return null;
 
-  const sessionToken = 'sess-' + Math.random().toString(36).slice(2, 15);
+  const sessionToken = createSessionToken();
 
   if (supabase) {
     try {
