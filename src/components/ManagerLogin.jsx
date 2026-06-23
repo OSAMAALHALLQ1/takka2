@@ -19,7 +19,7 @@ export default function ManagerLogin({ onSwitch, onLogin }) {
       const isValid = await verifyManagerPassword(managerCode.trim());
       setBusy(false);
       if (isValid) {
-        loginManager();
+        await loginManager();
         onLogin?.();
       } else {
         setError('كود دخول المدير غير صحيح');

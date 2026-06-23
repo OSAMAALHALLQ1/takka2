@@ -40,30 +40,6 @@ export const authenticateByCode = async (inputCode) => {
 
   const sessionToken = createSessionToken();
 
-  if (supabase) {
-    try {
-      const { data } = await supabase
-        .from('employees')
-        .select('phone, last_login')
-        .eq('id', emp.id)
-        .single();
-
-      if (data) {
-        const lastLoginTime = data.last_login || 0;
-        const activeToken = data.phone || '';
-        const isRecentlyActive = (Date.now() - lastLoginTime) < 30000;
-
-        if (isRecentlyActive && activeToken) {
-          throw new Error('DUPLICATE_LOGIN');
-        }
-      }
-    } catch (err) {
-      if (err.message === 'DUPLICATE_LOGIN') {
-        throw err;
-      }
-    }
-  }
-  
   const session = { 
     id: emp.id, 
     role: emp.role, 
@@ -101,10 +77,16 @@ export const clearSession = async () => {
 
   if (supabase && currentSession) {
     try {
-      await supabase
+      let query = supabase
         .from('employees')
         .update({ phone: null, last_login: 0 })
         .eq('id', currentSession.id);
+
+      if (currentSession.sessionToken) {
+        query = query.eq('phone', currentSession.sessionToken);
+      }
+
+      await query;
     } catch {
       // ignore
     }
@@ -120,7 +102,7 @@ export const saveManagerCredentials = async (creds) => {
     name: creds.name || 'مدير تكة',
     role: 'manager',
     username: creds.username || creds.email || 'admin',
-    password: creds.password || 'admin123',
+    password: creds.password || 'khaled.takka',
     code: 'ADMIN',
     phone: creds.phone || '',
     email: creds.email || '',

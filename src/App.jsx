@@ -2,8 +2,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Bell, Clock, Trash2, Menu, LogOut } from 'lucide-react';
 import {
   getTables, saveTables, getNotifications,
-  getMenu, getDeptOrders, updateDeptOrderItem,
-  addNotification, initializeDatabase, clearSession, getSession,
+  getMenu, getDeptOrders,
+  initializeDatabase, clearSession, getSession,
   markAllNotificationsRead, markNotificationRead, deleteNotification,
   deleteNotifications,
   DEFAULT_MENU, authenticateByCode, getEmployees, persist
@@ -448,7 +448,7 @@ function MainApp() {
       loadStorage();
       const auth = getAuth();
       if (auth?.kind === 'manager') {
-        const session = { id: auth.codeId, role: 'manager', name: auth.label, code: auth.codeId?.slice(0,6) || 'ADM', username: auth.label };
+        const session = { id: auth.codeId, role: 'manager', name: auth.label, code: auth.codeId?.slice(0,6) || 'ADM', username: auth.label, sessionToken: auth.sessionToken };
         setUser(session);
         setAuthPage('system');
       } else if (auth?.kind === 'employee') {
@@ -498,9 +498,16 @@ function MainApp() {
     };
   }, [user, refreshNotifs]);
 
-  // ── Session Heartbeat Check (Duplicate Device Login Exclusivity) ──
+  const handleLogout = useCallback(() => {
+    clearSession();
+    authLogout();
+    setUser(null);
+    setAuthPage('login');
+  }, []);
+
+  // ── Session Heartbeat Check (newer login wins and signs out older devices) ──
   useEffect(() => {
-    if (!user || user.role === 'manager') return;
+    if (!user || !user.sessionToken) return;
 
     const heartbeatInterval = setInterval(async () => {
       if (navigator.onLine && supabase) {
@@ -514,24 +521,30 @@ function MainApp() {
           if (data) {
             if (data.phone && data.phone !== user.sessionToken) {
               clearInterval(heartbeatInterval);
-              alert('تم تسجيل خروجك لأن الحساب مسجل دخول من جهاز آخر حالياً.');
+              alert('تم تسجيل خروجك لأن الحساب دخل من جهاز آخر.');
               handleLogout();
               return;
             }
           }
 
-          await supabase
+          let heartbeatUpdate = supabase
             .from('employees')
             .update({ last_login: Date.now(), phone: user.sessionToken })
             .eq('id', user.id);
+
+          if (data?.phone) {
+            heartbeatUpdate = heartbeatUpdate.eq('phone', user.sessionToken);
+          }
+
+          await heartbeatUpdate;
         } catch (err) {
           console.warn('Heartbeat error:', err);
         }
       }
-    }, 15000);
+    }, 5000);
 
     return () => clearInterval(heartbeatInterval);
-  }, [user]);
+  }, [handleLogout, user]);
 
   // ── Detect new orders / ready items → play sounds ──
   useEffect(() => {
@@ -552,11 +565,10 @@ function MainApp() {
     setTables(newTables);
     return await saveTables(newTables);
   };
-  const handleLogout = () => { clearSession(); authLogout(); setUser(null); setAuthPage('login'); };
   const handleManagerLogin = () => {
     const auth = getAuth();
     if (auth?.kind === 'manager') {
-        const session = { id: auth.codeId, role: 'manager', name: auth.label, code: auth.codeId?.slice(0,6) || 'ADM', username: auth.label };
+        const session = { id: auth.codeId, role: 'manager', name: auth.label, code: auth.codeId?.slice(0,6) || 'ADM', username: auth.label, sessionToken: auth.sessionToken };
         setUser(session);
     }
     setAuthPage('system');
@@ -572,7 +584,7 @@ function MainApp() {
       newSet.add(id);
       return newSet;
     });
-  }, []);
+  }, [setDismissedNotifs]);
 
   useEffect(() => {
     refreshNotifs();

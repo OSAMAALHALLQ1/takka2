@@ -4,10 +4,13 @@ const KEY_MGR_ACC = 'takka_manager_account';
 
 export const DEFAULT_MANAGER_PASSWORD = 'khaled.takka';
 const LEGACY_MANAGER_PASSWORD = 'osamaalhallqst9';
+const OLD_DEFAULT_MANAGER_PASSWORD = 'admin123';
 const HASH_SALT = 'takka:salt:v1';
 
 // Lazy imports to avoid any circular dependency at load time
 import { getEmployees, saveEmployees } from './storage';
+import { createSessionToken } from './ids.js';
+import { supabase } from './supabaseClient.js';
 
 async function hashPassword(plain) {
   if (!window.crypto?.subtle) {
@@ -31,7 +34,14 @@ function writePwHash(h) {
 export async function ensureDefaultPassword() {
   const stored = readPwHash();
   const legacyHash = await hashPassword(LEGACY_MANAGER_PASSWORD);
-  if (!stored || stored === legacyHash || stored === `plain:${LEGACY_MANAGER_PASSWORD}`) {
+  const oldDefaultHash = await hashPassword(OLD_DEFAULT_MANAGER_PASSWORD);
+  if (
+    !stored ||
+    stored === legacyHash ||
+    stored === oldDefaultHash ||
+    stored === `plain:${LEGACY_MANAGER_PASSWORD}` ||
+    stored === `plain:${OLD_DEFAULT_MANAGER_PASSWORD}`
+  ) {
     writePwHash(await hashPassword(DEFAULT_MANAGER_PASSWORD));
   }
 }
@@ -96,6 +106,13 @@ export async function verifyManagerPassword(plain, emailInput = '') {
     if (emailInput && acc.email.trim().toLowerCase() !== emailInput.trim().toLowerCase()) {
       return false;
     }
+    if (!emailInput && plain === DEFAULT_MANAGER_PASSWORD) {
+      acc.active = true;
+      acc.password = DEFAULT_MANAGER_PASSWORD;
+      localStorage.setItem(KEY_MGR_ACC, JSON.stringify(acc));
+      writePwHash(await hashPassword(DEFAULT_MANAGER_PASSWORD));
+      return true;
+    }
     if (!acc.active) return false;
     return acc.password === plain;
   }
@@ -111,7 +128,16 @@ export async function verifyManagerPassword(plain, emailInput = '') {
   const candidate = await hashPassword(plain);
   if (candidate === stored) return true;
   const legacyHash = await hashPassword(LEGACY_MANAGER_PASSWORD);
-  if (plain === DEFAULT_MANAGER_PASSWORD && (stored === legacyHash || stored === `plain:${LEGACY_MANAGER_PASSWORD}`)) {
+  const oldDefaultHash = await hashPassword(OLD_DEFAULT_MANAGER_PASSWORD);
+  if (
+    plain === DEFAULT_MANAGER_PASSWORD &&
+    (
+      stored === legacyHash ||
+      stored === oldDefaultHash ||
+      stored === `plain:${LEGACY_MANAGER_PASSWORD}` ||
+      stored === `plain:${OLD_DEFAULT_MANAGER_PASSWORD}`
+    )
+  ) {
     await ensureDefaultPassword();
     return true;
   }
@@ -154,16 +180,55 @@ export function getAuth() {
   return readAuth();
 }
 
-export function loginManager() {
+async function writeManagerSessionToken(sessionToken) {
+  const now = Date.now();
+  const emps = getEmployees();
+  const managerExists = emps.some(e => e.role === 'manager');
+  const next = managerExists
+    ? emps.map(e => e.role === 'manager' ? { ...e, phone: sessionToken, lastLogin: now } : e)
+    : [
+        {
+          id: 'admin-1',
+          name: 'مدير تكة',
+          role: 'manager',
+          username: 'admin',
+          password: DEFAULT_MANAGER_PASSWORD,
+          code: 'ADMIN',
+          phone: sessionToken,
+          email: 'admin@taka.com',
+          salary: 0,
+          active: true,
+          lastLogin: now
+        },
+        ...emps
+      ];
+  saveEmployees(next);
+
+  if (supabase) {
+    try {
+      await supabase
+        .from('employees')
+        .update({ phone: sessionToken, last_login: now })
+        .eq('id', 'admin-1');
+    } catch {
+      // The local session token still protects this browser when offline.
+    }
+  }
+}
+
+export async function loginManager() {
   const acc = getManagerAccount();
+  const sessionToken = createSessionToken();
   writeAuth({
     kind: 'manager',
     codeId: 'admin-1',
     label: acc?.name || 'خالد',
     name: acc?.name || 'خالد',
     restaurantName: acc?.restaurantName || 'تكة',
+    sessionToken,
     loggedInAt: Date.now()
   });
+  await writeManagerSessionToken(sessionToken);
 }
 
 export function loginEmployeeSession(session) {

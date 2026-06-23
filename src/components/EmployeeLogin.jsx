@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Coffee, LogIn, ShieldCheck, UserRound, KeyRound, AlertTriangle } from 'lucide-react';
+import { LogIn, ShieldCheck, UserRound, KeyRound, AlertTriangle } from 'lucide-react';
 import { authenticateByCode } from '../utils/storage';
 import BrandLogo from './BrandLogo';
 
@@ -26,12 +26,8 @@ export default function EmployeeLogin({ onSwitch, onLoginSuccess }) {
         return;
       }
       onLoginSuccess?.(session);
-    } catch (err) {
-      if (err.message === 'DUPLICATE_LOGIN') {
-        setError('عذراً، هذا الحساب مسجل دخول من جهاز آخر حالياً. يرجى الانتظار أو تسجيل الخروج من الجهاز الآخر.');
-      } else {
-        setError('حدث خطأ أثناء تسجيل الدخول، يرجى المحاولة لاحقاً');
-      }
+    } catch {
+      setError('حدث خطأ أثناء تسجيل الدخول، يرجى المحاولة لاحقاً');
     } finally {
       setBusy(false);
     }
@@ -101,4 +97,3 @@ export default function EmployeeLogin({ onSwitch, onLoginSuccess }) {
     </div>
   );
 }
-
