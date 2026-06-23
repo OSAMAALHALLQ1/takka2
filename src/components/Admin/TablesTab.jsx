@@ -10,15 +10,76 @@ export default function TablesTab({ tables, setTables }) {
   const [form, setForm] = useState(emptyForm);
   const [selected, setSelected] = useState(null);
 
+  // Normalize tables list to 1-70 without duplicates
+  const normalizedTables = React.useMemo(() => {
+    const existingMap = new Map();
+    if (Array.isArray(tables)) {
+      tables.forEach(t => {
+        if (t && t.id !== undefined && t.id !== null) {
+          const numId = Number(t.id);
+          if (!isNaN(numId) && numId >= 1 && numId <= 70) {
+            const existing = existingMap.get(numId);
+            if (!existing || (t.status && t.status !== 'empty' && existing.status === 'empty') || (t.total > 0 && existing.total === 0)) {
+              existingMap.set(numId, { ...t, id: numId });
+            }
+          }
+        }
+      });
+    }
+
+    const result = [];
+    for (let i = 1; i <= 70; i++) {
+      if (existingMap.has(i)) {
+        result.push(existingMap.get(i));
+      } else {
+        result.push({
+          id: i,
+          name: `طاولة ${i}`,
+          seats: i <= 30 ? 4 : i <= 55 ? 6 : 8,
+          area: i <= 35 ? 'indoor' : i <= 55 ? 'outdoor' : 'terrace',
+          status: 'empty',
+          currentOrder: [],
+          notes: '',
+          subtotal: 0,
+          tax: 0,
+          serviceCharge: 0,
+          total: 0,
+          waiterCode: null,
+          seatedAt: null,
+          guests: 0
+        });
+      }
+    }
+    return result;
+  }, [tables]);
+
+  React.useEffect(() => {
+    let needsUpdate = false;
+    if (!Array.isArray(tables) || tables.length !== 70) {
+      needsUpdate = true;
+    } else {
+      for (let i = 0; i < 70; i++) {
+        if (tables[i].id !== normalizedTables[i].id) {
+          needsUpdate = true;
+          break;
+        }
+      }
+    }
+    if (needsUpdate) {
+      saveTables(normalizedTables);
+      setTables(normalizedTables);
+    }
+  }, [tables, normalizedTables, setTables]);
+
   const handleSave = () => {
     const num = parseInt(form.number);
     if (!num) return;
-    if (!editId && tables.find(t => t.id === num)) { alert('رقم الطاولة موجود مسبقاً'); return; }
+    if (!editId && normalizedTables.find(t => t.id === num)) { alert('رقم الطاولة موجود مسبقاً'); return; }
     let updated;
     if (editId) {
-      updated = tables.map(t => t.id === editId ? { ...t, seats: form.seats, area: form.area, description: form.description } : t);
+      updated = normalizedTables.map(t => t.id === editId ? { ...t, seats: form.seats, area: form.area, description: form.description } : t);
     } else {
-      updated = [...tables, { id: num, name: `طاولة ${num}`, seats: form.seats, area: form.area, description: form.description, status: 'empty', currentOrder: [], notes: '', subtotal: 0, tax: 0, serviceCharge: 0, total: 0, waiterCode: null, seatedAt: null, guests: 0 }];
+      updated = [...normalizedTables, { id: num, name: `طاولة ${num}`, seats: form.seats, area: form.area, description: form.description, status: 'empty', currentOrder: [], notes: '', subtotal: 0, tax: 0, serviceCharge: 0, total: 0, waiterCode: null, seatedAt: null, guests: 0 }];
       updated.sort((a, b) => a.id - b.id);
     }
     saveTables(updated);
@@ -31,13 +92,13 @@ export default function TablesTab({ tables, setTables }) {
   const handleDelete = (t) => {
     if (t.status !== 'empty') { alert('لا يمكن حذف طاولة مشغولة'); return; }
     if (!window.confirm(`حذف ${t.name}؟`)) return;
-    const updated = tables.filter(tt => tt.id !== t.id);
+    const updated = normalizedTables.filter(tt => tt.id !== t.id);
     saveTables(updated);
     setTables(updated);
   };
 
   const handleStatusChange = (tableId, newStatus) => {
-    const updated = tables.map(t => t.id === tableId ? { ...t, status: newStatus } : t);
+    const updated = normalizedTables.map(t => t.id === tableId ? { ...t, status: newStatus } : t);
     saveTables(updated);
     setTables(updated);
   };
@@ -94,7 +155,7 @@ export default function TablesTab({ tables, setTables }) {
 
       {/* Tables grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '16px' }}>
-        {tables.map(t => (
+        {normalizedTables.map(t => (
           <div key={t.id} onClick={() => setSelected(selected?.id === t.id ? null : t)}
             className="table-card-admin"
             style={{ borderTop: `4px solid ${STATUS_COLORS[t.status] || '#555'}`, cursor: 'pointer', background: selected?.id === t.id ? 'rgba(212,175,55,0.08)' : 'var(--bg-surface-glass)' }}>
