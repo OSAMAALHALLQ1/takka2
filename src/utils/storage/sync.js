@@ -16,7 +16,7 @@ let isConnected = true;
 let networkListenersAttached = false;
 let triggerReconnect = null;
 const MENU_DATASET_VERSION_KEY = 'menu_dataset_version';
-const MENU_DATASET_VERSION = 'soulmate-menu-2026-06-23-v2';
+const MENU_DATASET_VERSION = 'soulmate-menu-2026-06-23-paper-v3';
 const DEFAULT_TABLE_COUNT = 70;
 const DEFAULT_TABLE_IDS = new Set(DEFAULT_TABLES.map(table => String(table.id)));
 const DEFAULT_MENU_IDS = new Set(DEFAULT_MENU.map(item => String(item.id)));
