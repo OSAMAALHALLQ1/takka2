@@ -12,6 +12,8 @@ let initPromise = null;
 let isConnected = true;
 let networkListenersAttached = false;
 let triggerReconnect = null;
+const MENU_DATASET_VERSION_KEY = 'menu_dataset_version';
+const MENU_DATASET_VERSION = 'soulmate-menu-2026-06-23';
 
 export const isRealtimeConnected = () => isConnected;
 
@@ -26,13 +28,13 @@ const dispatchConnectionStatus = (connected) => {
 
 const seedIfMissing = async (key, fallback) => {
   const value = await readRecord(key, null);
-  if (key === TABLES_KEY && Array.isArray(value) && value.length < 15) {
+  if (key === TABLES_KEY && Array.isArray(value) && value.length < 30) {
     const merged = [...value];
-    for (let i = value.length; i < 15; i++) {
+    for (let i = value.length; i < 30; i++) {
       merged.push({
         id: i + 1, name: `طاولة ${i + 1}`,
-        seats: i < 5 ? 4 : i < 10 ? 6 : 8,
-        area: i < 5 ? 'indoor' : i < 10 ? 'outdoor' : 'terrace',
+        seats: i < 10 ? 4 : i < 20 ? 6 : 8,
+        area: i < 10 ? 'indoor' : i < 20 ? 'outdoor' : 'terrace',
         status: 'empty', currentOrder: [], notes: '',
         subtotal: 0, tax: 0, serviceCharge: 0, total: 0,
         waiterCode: null, seatedAt: null, guests: 0
@@ -51,6 +53,17 @@ const seedIfMissing = async (key, fallback) => {
     cache[key] = clone(normalized);
     await writeRecord(key, normalized);
   }
+};
+
+const ensureDefaultMenuVersion = async () => {
+  const currentVersion = await readRecord(MENU_DATASET_VERSION_KEY, null);
+  if (currentVersion === MENU_DATASET_VERSION) return false;
+
+  cache[MENU_KEY] = clone(DEFAULT_MENU);
+  await writeRecord(MENU_KEY, DEFAULT_MENU);
+  await writeRecord(MENU_DATASET_VERSION_KEY, MENU_DATASET_VERSION);
+  triggerSync(MENU_KEY);
+  return true;
 };
 
 // Helper to check if a specific item has a pending mutation in the queue
@@ -415,11 +428,19 @@ export const initializeDatabase = async () => {
     await seedIfMissing(DEPT_ORDERS_KEY, {});
     await seedIfMissing(SESSION_KEY, null);
     await seedIfMissing(DEPARTMENTS_KEY, DEFAULT_DEPARTMENTS);
+    const shouldReplaceMenu = await ensureDefaultMenuVersion();
 
     if (supabase) {
       try {
         const tenantId = (await import('./tenant.js')).getTenantId();
         const queue = await getSyncQueue();
+        if (shouldReplaceMenu) {
+          const mappedDefaultMenu = DEFAULT_MENU.map(item => ({ ...mapToDB(item, MENU_FIELD_MAP), restaurant_id: tenantId }));
+          await supabase.from('menu').delete().eq('restaurant_id', tenantId).neq('id', 'dummy');
+          if (mappedDefaultMenu.length > 0) {
+            await supabase.from('menu').upsert(mappedDefaultMenu);
+          }
+        }
 
         // 1. Initial Tables fetch
         const { data: tables } = await supabase

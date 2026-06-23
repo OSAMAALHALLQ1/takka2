@@ -23,11 +23,19 @@ export const STATUS_COLORS = {
 };
 
 export const CATEGORY_LABELS = { 
-  mains: 'أطباق رئيسية', 
-  appetizers: 'مقبلات', 
-  drinks: 'مشروبات', 
-  shisha: 'شيشة', 
-  desserts: 'حلويات' 
+  hot_drinks: 'مشروبات ساخنة',
+  cold_drinks: 'مشروبات باردة',
+  soft_drinks: 'مشروبات غازية',
+  drinks: 'مشروبات',
+  desserts: 'حلويات',
+  appetizers: 'مقبلات',
+  salads_western: 'سلطات غربية',
+  salads_eastern: 'سلطات شرقية',
+  mains: 'وجبات رئيسية',
+  sandwiches: 'سندوتشات',
+  breakfast: 'إفطار فلسطيني',
+  shisha: 'أراجيل',
+  shisha_addons: 'إضافات الأراجيل'
 };
 
 export const AREA_LABELS = { 
