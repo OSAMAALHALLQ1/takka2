@@ -2,7 +2,8 @@ const KEY_AUTH = 'takka_auth';
 const KEY_PW = 'takka_manager_pw_v1';
 const KEY_MGR_ACC = 'takka_manager_account';
 
-export const DEFAULT_MANAGER_PASSWORD = 'osamaalhallqst9';
+export const DEFAULT_MANAGER_PASSWORD = 'khaled.takka';
+const LEGACY_MANAGER_PASSWORD = 'osamaalhallqst9';
 const HASH_SALT = 'takka:salt:v1';
 
 // Lazy imports to avoid any circular dependency at load time
@@ -28,7 +29,9 @@ function writePwHash(h) {
 }
 
 export async function ensureDefaultPassword() {
-  if (!localStorage.getItem(KEY_PW)) {
+  const stored = readPwHash();
+  const legacyHash = await hashPassword(LEGACY_MANAGER_PASSWORD);
+  if (!stored || stored === legacyHash || stored === `plain:${LEGACY_MANAGER_PASSWORD}`) {
     writePwHash(await hashPassword(DEFAULT_MANAGER_PASSWORD));
   }
 }
@@ -107,6 +110,11 @@ export async function verifyManagerPassword(plain, emailInput = '') {
   }
   const candidate = await hashPassword(plain);
   if (candidate === stored) return true;
+  const legacyHash = await hashPassword(LEGACY_MANAGER_PASSWORD);
+  if (plain === DEFAULT_MANAGER_PASSWORD && (stored === legacyHash || stored === `plain:${LEGACY_MANAGER_PASSWORD}`)) {
+    await ensureDefaultPassword();
+    return true;
+  }
   if (stored.startsWith('plain:') && stored.slice(6) === plain) return true;
   return false;
 }
@@ -171,4 +179,3 @@ export function loginEmployeeSession(session) {
 export function logout() {
   writeAuth(null);
 }
-

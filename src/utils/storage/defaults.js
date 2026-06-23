@@ -1,8 +1,8 @@
-export const DEFAULT_TABLES = Array.from({ length: 30 }, (_, i) => ({
+export const DEFAULT_TABLES = Array.from({ length: 70 }, (_, i) => ({
   id: i + 1,
   name: `طاولة ${i + 1}`,
-  seats: i < 10 ? 4 : i < 20 ? 6 : 8,
-  area: i < 10 ? 'indoor' : i < 20 ? 'outdoor' : 'terrace',
+  seats: i < 30 ? 4 : i < 55 ? 6 : 8,
+  area: i < 35 ? 'indoor' : i < 55 ? 'outdoor' : 'terrace',
   status: 'empty',
   currentOrder: [],
   notes: '',

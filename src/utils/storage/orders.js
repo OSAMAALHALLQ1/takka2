@@ -48,6 +48,9 @@ export const updateDeptOrderItem = async (orderId, itemId, updates) => {
   if (updates.status === 'ready' && !updates.readyAt) {
     finalUpdates.readyAt = Date.now();
   }
+  if (updates.status === 'delivered' && !updates.deliveredAt) {
+    finalUpdates.deliveredAt = Date.now();
+  }
 
   orders[orderId].items = (orders[orderId].items || []).map(item =>
     item.id === itemId ? { ...item, ...finalUpdates } : item

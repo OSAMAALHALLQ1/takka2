@@ -3,6 +3,8 @@ import { saveEmployees } from '../../utils/storage';
 import { ROLE_COLORS, ROLE_LABELS } from './constants';
 import { Users, Check, X, Pencil, Trash2 } from 'lucide-react';
 
+const MAX_STAFF_MEMBERS = 12;
+
 export default function StaffTab({ employees, setEmployees }) {
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState(null);
@@ -12,8 +14,8 @@ export default function StaffTab({ employees, setEmployees }) {
   const nonManagers = employees.filter(e => e.role !== 'manager');
 
   const handleSave = () => {
-    if (!editId && nonManagers.length >= 8) {
-      alert('عذراً، لقد وصلت للحد الأقصى المسموح به للموظفين وهو 8 موظفين');
+    if (!editId && nonManagers.length >= MAX_STAFF_MEMBERS) {
+      alert(`عذراً، لقد وصلت للحد الأقصى المسموح به للموظفين وهو ${MAX_STAFF_MEMBERS} موظف`);
       return;
     }
     if (!form.name.trim()) { alert('يرجى إدخال الاسم الكامل'); return; }
@@ -83,8 +85,8 @@ export default function StaffTab({ employees, setEmployees }) {
           إدارة الموظفين
         </h2>
         <button className="btn-primary-gold" onClick={() => { 
-          if (nonManagers.length >= 8) {
-            alert('عذراً، لقد وصلت للحد الأقصى المسموح به للموظفين وهو 8 موظفين');
+          if (nonManagers.length >= MAX_STAFF_MEMBERS) {
+            alert(`عذراً، لقد وصلت للحد الأقصى المسموح به للموظفين وهو ${MAX_STAFF_MEMBERS} موظف`);
             return;
           }
           setForm(emptyForm); 

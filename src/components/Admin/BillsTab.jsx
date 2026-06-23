@@ -23,6 +23,7 @@ export default function BillsTab({ bills, menuItems }) {
     </style></head><body>
     <h2>${displayName}</h2>
     <p style="text-align:center">${bill.tableName} | ${bill.timeFormatted} | ${bill.dateFormatted}</p>
+    ${bill.notes ? `<p style="white-space:pre-line;font-size:0.9em;color:#555">ملاحظات: ${bill.notes}</p>` : ''}
     <hr>
     ${(bill.items || []).map(item => `<div class="row"><span>${item.name} × ${item.qty}</span><span>${(item.price * item.qty).toFixed(2)} ₪</span></div>`).join('')}
     <div class="row total"><span>الإجمالي النهائي:</span><span>${(bill.total || 0).toFixed(2)} ₪</span></div>
@@ -142,6 +143,11 @@ export default function BillsTab({ bills, menuItems }) {
               <div><span style={{ color: 'var(--text-muted)' }}>طريقة الدفع: </span><span style={{ fontWeight: 600 }}>{PAYMENT_LABELS[bill.paymentMethod] || bill.paymentMethod || 'نقد'}</span></div>
               <div style={{ fontFamily: 'Outfit, sans-serif' }}>{bill.timeFormatted}</div>
             </div>
+            {bill.notes && (
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', background: 'var(--bg-surface-2)', border: '1px solid var(--border-light)', borderRadius: '8px', padding: '8px', whiteSpace: 'pre-line' }}>
+                {bill.notes}
+              </div>
+            )}
 
             <div style={{ display: 'flex', gap: '8px', marginTop: 'auto', paddingTop: '12px', borderTop: '1px solid var(--border-light)' }}>
               <button className="btn-secondary" style={{ flex: 1, padding: '8px', fontSize: '0.85rem', display: 'flex', justifyContent: 'center', gap: '4px' }} onClick={() => setSelected(bill)}>
@@ -171,6 +177,11 @@ export default function BillsTab({ bills, menuItems }) {
                 <div>الجرسون: <strong>{selected.waiterCode}</strong></div>
                 <div>الكاشير: <strong>{selected.cashierCode}</strong></div>
               </div>
+              {selected.notes && (
+                <div style={{ marginBottom: '12px', padding: '8px 10px', background: 'var(--bg-surface-2)', border: '1px solid var(--border-light)', borderRadius: '8px', fontSize: '0.85rem', color: 'var(--text-muted)', whiteSpace: 'pre-line' }}>
+                  {selected.notes}
+                </div>
+              )}
               {(selected.items || []).map(item => (
                 <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--border-light)' }}>
                   <span>{item.name} × {item.qty}</span>

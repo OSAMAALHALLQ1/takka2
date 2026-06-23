@@ -235,8 +235,11 @@ export default function WaiterView({ tables, onSaveTables, employee, menuItems =
     }
   }, [activeTab]);
 
-  const handleWaiterDeliverItem = (orderId, itemId) => {
-    updateDeptOrderItem(orderId, itemId, { status: 'delivered' });
+  const handleWaiterDeliverItem = async (orderId, itemId) => {
+    const success = await updateDeptOrderItem(orderId, itemId, { status: 'delivered' });
+    if (success) {
+      window.dispatchEvent(new CustomEvent('taka_sync'));
+    }
   };
 
   const handleEditItemClick = (item) => {
@@ -455,8 +458,11 @@ export default function WaiterView({ tables, onSaveTables, employee, menuItems =
     setView('tables');
   };
 
-  const handleDeliverItem = (orderId, itemId) => {
-    updateDeptOrderItem(orderId, itemId, { status: 'delivered' });
+  const handleDeliverItem = async (orderId, itemId) => {
+    const success = await updateDeptOrderItem(orderId, itemId, { status: 'delivered' });
+    if (success) {
+      window.dispatchEvent(new CustomEvent('taka_sync'));
+    }
   };
 
   // Ready items for this waiter

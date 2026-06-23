@@ -45,6 +45,7 @@ export default function CashierView({ tables, onSaveTables, employee, activeTab:
   const setActiveTab = propSetActiveTab || setLocalActiveTab;
   const [selectedTable, setSelectedTable] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState('cash');
+  const [customerName, setCustomerName] = useState('');
   const [cashierNote, setCashierNote] = useState('');
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(null); // holds the just-closed bill
@@ -63,6 +64,14 @@ export default function CashierView({ tables, onSaveTables, employee, activeTab:
     window.addEventListener('takah_sync', sync);
     return () => { window.removeEventListener('taka_sync', sync); window.removeEventListener('takah_sync', sync); };
   }, []);
+
+  useEffect(() => {
+    if (!selectedTable) return;
+    const freshTable = tables.find(t => t.id === selectedTable.id);
+    if (freshTable) {
+      setSelectedTable(freshTable);
+    }
+  }, [tables, selectedTable?.id]);
 
   const activeTables = tables.filter(t => t.status === 'eating' || t.status === 'bill_requested');
   const sortedTables = [...activeTables].sort((a, b) => {
@@ -86,6 +95,11 @@ export default function CashierView({ tables, onSaveTables, employee, activeTab:
     try {
       const paymentTs = Date.now();
       const billId = createBillId(selectedTable.id, selectedTable.seatedAt);
+      const trimmedCustomerName = customerName.trim();
+      const combinedNotes = [
+        trimmedCustomerName ? `اسم الزبون: ${trimmedCustomerName}` : '',
+        cashierNote.trim() || selectedTable.notes || ''
+      ].filter(Boolean).join('\n');
       const newBill = {
         id: billId, tableId: selectedTable.id, tableName: selectedTable.name,
         items: selectedTable.currentOrder || [],
@@ -96,7 +110,7 @@ export default function CashierView({ tables, onSaveTables, employee, activeTab:
         paymentMethod,
         cashierCode: employee.code, cashierName: employee.name,
         waiterCode: selectedTable.waiterCode,
-        notes: cashierNote || selectedTable.notes || '',
+        notes: combinedNotes,
         timestamp: paymentTs,
         timeFormatted: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
         dateFormatted: new Date().toLocaleDateString('ar-EG'),
@@ -168,6 +182,7 @@ export default function CashierView({ tables, onSaveTables, employee, activeTab:
       setShowConfirmModal(false);
       setShowSuccessModal(newBill);
       setSelectedTable(null);
+      setCustomerName('');
       setCashierNote('');
     } catch (err) {
       console.error(err);
@@ -319,7 +334,11 @@ export default function CashierView({ tables, onSaveTables, employee, activeTab:
                   <div key={t.id}
                     className="cashier-table-item"
                     style={{ borderRight: `4px solid ${t.status === 'bill_requested' ? '#d97706' : '#dc2626'}`, background: selectedTable?.id === t.id ? 'var(--bg-surface-2)' : '' }}
-                    onClick={() => setSelectedTable(t)}
+                    onClick={() => {
+                      setSelectedTable(t);
+                      setCustomerName('');
+                      setCashierNote('');
+                    }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                       <div>
@@ -440,7 +459,14 @@ export default function CashierView({ tables, onSaveTables, employee, activeTab:
                   </div>
                 </div>
 
-                {/* Note field */}
+                {/* Customer and note fields */}
+                <input
+                  className="form-input"
+                  placeholder="اسم الزبون على الفاتورة (اختياري)"
+                  value={customerName}
+                  onChange={e => setCustomerName(e.target.value)}
+                  style={{ marginBottom: '10px' }}
+                />
                 <input
                   className="form-input"
                   placeholder="ملاحظة إضافية للفاتورة (اختياري)"
@@ -475,7 +501,13 @@ export default function CashierView({ tables, onSaveTables, employee, activeTab:
                         </div>
                       )}
                       <div className="responsive-grid-1-16">
-                        <button className="btn-secondary" onClick={() => printBill({ ...selectedTable, id: 'PREVIEW', tableName: selectedTable.name, items: selectedTable.currentOrder, paymentMethod, cashierCode: employee.code, timeFormatted: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }), dateFormatted: new Date().toLocaleDateString('ar-EG') })} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', justifyContent: 'center' }}>
+                        <button className="btn-secondary" onClick={() => {
+                          const previewNotes = [
+                            customerName.trim() ? `اسم الزبون: ${customerName.trim()}` : '',
+                            cashierNote.trim() || selectedTable.notes || ''
+                          ].filter(Boolean).join('\n');
+                          printBill({ ...selectedTable, id: 'PREVIEW', tableName: selectedTable.name, items: selectedTable.currentOrder, paymentMethod, cashierCode: employee.code, notes: previewNotes, timeFormatted: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }), dateFormatted: new Date().toLocaleDateString('ar-EG') });
+                        }} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', justifyContent: 'center' }}>
                           <Printer size={16} /> معاينة الفاتورة
                         </button>
                         <button 
@@ -551,6 +583,11 @@ export default function CashierView({ tables, onSaveTables, employee, activeTab:
                     <div><span style={{ color: 'var(--text-muted)' }}>الوقت: </span><span style={{ fontWeight: 600 }}>{bill.timeFormatted}</span></div>
                     <div><span style={{ color: 'var(--text-muted)' }}>الجلوس: </span><span style={{ fontWeight: 600 }}>{bill.seatedDuration ? `${bill.seatedDuration} دقيقة` : '—'}</span></div>
                   </div>
+                  {bill.notes && (
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', background: 'var(--bg-surface-2)', border: '1px solid var(--border-light)', borderRadius: '8px', padding: '8px', whiteSpace: 'pre-line' }}>
+                      {bill.notes}
+                    </div>
+                  )}
 
                   <div style={{ display: 'flex', gap: '8px', marginTop: 'auto', paddingTop: '12px', borderTop: '1px solid var(--border-light)' }}>
                     <button className="btn-secondary" style={{ flex: 1, padding: '8px', fontSize: '0.85rem', display: 'flex', justifyContent: 'center', gap: '4px' }} onClick={() => setSelectedBill(bill)}>
@@ -718,6 +755,11 @@ export default function CashierView({ tables, onSaveTables, employee, activeTab:
                 <div>النادل: <strong>{selectedBill.waiterCode}</strong></div>
                 <div>طريقة الدفع: <strong>{PAYMENT_LABELS[selectedBill.paymentMethod]}</strong></div>
               </div>
+              {selectedBill.notes && (
+                <div style={{ marginBottom: '12px', padding: '8px 10px', background: 'var(--bg-surface-2)', border: '1px solid var(--border-light)', borderRadius: '8px', fontSize: '0.85rem', color: 'var(--text-muted)', whiteSpace: 'pre-line' }}>
+                  {selectedBill.notes}
+                </div>
+              )}
               <div style={{ borderTop: '1px solid var(--border-light)', paddingTop: '10px', marginTop: '10px' }}>
                 {(selectedBill.items || []).map((item, i) => (
                   <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', borderBottom: '1px dashed var(--border-light)' }}>

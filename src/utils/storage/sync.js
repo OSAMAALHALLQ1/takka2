@@ -17,6 +17,8 @@ let networkListenersAttached = false;
 let triggerReconnect = null;
 const MENU_DATASET_VERSION_KEY = 'menu_dataset_version';
 const MENU_DATASET_VERSION = 'soulmate-menu-2026-06-23-v2';
+const DEFAULT_TABLE_COUNT = 70;
+const DEFAULT_TABLE_IDS = new Set(DEFAULT_TABLES.map(table => String(table.id)));
 const DEFAULT_MENU_IDS = new Set(DEFAULT_MENU.map(item => String(item.id)));
 const MIN_DEFAULT_MENU_MATCHES = Math.max(1, Math.floor(DEFAULT_MENU.length * 0.8));
 
@@ -41,13 +43,13 @@ const getSoulMateMenu = () => normalizeMenuItems(DEFAULT_MENU);
 
 const seedIfMissing = async (key, fallback) => {
   const value = await readRecord(key, null);
-  if (key === TABLES_KEY && Array.isArray(value) && value.length < 30) {
+  if (key === TABLES_KEY && Array.isArray(value) && value.length < DEFAULT_TABLE_COUNT) {
     const merged = [...value];
-    for (let i = value.length; i < 30; i++) {
+    for (let i = value.length; i < DEFAULT_TABLE_COUNT; i++) {
       merged.push({
         id: i + 1, name: `طاولة ${i + 1}`,
-        seats: i < 10 ? 4 : i < 20 ? 6 : 8,
-        area: i < 10 ? 'indoor' : i < 20 ? 'outdoor' : 'terrace',
+        seats: i < 30 ? 4 : i < 55 ? 6 : 8,
+        area: i < 35 ? 'indoor' : i < 55 ? 'outdoor' : 'terrace',
         status: 'empty', currentOrder: [], notes: '',
         subtotal: 0, tax: 0, serviceCharge: 0, total: 0,
         waiterCode: null, seatedAt: null, guests: 0
@@ -562,12 +564,31 @@ export const initializeDatabase = async () => {
             .from('tables')
             .select('id, name, seats, area, status, current_order, notes, subtotal, tax, service_charge, total, waiter_code, seated_at, guests, restaurant_id')
             .eq('restaurant_id', tenantId);
+          const localData = await readRecord(TABLES_KEY, []);
           if (tables && tables.length > 0) {
-            const localData = await readRecord(TABLES_KEY, []);
+            const remoteIds = new Set(tables.map(table => String(table.id)));
+            const missingLocalTables = (Array.isArray(localData) ? localData : [])
+              .filter(table => DEFAULT_TABLE_IDS.has(String(table.id)) && !remoteIds.has(String(table.id)));
             const merged = mergeFetchedData(TABLES_KEY, tables, localData, queue);
+            missingLocalTables.forEach(table => {
+              if (!merged.some(existing => String(existing.id) === String(table.id))) {
+                merged.push(table);
+              }
+            });
+            merged.sort((a, b) => a.id - b.id);
             cache[TABLES_KEY] = clone(merged);
             await writeRecord(TABLES_KEY, merged);
             triggerSync(TABLES_KEY);
+
+            if (missingLocalTables.length > 0) {
+              const mappedMissingTables = missingLocalTables.map(table => ({ ...mapToDB(table, TABLE_FIELD_MAP), restaurant_id: tenantId }));
+              const { error } = await supabase.from('tables').upsert(mappedMissingTables);
+              if (error) throw error;
+            }
+          } else if (Array.isArray(localData) && localData.length > 0) {
+            const mappedLocalTables = localData.map(table => ({ ...mapToDB(table, TABLE_FIELD_MAP), restaurant_id: tenantId }));
+            const { error } = await supabase.from('tables').upsert(mappedLocalTables);
+            if (error) throw error;
           }
         } catch (err) {
           console.error('Failed initial tables fetch:', err);
