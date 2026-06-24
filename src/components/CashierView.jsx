@@ -247,14 +247,18 @@ export default function CashierView({ tables, onSaveTables, employee, activeTab:
   };
 
   // REPORTS DATA
-  const totalRevenue = bills.reduce((s, b) => s + (b.total || 0), 0);
-  const avgBill = bills.length > 0 ? totalRevenue / bills.length : 0;
-  const paymentBreakdown = bills.reduce((acc, b) => {
+  const dayAgo = now - 24 * 60 * 60 * 1000;
+  const weekAgo = now - 7 * 24 * 60 * 60 * 1000;
+  const dailyBills = bills.filter(b => b.timestamp && new Date(b.timestamp).getTime() >= dayAgo);
+  const weeklyBills = bills.filter(b => b.timestamp && new Date(b.timestamp).getTime() >= weekAgo);
+  const totalRevenue = dailyBills.reduce((s, b) => s + (b.total || 0), 0);
+  const avgBill = dailyBills.length > 0 ? totalRevenue / dailyBills.length : 0;
+  const paymentBreakdown = dailyBills.reduce((acc, b) => {
     const m = b.paymentMethod || 'cash';
     acc[m] = { count: (acc[m]?.count || 0) + 1, amount: (acc[m]?.amount || 0) + (b.total || 0) };
     return acc;
   }, {});
-  const itemSales = bills.reduce((acc, b) => {
+  const itemSales = weeklyBills.reduce((acc, b) => {
     (b.items || []).forEach(i => { acc[i.id] = { name: i.name, qty: (acc[i.id]?.qty || 0) + (i.qty || 0) }; });
     return acc;
   }, {});
@@ -268,9 +272,9 @@ export default function CashierView({ tables, onSaveTables, employee, activeTab:
 
   const topItemName = topItems[0] ? topItems[0].name : 'لا يوجد';
   const getPeakHours = () => {
-    if (bills.length === 0) return 'لا يوجد بيانات';
+    if (dailyBills.length === 0) return 'لا يوجد بيانات';
     const hourCounts = Array(24).fill(0);
-    bills.forEach(b => {
+    dailyBills.forEach(b => {
       const date = new Date(b.timestamp);
       const hour = date.getHours();
       hourCounts[hour]++;
@@ -625,23 +629,23 @@ export default function CashierView({ tables, onSaveTables, employee, activeTab:
           <div className="cashier-reports-grid">
             <div className="glass-card" style={{ padding: '20px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
               <Receipt size={32} style={{ color: '#2563eb' }} />
-              <div style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.6rem', fontWeight: 800, color: 'var(--text-main)' }}>{bills.length}</div>
-              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600 }}>إجمالي الفواتير</div>
+              <div style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.6rem', fontWeight: 800, color: 'var(--text-main)' }}>{dailyBills.length}</div>
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600 }}>فواتير آخر 24 ساعة</div>
             </div>
             <div className="glass-card" style={{ padding: '20px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
               <Coins size={32} style={{ color: '#16a34a' }} />
               <div style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.6rem', fontWeight: 800, color: 'var(--text-main)' }}>{totalRevenue.toFixed(1)} ₪</div>
-              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600 }}>إجمالي الإيرادات</div>
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600 }}>إيرادات آخر 24 ساعة</div>
             </div>
             <div className="glass-card" style={{ padding: '20px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
               <TrendingUp size={32} style={{ color: '#ea580c' }} />
               <div style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.6rem', fontWeight: 800, color: 'var(--text-main)' }}>{avgBill.toFixed(1)} ₪</div>
-              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600 }}>متوسط الفاتورة</div>
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600 }}>متوسط فاتورة 24 ساعة</div>
             </div>
             <div className="glass-card" style={{ padding: '20px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
               <Award size={32} style={{ color: '#8b5cf6' }} />
               <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%', direction: 'rtl', marginTop: '6px' }} title={topItemName}>{topItemName}</div>
-              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600, marginTop: '2px' }}>أكثر الأصناف مبيعاً</div>
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600, marginTop: '2px' }}>أكثر الأصناف هذا الأسبوع</div>
             </div>
             <div className="glass-card" style={{ padding: '20px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
               <Timer size={32} style={{ color: '#0891b2' }} />
@@ -652,7 +656,7 @@ export default function CashierView({ tables, onSaveTables, employee, activeTab:
 
           <div className="cashier-reports-bottom-grid">
             <div className="glass-card" style={{ padding: '20px' }}>
-              <h3 style={{ fontWeight: 800, marginBottom: '14px', fontSize: '1.05rem' }}>طرق الدفع والتحصيل</h3>
+              <h3 style={{ fontWeight: 800, marginBottom: '14px', fontSize: '1.05rem' }}>طرق الدفع والتحصيل آخر 24 ساعة</h3>
               {Object.entries(paymentBreakdown).length === 0 ? <p style={{ color: 'var(--text-muted)' }}>لا بيانات</p> :
                 Object.entries(paymentBreakdown).map(([method, data]) => {
                   const Icon = PAYMENT_METHODS.find(p => p.id === method)?.icon || Coins;
@@ -673,7 +677,7 @@ export default function CashierView({ tables, onSaveTables, employee, activeTab:
             </div>
 
             <div className="glass-card" style={{ padding: '20px' }}>
-              <h3 style={{ fontWeight: 800, marginBottom: '14px', fontSize: '1.05rem' }}>أكثر الأصناف طلباً</h3>
+              <h3 style={{ fontWeight: 800, marginBottom: '14px', fontSize: '1.05rem' }}>أكثر الأصناف طلباً هذا الأسبوع</h3>
               {topItems.length === 0 ? <p style={{ color: 'var(--text-muted)' }}>لا بيانات</p> :
                 topItems.map((item, i) => (
                   <div key={item.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--border-light)' }}>

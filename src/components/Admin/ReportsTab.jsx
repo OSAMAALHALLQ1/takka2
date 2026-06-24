@@ -4,16 +4,22 @@ import { renderItemImage } from './utils';
 import { TrendingUp, Receipt, Coins, BarChart3, Armchair, ArrowUpRight, CreditCard, Building } from 'lucide-react';
 
 export default function ReportsTab({ bills, menuItems, tables }) {
-  const totalRevenue = bills.reduce((s, b) => s + (b.total || 0), 0);
-  const avgBill = bills.length > 0 ? totalRevenue / bills.length : 0;
-  const itemSales = bills.reduce((acc, b) => {
+  const [reportNow] = React.useState(() => Date.now());
+  const dayAgo = reportNow - 24 * 60 * 60 * 1000;
+  const weekAgo = reportNow - 7 * 24 * 60 * 60 * 1000;
+  const dailyBills = bills.filter(b => b.timestamp && new Date(b.timestamp).getTime() >= dayAgo);
+  const weeklyBills = bills.filter(b => b.timestamp && new Date(b.timestamp).getTime() >= weekAgo);
+
+  const totalRevenue = dailyBills.reduce((s, b) => s + (b.total || 0), 0);
+  const avgBill = dailyBills.length > 0 ? totalRevenue / dailyBills.length : 0;
+  const itemSales = weeklyBills.reduce((acc, b) => {
     (b.items || []).forEach(item => { acc[item.id] = (acc[item.id] || 0) + (item.qty || 0); });
     return acc;
   }, {});
   const topItems = Object.entries(itemSales).map(([id, qty]) => ({ ...menuItems.find(m => m.id === id), qty })).filter(Boolean).sort((a, b) => b.qty - a.qty).slice(0, 7);
   const maxQty = topItems[0]?.qty || 1;
 
-  const salesByDept = bills.reduce((acc, b) => {
+  const salesByDept = dailyBills.reduce((acc, b) => {
     (b.items || []).forEach(item => {
       const m = menuItems.find(x => x.id === item.id);
       const dept = m?.department || 'other';
@@ -26,7 +32,7 @@ export default function ReportsTab({ bills, menuItems, tables }) {
   const DEPT_COLORS = { kitchen: '#e67e22', bar: '#1abc9c', shisha: '#27ae60', other: '#7f8c8d' };
   const DEPT_NAMES = { kitchen: 'المطبخ', bar: 'البار', shisha: 'الشيشة', other: 'أخرى' };
 
-  const paymentStats = bills.reduce((acc, b) => {
+  const paymentStats = dailyBills.reduce((acc, b) => {
     const m = b.paymentMethod || 'cash';
     acc[m] = (acc[m] || 0) + (b.total || 0);
     return acc;
@@ -41,9 +47,9 @@ export default function ReportsTab({ bills, menuItems, tables }) {
 
       {/* Summary */}
       <div className="stats-grid-4" style={{ marginBottom: '24px' }}>
-        <StatCard icon={<Receipt size={32} />} label="إجمالي الفواتير" value={bills.length} color="#3498db" />
-        <StatCard icon={<Coins size={32} />} label="إجمالي الإيرادات" value={`${totalRevenue.toFixed(1)} ₪`} color="#27ae60" />
-        <StatCard icon={<BarChart3 size={32} />} label="متوسط الفاتورة" value={`${avgBill.toFixed(1)} ₪`} color="#f39c12" />
+        <StatCard icon={<Receipt size={32} />} label="فواتير آخر 24 ساعة" value={dailyBills.length} color="#3498db" />
+        <StatCard icon={<Coins size={32} />} label="إيرادات آخر 24 ساعة" value={`${totalRevenue.toFixed(1)} ₪`} color="#27ae60" />
+        <StatCard icon={<BarChart3 size={32} />} label="متوسط فاتورة 24 ساعة" value={`${avgBill.toFixed(1)} ₪`} color="#f39c12" />
         <StatCard icon={<Armchair size={32} />} label="الطاولات الكلية" value={tables.length} color="#9b59b6" />
       </div>
 
@@ -52,7 +58,7 @@ export default function ReportsTab({ bills, menuItems, tables }) {
         <div className="admin-card">
           <h3 className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <ArrowUpRight size={18} style={{ color: 'var(--color-primary)' }} />
-            أكثر الأصناف طلباً
+            أكثر الأصناف طلباً هذا الأسبوع
           </h3>
           {topItems.length === 0 ? <p style={{ color: 'var(--text-muted)', marginTop: '12px' }}>لا بيانات بعد</p> : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '12px' }}>
