@@ -27,7 +27,6 @@ export const CATEGORY_LABELS = {
   cold_drinks: 'مشروبات باردة',
   soft_drinks: 'مشروبات غازية',
   drinks: 'مشروبات',
-  desserts: 'حلويات',
   appetizers: 'مقبلات',
   salads_western: 'سلطات غربية',
   salads_eastern: 'سلطات شرقية',

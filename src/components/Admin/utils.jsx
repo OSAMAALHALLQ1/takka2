@@ -69,7 +69,6 @@ export const DEPARTMENT_ICONS = [
   { id: 'flame', label: 'مشاوي / نار', icon: Flame },
   { id: 'pizza', label: 'معجنات / بيتزا', icon: Pizza },
   { id: 'coffee', label: 'مقهى / قهوة', icon: Coffee },
-  { id: 'ice-cream', label: 'حلويات / مثلجات', icon: IceCream },
   { id: 'utensils', label: 'عام / صالة', icon: UtensilsCrossed }
 ];
 
