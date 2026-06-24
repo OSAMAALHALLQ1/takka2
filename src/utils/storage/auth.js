@@ -99,7 +99,7 @@ export const saveManagerCredentials = async (creds) => {
   const emps = getEmployees();
   const manager = {
     id: creds.id || 'admin-1',
-    name: creds.name || 'مدير تكة',
+    name: creds.name || 'خالد',
     role: 'manager',
     username: creds.username || creds.email || 'admin',
     password: creds.password || 'khaled.takka',

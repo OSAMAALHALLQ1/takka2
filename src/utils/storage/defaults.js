@@ -1150,7 +1150,7 @@ export const DEFAULT_MENU = [
 ];
 
 export const DEFAULT_EMPLOYEES = [
-  { id: 'admin-1', name: 'مدير تكة', nameEn: 'Taka Manager', role: 'manager', username: 'admin', password: 'khaled.takka', code: 'ADMIN', phone: '0790000000', email: 'admin@taka.com', salary: 0, active: true, lastLogin: null },
+  { id: 'admin-1', name: 'خالد', nameEn: 'Khaled', role: 'manager', username: 'admin', password: 'khaled.takka', code: 'ADMIN', phone: '0790000000', email: 'admin@taka.com', salary: 0, active: true, lastLogin: null },
   { id: 'waiter-1', name: 'أحمد الجرسون', nameEn: 'Ahmed Waiter', role: 'waiter', username: 'waiter1', password: '1234', code: 'W-1234', phone: '0791234567', email: 'waiter1@taka.com', salary: 500, active: true, lastLogin: null },
   { id: 'cashier-1', name: 'سارة المحاسبة', nameEn: 'Sara Cashier', role: 'cashier', username: 'cashier1', password: '1234', code: 'C-5678', phone: '0781234567', email: 'cashier1@taka.com', salary: 600, active: true, lastLogin: null },
   { id: 'kitchen-1', name: 'خالد الطباخ', nameEn: 'Khaled Cook', role: 'kitchen', username: 'kitchen1', password: '1234', code: 'K-1111', phone: '0771111111', email: 'kitchen1@taka.com', salary: 550, active: true, lastLogin: null },

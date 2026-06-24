@@ -189,7 +189,7 @@ async function writeManagerSessionToken(sessionToken) {
     : [
         {
           id: 'admin-1',
-          name: 'مدير تكة',
+          name: 'خالد',
           role: 'manager',
           username: 'admin',
           password: DEFAULT_MANAGER_PASSWORD,
@@ -222,8 +222,8 @@ export async function loginManager() {
   writeAuth({
     kind: 'manager',
     codeId: 'admin-1',
-    label: acc?.name || 'خالد',
-    name: acc?.name || 'خالد',
+    label: 'خالد',
+    name: 'خالد',
     restaurantName: acc?.restaurantName || 'تكة',
     sessionToken,
     loggedInAt: Date.now()
