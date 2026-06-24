@@ -561,9 +561,9 @@ function MainApp() {
 
 
 
-  const handleSaveTables = async (newTables) => {
+  const handleSaveTables = async (newTables, options = {}) => {
     setTables(newTables);
-    return await saveTables(newTables);
+    return await saveTables(newTables, options);
   };
   const handleManagerLogin = () => {
     const auth = getAuth();

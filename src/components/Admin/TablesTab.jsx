@@ -1,57 +1,17 @@
 import React, { useState } from 'react';
 import { saveTables } from '../../utils/storage';
+import { normalizeTablesTo70 } from '../../utils/storage/table-normalization';
 import { STATUS_LABELS, STATUS_COLORS, AREA_LABELS } from './constants';
-import { Armchair, Pencil, Trash2 } from 'lucide-react';
+import { Armchair, Pencil } from 'lucide-react';
 
 export default function TablesTab({ tables, setTables }) {
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState(null);
-  const emptyForm = { number: '', seats: 4, area: 'indoor', description: '' };
+  const emptyForm = { seats: 4, area: 'indoor', description: '' };
   const [form, setForm] = useState(emptyForm);
   const [selected, setSelected] = useState(null);
 
-  // Normalize tables list to 1-70 without duplicates
-  const normalizedTables = React.useMemo(() => {
-    const existingMap = new Map();
-    if (Array.isArray(tables)) {
-      tables.forEach(t => {
-        if (t && t.id !== undefined && t.id !== null) {
-          const numId = Number(t.id);
-          if (!isNaN(numId) && numId >= 1 && numId <= 70) {
-            const existing = existingMap.get(numId);
-            if (!existing || (t.status && t.status !== 'empty' && existing.status === 'empty') || (t.total > 0 && existing.total === 0)) {
-              existingMap.set(numId, { ...t, id: numId });
-            }
-          }
-        }
-      });
-    }
-
-    const result = [];
-    for (let i = 1; i <= 70; i++) {
-      if (existingMap.has(i)) {
-        result.push(existingMap.get(i));
-      } else {
-        result.push({
-          id: i,
-          name: `طاولة ${i}`,
-          seats: i <= 30 ? 4 : i <= 55 ? 6 : 8,
-          area: i <= 35 ? 'indoor' : i <= 55 ? 'outdoor' : 'terrace',
-          status: 'empty',
-          currentOrder: [],
-          notes: '',
-          subtotal: 0,
-          tax: 0,
-          serviceCharge: 0,
-          total: 0,
-          waiterCode: null,
-          seatedAt: null,
-          guests: 0
-        });
-      }
-    }
-    return result;
-  }, [tables]);
+  const normalizedTables = React.useMemo(() => normalizeTablesTo70(tables), [tables]);
 
   React.useEffect(() => {
     let needsUpdate = false;
@@ -72,29 +32,13 @@ export default function TablesTab({ tables, setTables }) {
   }, [tables, normalizedTables, setTables]);
 
   const handleSave = () => {
-    const num = parseInt(form.number);
-    if (!num) return;
-    if (!editId && normalizedTables.find(t => t.id === num)) { alert('رقم الطاولة موجود مسبقاً'); return; }
-    let updated;
-    if (editId) {
-      updated = normalizedTables.map(t => t.id === editId ? { ...t, seats: form.seats, area: form.area, description: form.description } : t);
-    } else {
-      updated = [...normalizedTables, { id: num, name: `طاولة ${num}`, seats: form.seats, area: form.area, description: form.description, status: 'empty', currentOrder: [], notes: '', subtotal: 0, tax: 0, serviceCharge: 0, total: 0, waiterCode: null, seatedAt: null, guests: 0 }];
-      updated.sort((a, b) => a.id - b.id);
-    }
+    if (!editId) return;
+    const updated = normalizedTables.map(t => t.id === editId ? { ...t, seats: form.seats, area: form.area, description: form.description } : t);
     saveTables(updated);
     setTables(updated);
     setShowForm(false);
     setEditId(null);
     setForm(emptyForm);
-  };
-
-  const handleDelete = (t) => {
-    if (t.status !== 'empty') { alert('لا يمكن حذف طاولة مشغولة'); return; }
-    if (!window.confirm(`حذف ${t.name}؟`)) return;
-    const updated = normalizedTables.filter(tt => tt.id !== t.id);
-    saveTables(updated);
-    setTables(updated);
   };
 
   const handleStatusChange = (tableId, newStatus) => {
@@ -110,7 +54,6 @@ export default function TablesTab({ tables, setTables }) {
           <Armchair size={24} style={{ color: 'var(--color-primary)' }} />
           إدارة الطاولات
         </h2>
-        <button className="btn-primary-gold" onClick={() => { setForm(emptyForm); setEditId(null); setShowForm(true); }}>+ إضافة طاولة</button>
       </div>
 
       {/* Legend */}
@@ -125,14 +68,8 @@ export default function TablesTab({ tables, setTables }) {
 
       {showForm && (
         <div className="admin-card" style={{ marginBottom: '24px', borderColor: 'var(--color-primary)' }}>
-          <h3 className="card-title">{editId ? `تعديل طاولة ${editId}` : 'طاولة جديدة'}</h3>
+          <h3 className="card-title">تعديل طاولة {editId}</h3>
           <div className="responsive-grid-3" style={{ marginTop: '16px' }}>
-            {!editId && (
-              <div className="form-group">
-                <label className="form-label">رقم الطاولة *</label>
-                <input type="number" className="form-input" value={form.number} onChange={e => setForm(p => ({ ...p, number: e.target.value }))} placeholder="16" />
-              </div>
-            )}
             <div className="form-group">
               <label className="form-label">عدد المقاعد</label>
               <select className="form-input" value={form.seats} onChange={e => setForm(p => ({ ...p, seats: parseInt(e.target.value) }))}>
@@ -147,7 +84,7 @@ export default function TablesTab({ tables, setTables }) {
             </div>
           </div>
           <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
-            <button className="btn-primary-gold" onClick={handleSave}>{editId ? 'حفظ' : 'إضافة'}</button>
+            <button className="btn-primary-gold" onClick={handleSave}>حفظ</button>
             <button className="btn-secondary" onClick={() => { setShowForm(false); setEditId(null); }}>إلغاء</button>
           </div>
         </div>
@@ -186,11 +123,6 @@ export default function TablesTab({ tables, setTables }) {
             <button className="icon-btn" style={{ display: 'flex', alignItems: 'center', gap: '4px' }} onClick={() => { setForm({ number: selected.id, seats: selected.seats, area: selected.area, description: selected.description || '' }); setEditId(selected.id); setShowForm(true); setSelected(null); }}>
               <Pencil size={14} /> تعديل
             </button>
-            {selected.status === 'empty' && (
-              <button className="icon-btn danger" style={{ display: 'flex', alignItems: 'center', gap: '4px' }} onClick={() => handleDelete(selected)}>
-                <Trash2 size={14} /> حذف
-              </button>
-            )}
             <select className="form-input" style={{ flex: '0 0 auto', width: 'auto' }} value={selected.status} onChange={e => { handleStatusChange(selected.id, e.target.value); setSelected(p => ({ ...p, status: e.target.value })); }}>
               {Object.entries(STATUS_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
             </select>

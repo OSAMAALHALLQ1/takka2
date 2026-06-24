@@ -1,7 +1,6 @@
 import { supabase } from '../supabaseClient.js';
 import { cache, writeRecord, readRecord, triggerSync, getSyncQueue, saveSyncQueue } from './core.js';
 import { clone, mapFromDB, mapToDB, normalizeEmployee } from './helpers.js';
-import { getTenantId } from './tenant.js';
 import {
   TABLES_KEY, EMPLOYEES_KEY, BILLS_KEY, NOTIFICATIONS_KEY,
   MENU_KEY, DEPT_ORDERS_KEY, SESSION_KEY, DEPARTMENTS_KEY, ARCHIVES_KEY,
@@ -10,6 +9,7 @@ import {
 } from './constants.js';
 import { DEFAULT_TABLES, DEFAULT_MENU, DEFAULT_EMPLOYEES, DEFAULT_DEPARTMENTS } from './defaults.js';
 import { normalizeMenuItem, normalizeMenuItems } from './menu-normalization.js';
+import { isManagedTableId, makeDefaultTable, normalizeTablesTo70 } from './table-normalization.js';
 
 let initPromise = null;
 let isConnected = true;
@@ -17,52 +17,8 @@ let networkListenersAttached = false;
 let triggerReconnect = null;
 const MENU_DATASET_VERSION_KEY = 'menu_dataset_version';
 const MENU_DATASET_VERSION = 'soulmate-menu-2026-06-23-paper-v3';
-const DEFAULT_TABLE_COUNT = 70;
-const DEFAULT_TABLE_IDS = new Set(DEFAULT_TABLES.map(table => String(table.id)));
 const DEFAULT_MENU_IDS = new Set(DEFAULT_MENU.map(item => String(item.id)));
 const MIN_DEFAULT_MENU_MATCHES = Math.max(1, Math.floor(DEFAULT_MENU.length * 0.8));
-
-export const normalizeTablesTo70 = (tablesList) => {
-  const existingMap = new Map();
-  if (Array.isArray(tablesList)) {
-    tablesList.forEach(t => {
-      if (t && t.id !== undefined && t.id !== null) {
-        const numId = Number(t.id);
-        if (!isNaN(numId) && numId >= 1 && numId <= 70) {
-          const existing = existingMap.get(numId);
-          if (!existing || (t.status && t.status !== 'empty' && existing.status === 'empty')) {
-            existingMap.set(numId, { ...t, id: numId });
-          }
-        }
-      }
-    });
-  }
-
-  const normalized = [];
-  for (let i = 1; i <= 70; i++) {
-    if (existingMap.has(i)) {
-      normalized.push(existingMap.get(i));
-    } else {
-      normalized.push({
-        id: i,
-        name: `طاولة ${i}`,
-        seats: i <= 30 ? 4 : i <= 55 ? 6 : 8,
-        area: i <= 35 ? 'indoor' : i <= 55 ? 'outdoor' : 'terrace',
-        status: 'empty',
-        currentOrder: [],
-        notes: '',
-        subtotal: 0,
-        tax: 0,
-        serviceCharge: 0,
-        total: 0,
-        waiterCode: null,
-        seatedAt: null,
-        guests: 0
-      });
-    }
-  }
-  return normalized;
-};
 
 export const isRealtimeConnected = () => isConnected;
 
@@ -216,7 +172,7 @@ export const mergeFetchedData = (key, fetchedData, localData, queue, idField = '
   }
   
   if (Array.isArray(fetchedData)) {
-    let mappedFetched = [];
+    let mappedFetched;
     if (key === TABLES_KEY) mappedFetched = fetchedData.map(t => mapFromDB(t, TABLE_FIELD_MAP));
     else if (key === MENU_KEY) mappedFetched = normalizeMenuItems(fetchedData.map(m => mapFromDB(m, MENU_FIELD_MAP)));
     else if (key === BILLS_KEY) mappedFetched = fetchedData.map(b => mapFromDB(b, BILL_FIELD_MAP));
@@ -614,15 +570,28 @@ export const initializeDatabase = async () => {
 
         // 1. Initial Tables fetch
         try {
-          // Clean up any stale tables above 70 from Supabase
+          // Clean up stale tables outside the fixed 1-70 range from Supabase.
           try {
-            await supabase
+            const { data: existingTableIds, error: staleFetchError } = await supabase
               .from('tables')
-              .delete()
-              .eq('restaurant_id', tenantId)
-              .gt('id', 70);
+              .select('id')
+              .eq('restaurant_id', tenantId);
+            if (staleFetchError) throw staleFetchError;
+
+            const staleIds = (existingTableIds || [])
+              .map(row => row.id)
+              .filter(id => !isManagedTableId(id));
+
+            if (staleIds.length > 0) {
+              const { error: staleDeleteError } = await supabase
+                .from('tables')
+                .delete()
+                .eq('restaurant_id', tenantId)
+                .in('id', staleIds);
+              if (staleDeleteError) throw staleDeleteError;
+            }
           } catch (deleteErr) {
-            console.error('Failed to delete remote tables > 70:', deleteErr);
+            console.error('Failed to delete remote tables outside 1-70:', deleteErr);
           }
 
           const { data: tables } = await supabase
@@ -820,31 +789,16 @@ export const initializeDatabase = async () => {
 
               if (payload.eventType === 'DELETE') {
                 const deletedId = Number(payload.old.id);
-                if (deletedId >= 1 && deletedId <= 70) {
+                if (isManagedTableId(deletedId)) {
                   const idx = updated.findIndex(t => Number(t.id) === deletedId);
                   if (idx !== -1) {
-                    updated[idx] = {
-                      id: deletedId,
-                      name: `طاولة ${deletedId}`,
-                      seats: deletedId <= 30 ? 4 : deletedId <= 55 ? 6 : 8,
-                      area: deletedId <= 35 ? 'indoor' : deletedId <= 55 ? 'outdoor' : 'terrace',
-                      status: 'empty',
-                      currentOrder: [],
-                      notes: '',
-                      subtotal: 0,
-                      tax: 0,
-                      serviceCharge: 0,
-                      total: 0,
-                      waiterCode: null,
-                      seatedAt: null,
-                      guests: 0
-                    };
+                    updated[idx] = makeDefaultTable(deletedId);
                   }
                 }
               } else {
                 const item = mapFromDB(payload.new, TABLE_FIELD_MAP);
                 item.id = Number(item.id);
-                if (item.id >= 1 && item.id <= 70) {
+                if (isManagedTableId(item.id)) {
                   if (!isItemInSyncQueue(queue, TABLES_KEY, item.id)) {
                     const idx = updated.findIndex(t => Number(t.id) === item.id);
                     if (idx !== -1) {

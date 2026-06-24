@@ -45,7 +45,6 @@ export const AREA_LABELS = {
 };
 
 export const PERMISSIONS = [
-  { key: 'add_table', label: 'إضافة طاولة', manager: true, waiter: false, cashier: false, kitchen: false, bar: false, shisha: false },
   { key: 'add_order', label: 'إضافة طلب', manager: true, waiter: true, cashier: false, kitchen: false, bar: false, shisha: false },
   { key: 'view_order', label: 'عرض الطلبات', manager: true, waiter: true, cashier: true, kitchen: true, bar: true, shisha: true },
   { key: 'edit_order', label: 'تعديل طلب', manager: true, waiter: true, cashier: false, kitchen: false, bar: false, shisha: false },

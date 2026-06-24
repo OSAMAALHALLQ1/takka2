@@ -1,14 +1,39 @@
 import { supabase } from '../supabaseClient.js';
 import { cache, persist, writeRecord, triggerSync, enqueueMutation } from './core.js';
-import { clone } from './helpers.js';
-import { DEPT_ORDERS_KEY, TABLES_KEY, TAX_RATE, SERVICE_RATE } from './constants.js';
+import { clone, mapFromDB } from './helpers.js';
+import { DEPT_ORDERS_KEY, TABLES_KEY, TAX_RATE, SERVICE_RATE, DEPT_ORDER_FIELD_MAP } from './constants.js';
+import { getTenantId } from './tenant.js';
 import { getTables } from './tables.js';
 
 export const getDeptOrders = () => clone(cache[DEPT_ORDERS_KEY]);
 
-export const saveDeptOrders = async (d) => { 
+export const saveDeptOrders = async (d, changedItemOrId = null, options = {}) => { 
   if (!d || typeof d !== 'object') return false; 
-  return await persist(DEPT_ORDERS_KEY, d); 
+  if (options.sync === false) {
+    cache[DEPT_ORDERS_KEY] = clone(d);
+    await writeRecord(DEPT_ORDERS_KEY, d);
+    triggerSync(DEPT_ORDERS_KEY);
+    return true;
+  }
+  return await persist(DEPT_ORDERS_KEY, d, changedItemOrId); 
+};
+
+export const submitOrderAtomic = async ({ order, notes = '', guests = 1 }) => {
+  if (!supabase || !order) return null;
+
+  const { data, error } = await supabase.rpc('submit_order_atomic', {
+    p_order_id: order.id,
+    p_table_id: String(order.tableId),
+    p_waiter_code: order.waiterCode || '',
+    p_waiter_name: order.waiterName || '',
+    p_items: order.items || [],
+    p_notes: notes || '',
+    p_guests: guests || 1,
+    p_restaurant_id: getTenantId()
+  });
+
+  if (error) throw error;
+  return mapFromDB(data, DEPT_ORDER_FIELD_MAP);
 };
 
 export const deleteDeptOrder = async (id) => {
@@ -24,7 +49,7 @@ export const deleteDeptOrder = async (id) => {
   }
 };
 
-export const deleteDeptOrdersForTable = async (tableId) => {
+export const deleteDeptOrdersForTable = async (tableId, options = {}) => {
   const orders = getDeptOrders();
   const toDeleteIds = Object.keys(orders).filter(id => Number(orders[id].tableId) === Number(tableId));
   if (toDeleteIds.length > 0) {
@@ -32,7 +57,7 @@ export const deleteDeptOrdersForTable = async (tableId) => {
     cache[DEPT_ORDERS_KEY] = clone(filtered);
     await writeRecord(DEPT_ORDERS_KEY, filtered);
     triggerSync(DEPT_ORDERS_KEY);
-    if (supabase) {
+    if (supabase && options.sync !== false) {
       await enqueueMutation(DEPT_ORDERS_KEY, 'delete_in', toDeleteIds);
     }
     return toDeleteIds.length;

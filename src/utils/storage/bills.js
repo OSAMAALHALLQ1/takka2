@@ -1,13 +1,38 @@
 import { supabase } from '../supabaseClient.js';
 import { cache, persist, writeRecord, triggerSync, enqueueMutation } from './core.js';
-import { clone } from './helpers.js';
-import { BILLS_KEY, MAX_BILLS_KEPT, ARCHIVES_KEY } from './constants.js';
+import { clone, mapFromDB } from './helpers.js';
+import { BILLS_KEY, MAX_BILLS_KEPT, ARCHIVES_KEY, BILL_FIELD_MAP } from './constants.js';
+import { getTenantId } from './tenant.js';
 
 export const getBills = () => clone(cache[BILLS_KEY]);
 
-export const saveBills = async (b) => { 
+export const saveBills = async (b, changedItemOrId = null, options = {}) => { 
   if (!Array.isArray(b)) return false; 
-  return await persist(BILLS_KEY, b.slice(0, MAX_BILLS_KEPT)); 
+  const next = b.slice(0, MAX_BILLS_KEPT);
+  if (options.sync === false) {
+    cache[BILLS_KEY] = clone(next);
+    await writeRecord(BILLS_KEY, next);
+    triggerSync(BILLS_KEY);
+    return true;
+  }
+  return await persist(BILLS_KEY, next, changedItemOrId); 
+};
+
+export const closeTableInvoiceAtomic = async ({ billId, tableId, paymentMethod, cashierCode, cashierName, notes = '' }) => {
+  if (!supabase) return null;
+
+  const { data, error } = await supabase.rpc('close_table_invoice_atomic', {
+    p_bill_id: billId,
+    p_table_id: String(tableId),
+    p_payment_method: paymentMethod,
+    p_cashier_code: cashierCode || '',
+    p_cashier_name: cashierName || '',
+    p_notes: notes || '',
+    p_restaurant_id: getTenantId()
+  });
+
+  if (error) throw error;
+  return mapFromDB(data, BILL_FIELD_MAP);
 };
 
 export const getArchives = () => clone(cache[ARCHIVES_KEY]) || [];

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   saveDeptOrders, getDeptOrders, addNotification, updateDeptOrderItem,
   updateOngoingItemQty, cancelOngoingItem, modifyOngoingItem,
+  submitOrderAtomic,
   TAX_RATE, SERVICE_RATE
 } from '../utils/storage';
 import { createOrderId } from '../utils/ids';
@@ -394,9 +395,17 @@ export default function WaiterView({ tables, onSaveTables, employee, menuItems =
     };
 
     try {
+      let syncedByDatabase = false;
+      try {
+        await submitOrderAtomic({ order: newOrder, notes: tableNotes, guests: guestsCount });
+        syncedByDatabase = true;
+      } catch (rpcErr) {
+        console.warn('Atomic order submit unavailable, falling back to queued sync:', rpcErr);
+      }
+
       const existing = getDeptOrders();
       existing[orderId] = newOrder;
-      await saveDeptOrders(existing);
+      await saveDeptOrders(existing, orderId, { sync: !syncedByDatabase });
 
       const updatedTables = tables.map(t => {
         if (t.id !== selectedTable.id) return t;
@@ -407,7 +416,7 @@ export default function WaiterView({ tables, onSaveTables, employee, menuItems =
         const newServiceCharge = newSubtotal * SERVICE_RATE;
         return { ...t, status: 'eating', currentOrder: combined, notes: tableNotes, subtotal: newSubtotal, tax: newTax, serviceCharge: newServiceCharge, total: newSubtotal + newTax + newServiceCharge, waiterCode: employee.code, guests: guestsCount, seatedAt: t.seatedAt || nowTs };
       });
-      await onSaveTables(updatedTables);
+      await onSaveTables(updatedTables, { sync: !syncedByDatabase, changedItemOrId: selectedTable.id });
 
       const deptsInvolved = [...new Set(itemsWithStatus.map(i => i.department))];
 
