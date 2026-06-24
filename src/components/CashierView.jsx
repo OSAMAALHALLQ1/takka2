@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getBills, saveBills, getDeptOrders, getRestaurantName, deleteDeptOrdersForTable } from '../utils/storage';
+import { getBills, saveBills, getDeptOrders, getRestaurantName, deleteDeptOrdersForTable, closeTableInvoiceAtomic } from '../utils/storage';
 import { createBillId } from '../utils/ids';
 import { 
   Coins, 
@@ -118,12 +118,27 @@ export default function CashierView({ tables, onSaveTables, employee, activeTab:
         seatedDuration: selectedTable.seatedAt ? Math.floor((paymentTs - selectedTable.seatedAt) / 60000) : 0
       };
 
+      let syncedByDatabase = false;
+      try {
+        await closeTableInvoiceAtomic({
+          billId,
+          tableId: selectedTable.id,
+          paymentMethod,
+          cashierCode: employee.code,
+          cashierName: employee.name,
+          notes: combinedNotes
+        });
+        syncedByDatabase = true;
+      } catch (rpcErr) {
+        console.warn('Atomic invoice close unavailable, falling back to queued sync:', rpcErr);
+      }
+
       // Save bill
       const allBills = getBills();
       const nextBills = allBills.some(b => b.id === billId)
         ? allBills.map(b => b.id === billId ? { ...b, ...newBill } : b)
         : [...allBills, newBill];
-      await saveBills(nextBills);
+      await saveBills(nextBills, billId, { sync: !syncedByDatabase });
       setBills(nextBills);
 
       // Check if we reached 50 bills for auto-archiving
@@ -171,10 +186,10 @@ export default function CashierView({ tables, onSaveTables, employee, activeTab:
         if (t.id !== selectedTable.id) return t;
         return { ...t, status: 'empty', currentOrder: [], notes: '', subtotal: 0, tax: 0, serviceCharge: 0, total: 0, waiterCode: null, seatedAt: null, guests: 0 };
       });
-      await onSaveTables(updatedTables);
+      await onSaveTables(updatedTables, { sync: !syncedByDatabase, changedItemOrId: selectedTable.id });
 
       // Remove dept orders for this table
-      await deleteDeptOrdersForTable(selectedTable.id);
+      await deleteDeptOrdersForTable(selectedTable.id, { sync: !syncedByDatabase });
       
       // Update local state for deptOrders
       setDeptOrders(getDeptOrders());

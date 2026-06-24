@@ -1,7 +1,6 @@
 import { supabase } from '../supabaseClient.js';
 import { cache, writeRecord, readRecord, triggerSync, getSyncQueue, saveSyncQueue } from './core.js';
 import { clone, mapFromDB, mapToDB, normalizeEmployee } from './helpers.js';
-import { getTenantId } from './tenant.js';
 import {
   TABLES_KEY, EMPLOYEES_KEY, BILLS_KEY, NOTIFICATIONS_KEY,
   MENU_KEY, DEPT_ORDERS_KEY, SESSION_KEY, DEPARTMENTS_KEY, ARCHIVES_KEY,
@@ -10,6 +9,7 @@ import {
 } from './constants.js';
 import { DEFAULT_TABLES, DEFAULT_MENU, DEFAULT_EMPLOYEES, DEFAULT_DEPARTMENTS } from './defaults.js';
 import { normalizeMenuItem, normalizeMenuItems } from './menu-normalization.js';
+import { isManagedTableId, makeDefaultTable, normalizeTablesTo70 } from './table-normalization.js';
 
 let initPromise = null;
 let isConnected = true;
@@ -17,8 +17,6 @@ let networkListenersAttached = false;
 let triggerReconnect = null;
 const MENU_DATASET_VERSION_KEY = 'menu_dataset_version';
 const MENU_DATASET_VERSION = 'soulmate-menu-2026-06-23-paper-v3';
-const DEFAULT_TABLE_COUNT = 70;
-const DEFAULT_TABLE_IDS = new Set(DEFAULT_TABLES.map(table => String(table.id)));
 const DEFAULT_MENU_IDS = new Set(DEFAULT_MENU.map(item => String(item.id)));
 const MIN_DEFAULT_MENU_MATCHES = Math.max(1, Math.floor(DEFAULT_MENU.length * 0.8));
 
@@ -43,20 +41,10 @@ const getSoulMateMenu = () => normalizeMenuItems(DEFAULT_MENU);
 
 const seedIfMissing = async (key, fallback) => {
   const value = await readRecord(key, null);
-  if (key === TABLES_KEY && Array.isArray(value) && value.length < DEFAULT_TABLE_COUNT) {
-    const merged = [...value];
-    for (let i = value.length; i < DEFAULT_TABLE_COUNT; i++) {
-      merged.push({
-        id: i + 1, name: `طاولة ${i + 1}`,
-        seats: i < 30 ? 4 : i < 55 ? 6 : 8,
-        area: i < 35 ? 'indoor' : i < 55 ? 'outdoor' : 'terrace',
-        status: 'empty', currentOrder: [], notes: '',
-        subtotal: 0, tax: 0, serviceCharge: 0, total: 0,
-        waiterCode: null, seatedAt: null, guests: 0
-      });
-    }
-    cache[key] = clone(merged);
-    await writeRecord(key, merged);
+  if (key === TABLES_KEY) {
+    const normalized = normalizeTablesTo70(value || DEFAULT_TABLES);
+    cache[key] = clone(normalized);
+    await writeRecord(key, normalized);
     return;
   }
   if (value === null) {
@@ -138,7 +126,29 @@ export const isItemInSyncQueue = (queue, key, itemId) => {
 
 // Merge fetched remote data with local cache data, respecting the sync queue
 export const mergeFetchedData = (key, fetchedData, localData, queue, idField = 'id') => {
-  if (!fetchedData) return localData;
+  if (!fetchedData) return key === TABLES_KEY ? normalizeTablesTo70(localData) : localData;
+
+  if (key === TABLES_KEY) {
+    const remoteNormalized = fetchedData.map(t => {
+      const item = mapFromDB(t, TABLE_FIELD_MAP);
+      item.id = Number(item.id);
+      return item;
+    });
+    
+    const localNormalized = normalizeTablesTo70(localData);
+    const mergedMap = new Map(localNormalized.map(t => [t.id, t]));
+    
+    remoteNormalized.forEach(remoteItem => {
+      const remoteId = remoteItem.id;
+      if (mergedMap.has(remoteId)) {
+        if (!isItemInSyncQueue(queue, TABLES_KEY, remoteId)) {
+          mergedMap.set(remoteId, remoteItem);
+        }
+      }
+    });
+    
+    return normalizeTablesTo70(Array.from(mergedMap.values()));
+  }
 
   if (key === DEPT_ORDERS_KEY) {
     const updated = { ...(localData || {}) };
@@ -162,7 +172,7 @@ export const mergeFetchedData = (key, fetchedData, localData, queue, idField = '
   }
   
   if (Array.isArray(fetchedData)) {
-    let mappedFetched = [];
+    let mappedFetched;
     if (key === TABLES_KEY) mappedFetched = fetchedData.map(t => mapFromDB(t, TABLE_FIELD_MAP));
     else if (key === MENU_KEY) mappedFetched = normalizeMenuItems(fetchedData.map(m => mapFromDB(m, MENU_FIELD_MAP)));
     else if (key === BILLS_KEY) mappedFetched = fetchedData.map(b => mapFromDB(b, BILL_FIELD_MAP));
@@ -560,33 +570,52 @@ export const initializeDatabase = async () => {
 
         // 1. Initial Tables fetch
         try {
+          // Clean up stale tables outside the fixed 1-70 range from Supabase.
+          try {
+            const { data: existingTableIds, error: staleFetchError } = await supabase
+              .from('tables')
+              .select('id')
+              .eq('restaurant_id', tenantId);
+            if (staleFetchError) throw staleFetchError;
+
+            const staleIds = (existingTableIds || [])
+              .map(row => row.id)
+              .filter(id => !isManagedTableId(id));
+
+            if (staleIds.length > 0) {
+              const { error: staleDeleteError } = await supabase
+                .from('tables')
+                .delete()
+                .eq('restaurant_id', tenantId)
+                .in('id', staleIds);
+              if (staleDeleteError) throw staleDeleteError;
+            }
+          } catch (deleteErr) {
+            console.error('Failed to delete remote tables outside 1-70:', deleteErr);
+          }
+
           const { data: tables } = await supabase
             .from('tables')
             .select('id, name, seats, area, status, current_order, notes, subtotal, tax, service_charge, total, waiter_code, seated_at, guests, restaurant_id')
             .eq('restaurant_id', tenantId);
           const localData = await readRecord(TABLES_KEY, []);
+          
+          const merged = mergeFetchedData(TABLES_KEY, tables || [], localData, queue);
+          merged.sort((a, b) => a.id - b.id);
+          cache[TABLES_KEY] = clone(merged);
+          await writeRecord(TABLES_KEY, merged);
+          triggerSync(TABLES_KEY);
+
           if (tables && tables.length > 0) {
             const remoteIds = new Set(tables.map(table => String(table.id)));
-            const missingLocalTables = (Array.isArray(localData) ? localData : [])
-              .filter(table => DEFAULT_TABLE_IDS.has(String(table.id)) && !remoteIds.has(String(table.id)));
-            const merged = mergeFetchedData(TABLES_KEY, tables, localData, queue);
-            missingLocalTables.forEach(table => {
-              if (!merged.some(existing => String(existing.id) === String(table.id))) {
-                merged.push(table);
-              }
-            });
-            merged.sort((a, b) => a.id - b.id);
-            cache[TABLES_KEY] = clone(merged);
-            await writeRecord(TABLES_KEY, merged);
-            triggerSync(TABLES_KEY);
-
-            if (missingLocalTables.length > 0) {
-              const mappedMissingTables = missingLocalTables.map(table => ({ ...mapToDB(table, TABLE_FIELD_MAP), restaurant_id: tenantId }));
+            const missingOnServer = merged.filter(table => !remoteIds.has(String(table.id)));
+            if (missingOnServer.length > 0) {
+              const mappedMissingTables = missingOnServer.map(table => ({ ...mapToDB(table, TABLE_FIELD_MAP), restaurant_id: tenantId }));
               const { error } = await supabase.from('tables').upsert(mappedMissingTables);
               if (error) throw error;
             }
-          } else if (Array.isArray(localData) && localData.length > 0) {
-            const mappedLocalTables = localData.map(table => ({ ...mapToDB(table, TABLE_FIELD_MAP), restaurant_id: tenantId }));
+          } else if (merged.length > 0) {
+            const mappedLocalTables = merged.map(table => ({ ...mapToDB(table, TABLE_FIELD_MAP), restaurant_id: tenantId }));
             const { error } = await supabase.from('tables').upsert(mappedLocalTables);
             if (error) throw error;
           }
@@ -759,24 +788,32 @@ export const initializeDatabase = async () => {
               let updated = [...current];
 
               if (payload.eventType === 'DELETE') {
-                if (!isItemInSyncQueue(queue, TABLES_KEY, payload.old.id)) {
-                  updated = updated.filter(t => t.id !== payload.old.id);
+                const deletedId = Number(payload.old.id);
+                if (isManagedTableId(deletedId)) {
+                  const idx = updated.findIndex(t => Number(t.id) === deletedId);
+                  if (idx !== -1) {
+                    updated[idx] = makeDefaultTable(deletedId);
+                  }
                 }
               } else {
                 const item = mapFromDB(payload.new, TABLE_FIELD_MAP);
-                if (!isItemInSyncQueue(queue, TABLES_KEY, item.id)) {
-                  const idx = updated.findIndex(t => t.id === item.id);
-                  if (idx !== -1) {
-                    updated[idx] = item;
-                  } else {
-                    updated.push(item);
+                item.id = Number(item.id);
+                if (isManagedTableId(item.id)) {
+                  if (!isItemInSyncQueue(queue, TABLES_KEY, item.id)) {
+                    const idx = updated.findIndex(t => Number(t.id) === item.id);
+                    if (idx !== -1) {
+                      updated[idx] = item;
+                    } else {
+                      updated.push(item);
+                    }
                   }
                 }
               }
 
-              updated.sort((a, b) => a.id - b.id);
-              cache[TABLES_KEY] = clone(updated);
-              await writeRecord(TABLES_KEY, updated);
+              const normalized = normalizeTablesTo70(updated);
+              normalized.sort((a, b) => a.id - b.id);
+              cache[TABLES_KEY] = clone(normalized);
+              await writeRecord(TABLES_KEY, normalized);
               triggerSync(TABLES_KEY);
             })
             .on('postgres_changes', { event: '*', schema: 'public', table: 'dept_orders', ...filterConfig }, async (payload) => {
@@ -986,7 +1023,7 @@ export const initializeDatabase = async () => {
 };
 
 export const refreshCache = async () => {
-  cache[TABLES_KEY] = await readRecord(TABLES_KEY, DEFAULT_TABLES);
+  cache[TABLES_KEY] = normalizeTablesTo70(await readRecord(TABLES_KEY, DEFAULT_TABLES));
   cache[EMPLOYEES_KEY] = (await readRecord(EMPLOYEES_KEY, DEFAULT_EMPLOYEES)).map(normalizeEmployee);
   cache[BILLS_KEY] = await readRecord(BILLS_KEY, []);
   cache[NOTIFICATIONS_KEY] = await readRecord(NOTIFICATIONS_KEY, []);
