@@ -47,23 +47,27 @@ export default function DashboardTab({ tables, bills, occupied, activeOrders, ac
       <div className="responsive-grid-2" style={{ marginTop: '24px' }}>
         {/* Tables Status */}
         <div className="admin-card">
-          <h3 className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Armchair size={20} style={{ color: 'var(--color-primary)' }} />
-            حالة الطاولات
-          </h3>
-          <div className="responsive-grid-5" style={{ marginTop: '12px' }}>
-            {tables.map(t => (
-              <div key={t.id} style={{
-                padding: '8px', borderRadius: '8px', textAlign: 'center',
-                background: `${STATUS_COLORS[t.status] || '#555'}12`,
-                border: `1px solid ${STATUS_COLORS[t.status] || '#555'}33`
-              }}>
-                <div style={{ fontWeight: 700, fontSize: '1rem', fontFamily: 'Outfit, sans-serif', color: 'var(--text-main)' }}>{t.id}</div>
-                <div style={{ fontSize: '0.65rem', color: STATUS_COLORS[t.status], marginTop: '2px', fontWeight: 600 }}>
-                  {STATUS_LABELS[t.status] || t.status}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+            <h3 className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+              <Armchair size={20} style={{ color: 'var(--color-primary)' }} />
+              حالة الطاولات
+            </h3>
+            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 700 }}>{tables.length} طاولة</span>
+          </div>
+          <div className="dashboard-tables-scroll" aria-label="حالة جميع الطاولات">
+            <div className="responsive-grid-5 dashboard-tables-grid">
+              {tables.map(t => (
+                <div key={t.id} className="dashboard-table-cell" style={{
+                  background: `${STATUS_COLORS[t.status] || '#555'}12`,
+                  border: `1px solid ${STATUS_COLORS[t.status] || '#555'}33`
+                }}>
+                  <div style={{ fontWeight: 700, fontSize: '1rem', fontFamily: 'Outfit, sans-serif', color: 'var(--text-main)' }}>{t.id}</div>
+                  <div style={{ fontSize: '0.65rem', color: STATUS_COLORS[t.status], marginTop: '2px', fontWeight: 600 }}>
+                    {STATUS_LABELS[t.status] || t.status}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
 

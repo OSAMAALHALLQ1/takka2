@@ -2502,6 +2502,34 @@ select.form-input option { background: #ffffff; color: var(--text-main); }
   flex-wrap: wrap;
 }
 
+.dashboard-tables-scroll {
+  margin-top: 12px;
+  max-height: 358px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-inline-end: 6px;
+}
+
+.dashboard-tables-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+
+.dashboard-tables-scroll::-webkit-scrollbar-thumb {
+  background: rgba(212,175,55,0.38);
+  border-radius: 999px;
+}
+
+.dashboard-tables-grid {
+  align-items: stretch;
+}
+
+.dashboard-table-cell {
+  min-height: 48px;
+  padding: 8px;
+  border-radius: 8px;
+  text-align: center;
+}
+
 @media (max-width: 1024px) {
   .responsive-grid-5 {
     grid-template-columns: repeat(3, 1fr);
@@ -2862,7 +2890,6 @@ h4 {
     font-size: 0.8rem;
   }
 }
-
 
 
 
