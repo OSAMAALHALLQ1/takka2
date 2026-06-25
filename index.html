@@ -45,7 +45,10 @@
         display: flex;
         flex-direction: column;
         align-items: center;
-        anim      /* ---- Brand mark ---- */
+        animation: tk-cardIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+      }
+
+      /* ---- Brand mark ---- */
       .loader-logo {
         width: 80px;
         height: 84px;
@@ -59,6 +62,7 @@
         transform-box: fill-box;
         transform-origin: center;
         will-change: transform, opacity;
+        backface-visibility: hidden;
       }
       .logo-hand {
         opacity: 0;
@@ -102,24 +106,25 @@
         20%, 88% { opacity: 1; }
       }
 
-      /* Hand movement: starts offset, moves to dot, presses, then loop fades */
+      /* Hand movement: starts pulled back (down-right), glides up-left to dot, clicks, releases */
       @keyframes tk-hand-move {
         0% {
           opacity: 0;
-          transform: translate(35px, 45px) scale(0.9);
+          transform: translate(28px, 28px) scale(0.92);
         }
-        14% {
+        15% {
           opacity: 1;
+          transform: translate(24px, 24px) scale(0.94);
         }
-        55% {
+        68% {
           opacity: 1;
           transform: translate(0, 0) scale(1);
         }
-        61% {
+        74% {
           opacity: 1;
-          transform: translate(1px, 2px) scale(0.94);
+          transform: translate(-3px, -3px) scale(0.96);
         }
-        67% {
+        80% {
           opacity: 1;
           transform: translate(0, 0) scale(1);
         }
@@ -133,32 +138,32 @@
         }
       }
 
-      /* Button press: slight shrink + glow pulse at reach moment */
+      /* Button press: slight shrink + glow pulse at click moment (68% to 74%) */
       @keyframes tk-press {
         0% {
           opacity: 0;
           transform: scale(0.85);
         }
-        14% {
+        15% {
           opacity: 1;
           transform: scale(1);
         }
-        55% {
+        0%, 67% {
           transform: scale(1);
-          filter: drop-shadow(0 0 0 rgba(220, 38, 38, 0));
+          filter: drop-shadow(0 0 0 rgba(239, 68, 68, 0));
         }
-        61% {
+        71% {
           transform: scale(0.82);
-          filter: drop-shadow(0 0 12px rgba(220, 38, 38, 0.65));
+          filter: drop-shadow(0 0 12px rgba(239, 68, 68, 0.9));
         }
-        67% {
-          transform: scale(1);
-          filter: drop-shadow(0 0 4px rgba(220, 38, 38, 0.25));
+        74% {
+          transform: scale(1.08);
+          filter: drop-shadow(0 0 18px rgba(239, 68, 68, 0.7));
         }
-        88% {
+        82%, 88% {
           opacity: 1;
           transform: scale(1);
-          filter: drop-shadow(0 0 0 rgba(220, 38, 38, 0));
+          filter: drop-shadow(0 0 0 rgba(239, 68, 68, 0));
         }
         100% {
           opacity: 0;
@@ -168,11 +173,11 @@
 
       /* Logo reveal: fades in after click/press is completed */
       @keyframes tk-logo-reveal {
-        0%, 61% {
+        0%, 73% {
           opacity: 0;
           transform: scale(0.96);
         }
-        73%, 88% {
+        88% {
           opacity: 1;
           transform: scale(1);
         }
@@ -183,8 +188,12 @@
       }
 
       @media (prefers-reduced-motion: reduce) {
-        .loader-card, .logo-hand, .logo-dot, .logo-body,
-        .loader-text, .loader-sub { animation: none; opacity: 1; transform: none; }
+        .logo-hand, .logo-dot, .logo-body, .loader-card {
+          animation: none !important;
+          opacity: 1 !important;
+          transform: none !important;
+          filter: none !important;
+        }
       }
     </style>
   </head>
