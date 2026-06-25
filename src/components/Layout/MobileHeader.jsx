@@ -7,7 +7,7 @@ export default function MobileHeader({ user, onMenuClick }) {
   return (
     <header className="mobile-header">
       <div className="mobile-header-brand">
-        <BrandLogo size={22} />
+        <BrandLogo size={26} />
         <span className="mobile-header-title">تكة</span>
         <span className="mobile-header-role-badge">{ROLE_LABELS[user?.role] || user?.role}</span>
       </div>

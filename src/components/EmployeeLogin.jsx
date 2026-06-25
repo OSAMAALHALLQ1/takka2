@@ -39,7 +39,7 @@ export default function EmployeeLogin({ onSwitch, onLoginSuccess }) {
         <div className="login-header">
           <div className="brand" style={{ justifyContent: 'center', marginBottom: '20px' }}>
             <span className="brand-logo">
-              <BrandLogo size={28} style={{ marginLeft: '10px' }} /> تكة | TAKA
+              <BrandLogo type="full" size={28} style={{ marginLeft: '10px' }} /> <span style={{ fontFamily: "'Cairo', sans-serif" }}>| تكة</span>
             </span>
             <span className="brand-tag">تسجيل دخول الموظفين</span>
           </div>

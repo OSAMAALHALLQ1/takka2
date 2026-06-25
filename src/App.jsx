@@ -646,8 +646,8 @@ function MainApp() {
       <header className="header-bar">
         <div className="brand">
           <span className="brand-logo">
-            <BrandLogo size={28} style={{ marginLeft: '8px' }} />
-            تكة | TAKA
+            <BrandLogo type="full" size={28} style={{ marginLeft: '8px' }} />
+            <span style={{ fontFamily: "'Cairo', sans-serif", marginRight: '-2px' }}>| تكة</span>
           </span>
           <span className="brand-tag">{ROLE_LABELS[user.role] || user.role}</span>
         </div>
