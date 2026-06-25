@@ -22,155 +22,107 @@
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Outfit:wght@500;700&display=swap" rel="stylesheet">
 
     <style>
-      /* Inline critical loading styles for sub-50ms paint */
+      /* ============================================================
+         تكة — Loading screen
+         Concept: mimics pressing a button (the brand mark shows a
+         finger pressing a red button). The red circle (button) gets
+         "pressed" — scales down with a glow pulse — then releases.
+         Smooth, ~1.8s cycle, GPU-only transforms.
+         ============================================================ */
       .initial-loader {
         display: flex;
         align-items: center;
         justify-content: center;
         position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: #f9fafb;
+        inset: 0;
+        background: #fafafa;
         z-index: 99999;
         font-family: 'Cairo', sans-serif;
         overflow: hidden;
       }
-      
-      .initial-loader::before {
-        content: '';
-        position: absolute;
-        width: 600px;
-        height: 600px;
-        background: radial-gradient(circle, rgba(220, 38, 38, 0.04) 0%, rgba(220, 38, 38, 0) 70%);
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        pointer-events: none;
-        animation: bgBreathe 6s infinite ease-in-out;
-      }
 
       .loader-card {
-        text-align: center;
-        padding: 45px 40px;
-        border-radius: 28px;
-        background: rgba(255, 255, 255, 0.75);
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
-        border: 1px solid rgba(255, 255, 255, 0.4);
-        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.03), 0 1px 3px rgba(0, 0, 0, 0.01);
         display: flex;
         flex-direction: column;
         align-items: center;
-        max-width: 320px;
-        width: 88%;
-        animation: cardFadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        z-index: 2;
+        animation: tk-cardIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
       }
 
-      .logo-wrapper {
-        position: relative;
-        width: 96px;
-        height: 100px;
-        margin-bottom: 24px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-
+      /* ---- Brand mark ---- */
       .loader-logo {
-        width: 100%;
-        height: 100%;
+        width: 80px;
+        height: 84px;
+        margin-bottom: 20px;
         overflow: visible;
       }
-
-      .logo-dot {
-        fill: #dc2626;
-        filter: drop-shadow(0 2px 8px rgba(220, 38, 38, 0.45));
+      .loader-logo .logo-path {
+        fill: #18181b;
         transform-box: fill-box;
         transform-origin: center;
-        animation: dotBounce 1.8s infinite cubic-bezier(0.28, 0.84, 0.42, 1);
-      }
-
-      .logo-path {
-        fill: #18181b;
         opacity: 0;
-        animation: logoReveal 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards 0.2s;
+        animation: tk-pop 0.4s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both;
+      }
+      .loader-logo .logo-dot {
+        fill: #dc2626;
+        transform-box: fill-box;
+        transform-origin: center;
+        opacity: 0;
+        animation:
+          tk-pop 0.4s cubic-bezier(0.22, 1, 0.36, 1) 0.25s both,
+          tk-press 1.8s cubic-bezier(0.4, 0, 0.2, 1) 0.7s infinite;
       }
 
+      /* ---- Text ---- */
       .loader-text {
-        font-size: 1.8rem;
+        font-size: 1.6rem;
         font-weight: 800;
         color: #09090b;
-        margin-bottom: 4px;
-        letter-spacing: -0.5px;
+        letter-spacing: -0.3px;
+        margin-bottom: 2px;
         opacity: 0;
-        animation: fadeInText 0.6s ease forwards 0.4s;
+        animation: tk-fade 0.4s ease 0.4s forwards;
       }
-
       .loader-sub {
-        font-size: 0.82rem;
+        font-size: 0.78rem;
         color: #71717a;
-        margin-bottom: 28px;
         font-weight: 600;
         opacity: 0;
-        animation: fadeInText 0.6s ease forwards 0.5s;
+        animation: tk-fade 0.4s ease 0.5s forwards;
       }
 
-      .loader-progress-container {
-        width: 140px;
-        height: 3px;
-        background: #f4f4f5;
-        border-radius: 10px;
-        overflow: hidden;
-        position: relative;
-        opacity: 0;
-        animation: fadeInText 0.6s ease forwards 0.6s;
+      /* ---- Keyframes ---- */
+      @keyframes tk-cardIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to   { opacity: 1; transform: translateY(0); }
+      }
+      @keyframes tk-pop {
+        from { opacity: 0; transform: scale(0.85); }
+        to   { opacity: 1; transform: scale(1); }
+      }
+      @keyframes tk-fade {
+        from { opacity: 0; }
+        to   { opacity: 1; }
       }
 
-      .loader-progress-bar {
-        position: absolute;
-        top: 0;
-        left: 0;
-        height: 100%;
-        width: 60px;
-        background: linear-gradient(90deg, transparent, #dc2626, transparent);
-        border-radius: 10px;
-        animation: marqueeProgress 1.6s infinite cubic-bezier(0.4, 0, 0.2, 1);
+      /* Button press: slight shrink + glow pulse, then release */
+      @keyframes tk-press {
+        0%, 100% {
+          transform: scale(1);
+          filter: drop-shadow(0 0 0 rgba(220, 38, 38, 0));
+        }
+        35% {
+          transform: scale(0.82);
+          filter: drop-shadow(0 0 10px rgba(220, 38, 38, 0.5));
+        }
+        55% {
+          transform: scale(0.82);
+          filter: drop-shadow(0 0 6px rgba(220, 38, 38, 0.35));
+        }
       }
 
-      /* Animations */
-      @keyframes bgBreathe {
-        0%, 100% { transform: translate(-50%, -50%) scale(0.9); opacity: 0.8; }
-        50% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; }
-      }
-
-      @keyframes cardFadeIn {
-        from { opacity: 0; transform: translateY(20px) scale(0.96); }
-        to { opacity: 1; transform: translateY(0) scale(1); }
-      }
-
-      @keyframes logoReveal {
-        from { opacity: 0; transform: translateY(8px) scale(0.95); }
-        to { opacity: 1; transform: translateY(0) scale(1); }
-      }
-
-      @keyframes fadeInText {
-        from { opacity: 0; transform: translateY(8px); }
-        to { opacity: 1; transform: translateY(0); }
-      }
-
-      @keyframes marqueeProgress {
-        0% { left: -60px; }
-        100% { left: 140px; }
-      }
-
-      @keyframes dotBounce {
-        0%, 100% { transform: translateY(0); }
-        45% { transform: translateY(-130%); }
-        50% { transform: translateY(-130%); }
-        85% { transform: translateY(0); }
+      @media (prefers-reduced-motion: reduce) {
+        .loader-card, .loader-logo .logo-path, .loader-logo .logo-dot,
+        .loader-text, .loader-sub { animation: none; opacity: 1; transform: none; }
       }
     </style>
   </head>
@@ -178,20 +130,15 @@
     <div id="root">
       <div class="initial-loader">
         <div class="loader-card">
-          <div class="logo-wrapper">
-            <svg class="loader-logo" viewBox="0 0 1085.6 1146.4" xmlns="http://www.w3.org/2000/svg">
-              <circle class="logo-dot" cx="268.6" cy="202.1" r="86.9"/>
-              <path class="logo-path" d="M1355.19,1139.3c-9.4-12.1-73-98.1-83.69-96.7-24.2,2.7-27.5,37.7-20.8,80.6,7.3,35,16.7,69.2,38.3,122.9l.6,1.3c20.8,48.5,53.1,120.2,69.2,160.6,11.4,30.2,31,95.4,25.6,137.1,20.8,6,16.2-55,9.4-94.1-3.3-18.1-13.5-57.1-17.5-67.9-10.8-28.3-31.6-79.3-40.4-99.4-22.9-54.4-74.6-178.1-70.6-217,1.9-18.1,14.1-9.4,20.8,2.7,26.9,35.6,36.3,69.8,80.6,135.8,20.8,32.9,48.5,81.4,72.5,123.7a467.4,467.4,0,0,0,35,53.7c7.3,8.1,18.8,26.9,29.6,26.9,12.1,1.9,13.5-12.1,9.4-21.5-2.7-13.5-12.7-27.5-26.9-45.8-51.1-69.2-96.8-153.3-134.4-207.7" transform="translate(-987.9 -850.4)"/>
-              <path class="logo-path" d="M1426.7,1241.5c27.5-8.7,56.4-4,80,25.6l9.4,11.4,9.4,14.1c14.1,22.1,22.9,41,35,59.1,7.3,12.1,15.4,26.9,25.6,37.7,17.5,14.8,26.9,2.7,16.7-22.9-5.4-14.8-23.5-39-26.9-45-35-47.1-58.5-82-90.8-94.8-15.7-8.8-47.1-9.4-60.6,2.1a6.3,6.3,0,0,0-1.5,7.6A30.14,30.14,0,0,0,1426.7,1241.5Z" transform="translate(-987.9 -850.4)"/>
-              <path class="logo-path" d="M1881,1771.2c7.2-9.6,13.3-19.6,13.3-31.7-2.7-1.3,0-7.3-13.5-32.9-7.3-14.8-33.6-57.1-47.7-61.8l-3.3,1.3c-6.7,0-15.4,0-24.8,2.7,2.7-43.7,14.8-108.9,4.6-186.8-4.6-29.6-9.4-51.1-16.2-65.8-4.6-12.7-9.4-24.2-14.1-31-19.4-33.6-46.4-67.1-69.2-88.1-20.2-17.5-36.9-26.9-61.2-26.2-16.7,0-28.3,6.7-29.6,10-16.2-13.5-36.9-26.2-55.8-30.2-10,0-24.2-4-39,6-4.6,2.7-6,7.3,1.9,6.7h6c49.1,4.6,65.8,22.9,98.9,71.9l18.1,30.2c7.3,11.4,16.2,28.3,29.6,40.4,12.7,12.7,25.6,4,13.5-18.1l-13.5-22.1-20.2-30.2c-6-8.1-20.8-31-34.2-49.1,29.6-5.4,53.7,0,77.3,35,16.7,22.9,35.6,53.7,47.1,82,33.6,96.2,33.6,172.7,34.2,270.8-22.9,5.4-53.1,14.1-73.3,23.5-60.4,26.2-124.3,67.9-166,116.2-26.9-26.9-90-54.4-134.4-86-39-28.3-63.9-57.7-88.7-98.9-13.5-24.8-26.9-52.5-43.7-82.7-13.5-24.8-34.2-51.7-53.1-73.3-11.4-10-28.9-22.1-45.8-32.3,34.2-15.4,74.6,1.3,100.2,20.8,30.2,22.9,54.4,59.8,77.9,87.3,4,4.6,8.7,12.7,13.5,12.7,4.6,0,.6-8.7-.6-10-29.6-39-53.7-86-96.2-114.3-17.5-11.4-40.4-21.5-61.8-21.5-32.9-.6-73.9,18.1-73.3,32.9l2.7,3.3c16.7,12.1,31,22.1,45,36.9,33.6,32.9,59.1,76,81.4,124.3,19.4,36.3,39.6,69.8,69.8,99.4,42.3,41.7,96.8,67.9,131,86,20.2,11.4,38.3,23.5,55.8,42.3l-10,19.4c-1.9,20.2,15.4,49.1,30.2,71.2,19.4,29.6,108,23.6,72.5-31,22.9-22.1,62.5-49.8,86.7-65.2,34.2-22.1,87.3-41,128.3-59.1h1.3c7.5,13.9,16.5,19.9,24.1,22.1A20.61,20.61,0,0,0,1881,1771.2Zm-145.2,7.3c-57.1,26.9-141.8,89.4-163.9,137.7-12.7-13.5-31-55-47.7-69.8,15.4-22.1,47.7-57.1,79.3-79.3,63.9-47.1,120.2-75.2,192.9-100.8l33.6-12.1v-1.3l50.4,85.4C1853.4,1736.8,1799.7,1751.6,1735.8,1778.5Z" transform="translate(-987.9 -850.4)"/>
-              <path class="logo-path" d="M1786.2,1690.4c-23.5,14.8-12.1,46.4,11.4,43.1C1823.2,1728.1,1817.8,1686.4,1786.2,1690.4Z" transform="translate(-987.9 -850.4)"/>
-            </svg>
-          </div>
+          <svg class="loader-logo" viewBox="0 0 1085.6 1146.4" xmlns="http://www.w3.org/2000/svg">
+            <circle class="logo-dot" cx="268.6" cy="202.1" r="86.9"/>
+            <path class="logo-path" d="M1355.19,1139.3c-9.4-12.1-73-98.1-83.69-96.7-24.2,2.7-27.5,37.7-20.8,80.6,7.3,35,16.7,69.2,38.3,122.9l.6,1.3c20.8,48.5,53.1,120.2,69.2,160.6,11.4,30.2,31,95.4,25.6,137.1,20.8,6,16.2-55,9.4-94.1-3.3-18.1-13.5-57.1-17.5-67.9-10.8-28.3-31.6-79.3-40.4-99.4-22.9-54.4-74.6-178.1-70.6-217,1.9-18.1,14.1-9.4,20.8,2.7,26.9,35.6,36.3,69.8,80.6,135.8,20.8,32.9,48.5,81.4,72.5,123.7a467.4,467.4,0,0,0,35,53.7c7.3,8.1,18.8,26.9,29.6,26.9,12.1,1.9,13.5-12.1,9.4-21.5-2.7-13.5-12.7-27.5-26.9-45.8-51.1-69.2-96.8-153.3-134.4-207.7" transform="translate(-987.9 -850.4)"/>
+            <path class="logo-path" d="M1426.7,1241.5c27.5-8.7,56.4-4,80,25.6l9.4,11.4l9.4,14.1c14.1,22.1,22.9,41,35,59.1,7.3,12.1,15.4,26.9,25.6,37.7,17.5,14.8,26.9,2.7,16.7-22.9-5.4-14.8-23.5-39-26.9-45-35-47.1-58.5-82-90.8-94.8-15.7-8.8-47.1-9.4-60.6,2.1a6.3,6.3,0,0,0-1.5,7.6A30.14,30.14,0,0,0,1426.7,1241.5Z" transform="translate(-987.9 -850.4)"/>
+            <path class="logo-path" d="M1881,1771.2c7.2-9.6,13.3-19.6,13.3-31.7-2.7-1.3,0-7.3-13.5-32.9-7.3-14.8-33.6-57.1-47.7-61.8l-3.3,1.3c-6.7,0-15.4,0-24.8,2.7,2.7-43.7,14.8-108.9,4.6-186.8-4.6-29.6-9.4-51.1-16.2-65.8-4.6-12.7-9.4-24.2-14.1-31-19.4-33.6-46.4-67.1-69.2-88.1-20.2-17.5-36.9-26.9-61.2-26.2-16.7,0-28.3,6.7-29.6,10-16.2-13.5-36.9-26.2-55.8-30.2-10,0-24.2-4-39,6-4.6,2.7-6,7.3,1.9,6.7h6c49.1,4.6,65.8,22.9,98.9,71.9l18.1,30.2c7.3,11.4,16.2,28.3,29.6,40.4,12.7,12.7,25.6,4,13.5-18.1l-13.5-22.1-20.2-30.2c-6-8.1-20.8-31-34.2-49.1,29.6-5.4,53.7,0,77.3,35,16.7,22.9,35.6,53.7,47.1,82,33.6,96.2,33.6,172.7,34.2,270.8-22.9,5.4-53.1,14.1-73.3,23.5-60.4,26.2-124.3,67.9-166,116.2-26.9-26.9-90-54.4-134.4-86-39-28.3-63.9-57.7-88.7-98.9-13.5-24.8-26.9-52.5-43.7-82.7-13.5-24.8-34.2-51.7-53.1-73.3-11.4-10-28.9-22.1-45.8-32.3,34.2-15.4,74.6,1.3,100.2,20.8,30.2,22.9,54.4,59.8,77.9,87.3,4,4.6,8.7,12.7,13.5,12.7,4.6,0,.6-8.7-.6-10-29.6-39-53.7-86-96.2-114.3-17.5-11.4-40.4-21.5-61.8-21.5-32.9-.6-73.9,18.1-73.3,32.9l2.7,3.3c16.7,12.1,31,22.1,45,36.9,33.6,32.9,59.1,76,81.4,124.3,19.4,36.3,39.6,69.8,69.8,99.4,42.3,41.7,96.8,67.9,131,86,20.2,11.4,38.3,23.5,55.8,42.3l-10,19.4c-1.9,20.2,15.4,49.1,30.2,71.2,19.4,29.6,108,23.6,72.5-31,22.9-22.1,62.5-49.8,86.7-65.2,34.2-22.1,87.3-41,128.3-59.1h1.3c7.5,13.9,16.5,19.9,24.1,22.1A20.61,20.61,0,0,0,1881,1771.2zm-145.2,7.3c-57.1,26.9-141.8,89.4-163.9,137.7-12.7-13.5-31-55-47.7-69.8,15.4-22.1,47.7-57.1,79.3-79.3,63.9-47.1,120.2-75.2,192.9-100.8l33.6-12.1v-1.3l50.4,85.4C1853.4,1736.8,1799.7,1751.6,1735.8,1778.5Z" transform="translate(-987.9 -850.4)"/>
+            <path class="logo-path" d="M1786.2,1690.4c-23.5,14.8-12.1,46.4,11.4,43.1C1823.2,1728.1,1817.8,1686.4,1786.2,1690.4Z" transform="translate(-987.9 -850.4)"/>
+          </svg>
           <div class="loader-text">تكة</div>
           <div class="loader-sub">نظام إدارة المطعم</div>
-          <div class="loader-progress-container">
-            <div class="loader-progress-bar"></div>
-          </div>
         </div>
       </div>
     </div>
