@@ -24,10 +24,10 @@
     <style>
       /* ============================================================
          تكة — Loading screen
-         Concept: mimics pressing a button (the brand mark shows a
-         finger pressing a red button). The red circle (button) gets
-         "pressed" — scales down with a glow pulse — then releases.
-         Smooth, ~1.8s cycle, GPU-only transforms.
+         The brand mark is a finger pressing a red button (تكة).
+         Animation: hand slides down onto the button → button presses
+         (shrinks + glow) → hand lifts → loop. Text fades in once.
+         Total cycle: ~1.8s. GPU-only (transform, opacity, filter).
          ============================================================ */
       .initial-loader {
         display: flex;
@@ -45,7 +45,7 @@
         display: flex;
         flex-direction: column;
         align-items: center;
-        animation: tk-cardIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+        animation: tk-cardIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
       }
 
       /* ---- Brand mark ---- */
@@ -58,27 +58,36 @@
       .loader-logo .logo-path {
         fill: #18181b;
       }
-      .logo-dot, .logo-hand, .logo-body {
+
+      /* SVG groups — GPU-friendly */
+      .logo-dot,
+      .logo-hand,
+      .logo-body {
         transform-box: fill-box;
         transform-origin: center center;
         will-change: transform, opacity;
-        backface-visibility: hidden;
       }
-      .logo-hand {
+
+      /* Body: fade in once, stay visible */
+      .logo-body {
         opacity: 0;
-        animation: tk-hand-move 2.2s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+        animation: tk-once 0.4s ease 0.15s forwards;
       }
+
+      /* Red button: appear, then press loop */
       .logo-dot {
         fill: #dc2626;
         opacity: 0;
-        animation: tk-press 2.2s ease-in-out infinite;
-      }
-      .logo-body {
-        opacity: 0;
-        animation: tk-logo-reveal 2.2s ease-out infinite;
+        animation: tk-once 0.3s ease 0.3s forwards, tk-press 1.8s ease-in-out 0.6s infinite;
       }
 
-      /* ---- Text ---- */
+      /* Hand: appear, then press-down loop */
+      .logo-hand {
+        opacity: 0;
+        animation: tk-once 0.3s ease 0.5s forwards, tk-hand 1.8s cubic-bezier(0.4, 0, 0.2, 1) 0.6s infinite;
+      }
+
+      /* ---- Text (fade in once, stay) ---- */
       .loader-text {
         font-size: 1.6rem;
         font-weight: 800;
@@ -86,128 +95,43 @@
         letter-spacing: -0.3px;
         margin-bottom: 2px;
         opacity: 0;
-        animation: tk-fade 2.2s ease 0.4s infinite;
+        animation: tk-once 0.4s ease 0.4s forwards;
       }
       .loader-sub {
         font-size: 0.78rem;
         color: #71717a;
         font-weight: 600;
         opacity: 0;
-        animation: tk-fade 2.2s ease 0.5s infinite;
+        animation: tk-once 0.4s ease 0.5s forwards;
       }
 
       /* ---- Keyframes ---- */
       @keyframes tk-cardIn {
-        from { opacity: 0; transform: translateY(18px) scale(0.98); }
+        from { opacity: 0; transform: translateY(12px) scale(0.98); }
         to   { opacity: 1; transform: translateY(0) scale(1); }
       }
-      @keyframes tk-fade {
-        0%, 100% { opacity: 0; }
-        20%, 88% { opacity: 1; }
+      @keyframes tk-once {
+        from { opacity: 0; }
+        to   { opacity: 1; }
       }
 
-      /* Hand movement: starts offset from bottom, slides up, presses up, then fades out */
-      @keyframes tk-hand-move {
-        0% {
-          opacity: 0;
-          transform: translate3d(0, 80px, 0) scale(0.96);
-        }
-        12% {
-          opacity: 1;
-          transform: translate3d(0, 80px, 0) scale(0.96);
-        }
-        68% {
-          opacity: 1;
-          transform: translate3d(0, 0, 0) scale(1);
-        }
-        74% {
-          opacity: 1;
-          transform: translate3d(0, -4px, 0) scale(0.98);
-        }
-        80% {
-          opacity: 1;
-          transform: translate3d(0, 0, 0) scale(1);
-        }
-        90% {
-          opacity: 1;
-          transform: translate3d(0, 0, 0) scale(1);
-        }
-        100% {
-          opacity: 0;
-          transform: translate3d(0, 0, 0) scale(1);
-        }
+      /* Hand: rests above, slides down to press, lifts back up */
+      @keyframes tk-hand {
+        0%, 100% { transform: translateY(0); }
+        25%, 55% { transform: translateY(18px) scale(0.97); }
       }
 
-      /* Button press: slight shrink + glow pulse at click moment */
+      /* Button: shrinks when pressed, bounces back with glow */
       @keyframes tk-press {
-        0% {
-          opacity: 0;
-          transform: scale(1);
-          filter: none;
-        }
-        12% {
-          opacity: 1;
-          transform: scale(1);
-          filter: none;
-        }
-        66% {
-          opacity: 1;
-          transform: scale(1);
-          filter: none;
-        }
-        70% {
-          opacity: 1;
-          transform: scale(0.82);
-          filter: drop-shadow(0 0 8px rgba(255, 0, 0, 0.8));
-        }
-        76% {
-          opacity: 1;
-          transform: scale(1.15);
-          filter: drop-shadow(0 0 14px rgba(255, 0, 0, 0.9));
-        }
-        84% {
-          opacity: 1;
-          transform: scale(1);
-          filter: none;
-        }
-        90% {
-          opacity: 1;
-          transform: scale(1);
-          filter: none;
-        }
-        100% {
-          opacity: 0;
-          transform: scale(1);
-          filter: none;
-        }
-      }
-
-      /* Logo reveal: fades in after click/press is completed */
-      @keyframes tk-logo-reveal {
-        0% {
-          opacity: 0;
-        }
-        72% {
-          opacity: 0;
-        }
-        88% {
-          opacity: 1;
-        }
-        90% {
-          opacity: 1;
-        }
-        100% {
-          opacity: 0;
-        }
+        0%, 100% { transform: scale(1); filter: drop-shadow(0 0 0 rgba(220,38,38,0)); }
+        30%, 55% { transform: scale(0.78); filter: drop-shadow(0 0 12px rgba(220,38,38,0.55)); }
+        70%      { transform: scale(1.08); filter: drop-shadow(0 0 4px rgba(220,38,38,0.2)); }
+        85%      { transform: scale(1); filter: drop-shadow(0 0 0 rgba(220,38,38,0)); }
       }
 
       @media (prefers-reduced-motion: reduce) {
-        .logo-hand, .logo-dot, .logo-body, .loader-card {
-          animation: none !important;
-          opacity: 1 !important;
-          transform: none !important;
-          filter: none !important;
-        }
+        .loader-card, .logo-hand, .logo-dot, .logo-body,
+        .loader-text, .loader-sub { animation: none !important; opacity: 1 !important; transform: none !important; filter: none !important; }
       }
     </style>
   </head>
